@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <optional>
 
 namespace SharpVox {
 
@@ -17,6 +16,7 @@ public:
         enum class Kind { Rate, Pitch, Volume };
         Kind Type;
         int32_t Value;
+        VoiceCommand() : Type(Kind::Rate), Value(0) {}
         VoiceCommand(Kind type, int32_t value) : Type(type), Value(value) {}
     };
 
@@ -28,7 +28,7 @@ public:
 
         std::string                     plainText;    // valid when kind == PlainText
         std::vector<PhonemeToken>       singing;      // valid when kind == Singing
-        std::optional<VoiceCommand>     cmd;          // valid when kind == Cmd
+        VoiceCommand                    cmd;          // valid when kind == Cmd
         std::string                     klattschText; // valid when kind == KlattschText
 
         bool IsSinging()   const { return kind == Kind::Singing; }

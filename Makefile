@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Iinclude -fPIC
+CXXFLAGS := -std=c++11 -O2 -Wall -Wextra -Iinclude -fPIC
 LDFLAGS  :=
 LDLIBS   := -lz -lm
 
@@ -50,7 +50,7 @@ WASM_SRCS := $(LIB_SRCS) \
 WASM_OUT  := platform/wasm/wwwroot/js/sharpvox.js
 
 EMCC      := emcc
-EMCCFLAGS := -std=c++17 -O2 -Iinclude \
+EMCCFLAGS := -std=c++11 -O2 -Iinclude \
     --bind \
     -fwasm-exceptions \
     -sUSE_ZLIB=1 \

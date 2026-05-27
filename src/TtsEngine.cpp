@@ -12,6 +12,8 @@
 #include <cmath>
 #include <cstring>
 
+namespace { template<class T> T clamp11(T v, T lo, T hi) { return v < lo ? lo : v > hi ? hi : v; } }
+
 namespace SharpVox {
 
     const std::vector<int32_t>& TtsEngine::SupportedSampleRates() {
@@ -41,7 +43,8 @@ namespace SharpVox {
 
     std::vector<std::string> TtsEngine::PhonemizeWord(const std::string& word) {
         std::vector<std::string> result;
-        for (auto& [tokens, endPunct] : _fe.TextToSentenceTokens(word)) {
+        for (auto& pair : _fe.TextToSentenceTokens(word)) {
+            const std::vector<PhonemeToken>& tokens = pair.first;
             for (const auto& tok : tokens) {
                 if (tok.Phon == AudioProcessor::_SIL_) { continue; }
                 const char* name = AudioProcessor::PhonemeNamesTable[tok.Phon];
@@ -72,9 +75,9 @@ namespace SharpVox {
                 tokens = seg.singing;
             } else {
                 // Just take the first sentence for now if multi-sentence
-                for (auto& [t, ep] : _fe.TextToSentenceTokens(seg.plainText)) {
-                    tokens = t;
-                    endPunct = ep;
+                for (auto& p : _fe.TextToSentenceTokens(seg.plainText)) {
+                    tokens = p.first;
+                    endPunct = p.second;
                     break;
                 }
                 if (tokens.empty()) { continue; }
@@ -122,7 +125,7 @@ namespace SharpVox {
         EmbeddedCmd::KlattschMode = false;
         for (const auto& seg : EmbeddedCmd::ParseSegments(text)) {
             if (seg.IsCommand()) {
-                ApplyCommand(*seg.cmd);
+                ApplyCommand(seg.cmd);
                 continue;
             }
             if (seg.IsKlattsch()) {
@@ -136,8 +139,8 @@ namespace SharpVox {
                 ProcessSentenceStreaming(seg.singing, 0, cb);
                 continue;
             }
-            for (auto& [tokens, endPunct] : _fe.TextToSentenceTokens(seg.plainText)) {
-                ProcessSentenceStreaming(tokens, endPunct, cb);
+            for (auto& p : _fe.TextToSentenceTokens(seg.plainText)) {
+                ProcessSentenceStreaming(p.first, p.second, cb);
             }
         }
     }
@@ -187,7 +190,7 @@ namespace SharpVox {
 
         for (const auto& seg : EmbeddedCmd::ParseSegments(text)) {
             if (seg.IsCommand()) {
-                ApplyCommand(*seg.cmd);
+                ApplyCommand(seg.cmd);
                 continue;
             }
 
@@ -229,7 +232,9 @@ namespace SharpVox {
                 continue;
             }
 
-            for (auto& [tokens, endPunct] : _fe.TextToSentenceTokens(seg.plainText)) {
+            for (auto& p : _fe.TextToSentenceTokens(seg.plainText)) {
+                const std::vector<PhonemeToken>& tokens = p.first;
+                int16_t endPunct = p.second;
                 auto dump = _be.Process(tokens, endPunct);
                 int32_t frameOff = 0;
                 for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
@@ -257,15 +262,15 @@ namespace SharpVox {
     void TtsEngine::ApplyCommand(const EmbeddedCmd::VoiceCommand& cmd) {
         switch (cmd.Type) {
             case EmbeddedCmd::VoiceCommand::Kind::Rate:
-                _voice.Rate = (int16_t)std::clamp(cmd.Value, 40, 600);
+                _voice.Rate = (int16_t)clamp11(cmd.Value, 40, 600);
                 _be = AudioProcessor(_voice);
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Pitch:
-                _voice.PitchHz = (int16_t)std::clamp(cmd.Value, 40, 500);
+                _voice.PitchHz = (int16_t)clamp11(cmd.Value, 40, 500);
                 _be = AudioProcessor(_voice);
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Volume:
-                _voice.VGain = (int16_t)std::clamp(cmd.Value, 0, 100);
+                _voice.VGain = (int16_t)clamp11(cmd.Value, 0, 100);
                 _synth.InvDFT(_voice.VWave, _voice.VWave1, (int16_t)_voice.VGain);
                 break;
         }
@@ -277,11 +282,11 @@ namespace SharpVox {
         _synth = KlattSynthesizer(SampleRate);
         int16_t lo = _voice.LarynxOffset;
         _synth.SetVoice(_voice.NGain, true,
-            (int16_t)std::clamp((int32_t)(_voice.F4Freq + lo),  100, 8000), _voice.F4BW,
-            (int16_t)std::clamp((int32_t)(_voice.F5Freq + lo),  100, 8000), _voice.F5BW,
-            (int16_t)std::clamp((int32_t)(_voice.F4pFreq + lo), 100, 8000), _voice.F4pBW,
-            (int16_t)std::clamp((int32_t)(_voice.F5pFreq + lo), 100, 8000), _voice.F5pBW,
-            (int16_t)std::clamp((int32_t)(_voice.F6pFreq + lo), 100, 8000), _voice.F6pBW,
+            (int16_t)clamp11((int32_t)(_voice.F4Freq + lo),  100, 8000), _voice.F4BW,
+            (int16_t)clamp11((int32_t)(_voice.F5Freq + lo),  100, 8000), _voice.F5BW,
+            (int16_t)clamp11((int32_t)(_voice.F4pFreq + lo), 100, 8000), _voice.F4pBW,
+            (int16_t)clamp11((int32_t)(_voice.F5pFreq + lo), 100, 8000), _voice.F5pBW,
+            (int16_t)clamp11((int32_t)(_voice.F6pFreq + lo), 100, 8000), _voice.F6pBW,
             _voice.NasalBase, _voice.NasalBW,
             _voice.AGain, _voice.ACycle);
         _synth.Jitter          = _voice.Jitter;

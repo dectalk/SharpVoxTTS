@@ -1816,4 +1816,7 @@ namespace SharpVox {
         }
     }
 
+// C++11 requires out-of-line definitions for ODR-used static constexpr members.
+constexpr int16_t AudioProcessor::_SIL_;
+
 }  // namespace SharpVox
