@@ -1,10 +1,10 @@
 #include <cstdio>
-#include "platform/lib/sharptalk_speaker.h"
+#include "platform/lib/sharpvox_speaker.h"
 
-using SharpTalk::SharpTalkSpeaker;
+using SharpVox::SharpVoxSpeaker;
 
 int main() {
-    SharpTalkSpeaker speaker;
+    SharpVoxSpeaker speaker;
 
     FILE* f = fopen("hello.wav", "wb");
     auto w32 = [f](int v)   { fwrite(&v, 4, 1, f); };

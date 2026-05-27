@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_TEXT_COMMANDS_H
-#define SHARPTALK_TEXT_COMMANDS_H
+#ifndef SHARPVOX_TEXT_COMMANDS_H
+#define SHARPVOX_TEXT_COMMANDS_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <optional>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Forward declaration — PhonemeToken is defined in audio_processor.h / tts_engine.h.
 struct PhonemeToken;
@@ -81,6 +81,6 @@ private:
     static int16_t MapPhoneme(const std::string& p);
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_TEXT_COMMANDS_H
+#endif  // SHARPVOX_TEXT_COMMANDS_H

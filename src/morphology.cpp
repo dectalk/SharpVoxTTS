@@ -23,7 +23,7 @@ static constexpr int16_t _K_  = 48;
 static constexpr int16_t _CH_ = 50; static constexpr int16_t _JH_ = 51;
 static constexpr int16_t _SIL_= 23;
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Ordered from longest to shortest to avoid early false matches.
 // Each entry: (suffix_string, stripped_length, suffix_type)
@@ -509,4 +509,4 @@ std::vector<uint8_t> Morph::Concat(const std::vector<uint8_t>& a, std::initializ
     return r;
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_LEXICON_READER_H
-#define SHARPTALK_LEXICON_READER_H
+#ifndef SHARPVOX_LEXICON_READER_H
+#define SHARPVOX_LEXICON_READER_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <functional>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 class DictReader {
 public:
@@ -31,6 +31,6 @@ private:
     int32_t _wordCount;
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_LEXICON_READER_H
+#endif  // SHARPVOX_LEXICON_READER_H

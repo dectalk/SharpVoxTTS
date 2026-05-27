@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // PhonemeNamesTable: indexed by phoneme ID.
     // Slots that have no name are nullptr.
@@ -1816,4 +1816,4 @@ namespace SharpTalk {
         }
     }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

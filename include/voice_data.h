@@ -1,9 +1,9 @@
-#ifndef SHARPTALK_VOICE_DATA_H
-#define SHARPTALK_VOICE_DATA_H
+#ifndef SHARPVOX_VOICE_DATA_H
+#define SHARPVOX_VOICE_DATA_H
 
 #include <cstdint>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 struct VoiceData {
     int16_t PitchHz = 208;
@@ -137,6 +137,6 @@ struct VoiceData {
     }
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_VOICE_DATA_H
+#endif  // SHARPVOX_VOICE_DATA_H

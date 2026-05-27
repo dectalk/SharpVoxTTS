@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_SPEECH_RENDERER_H
-#define SHARPTALK_SPEECH_RENDERER_H
+#ifndef SHARPVOX_SPEECH_RENDERER_H
+#define SHARPVOX_SPEECH_RENDERER_H
 
 #include <cstdint>
 #include <functional>
@@ -10,7 +10,7 @@
 #include "../include/klatt_synthesizer.h"
 #include "../include/pitch_interpolator.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Converts phonemes into KlattSynthesizer frames using Klatt (1980) and Klatt & Klatt (1990) models.
 //
@@ -391,6 +391,6 @@ private:
     void TailRules(ControlBlock& cb, int32_t bt);
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_SPEECH_RENDERER_H
+#endif  // SHARPVOX_SPEECH_RENDERER_H

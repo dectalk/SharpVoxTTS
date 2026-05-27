@@ -8,10 +8,10 @@
 #include <vector>
 #include <stdexcept>
 
-#include "../../platform/lib/sharptalk_speaker.h"
+#include "../../platform/lib/sharpvox_speaker.h"
 #include "../../include/audio_processor.h"
 
-using namespace SharpTalk;
+using namespace SharpVox;
 using namespace emscripten;
 
 // ── JS callbacks ──────────────────────────────────────────────────────────────
@@ -119,9 +119,9 @@ static const char* phonemeName(int16_t id) {
 
 // ── Interop class ─────────────────────────────────────────────────────────────
 
-class SharpTalkInterop {
+class SharpVoxInterop {
 public:
-    SharpTalkInterop() {}
+    SharpVoxInterop() {}
 
     void Initialize() { syncAllParamsToUi(); }
 
@@ -425,7 +425,7 @@ public:
     }
 
 private:
-    SharpTalkSpeaker _speaker;
+    SharpVoxSpeaker _speaker;
     int   _sampleRate   = 48000;
     float _outputVolume = 1.0f;
     bool  _klattschMode = false;
@@ -543,18 +543,18 @@ private:
 
 // ── Embind bindings ───────────────────────────────────────────────────────────
 
-EMSCRIPTEN_BINDINGS(sharptalk_interop) {
-    class_<SharpTalkInterop>("SharpTalkInterop")
+EMSCRIPTEN_BINDINGS(sharpvox_interop) {
+    class_<SharpVoxInterop>("SharpVoxInterop")
         .constructor()
-        .function("Initialize",      &SharpTalkInterop::Initialize)
-        .function("SetMode",         &SharpTalkInterop::SetMode)
-        .function("UpdateParam",     &SharpTalkInterop::UpdateParam)
-        .function("Speak",           &SharpTalkInterop::Speak)
-        .function("AuditionPhoneme", &SharpTalkInterop::AuditionPhoneme)
-        .function("StopBtn",         &SharpTalkInterop::StopBtn)
-        .function("DownloadWav",     &SharpTalkInterop::DownloadWav)
-        .function("OnPresetChange",  &SharpTalkInterop::OnPresetChange)
-        .function("ExportPreset",    &SharpTalkInterop::ExportPreset)
-        .function("HandleImport",    &SharpTalkInterop::HandleImport)
-        .function("ConvertUst",      &SharpTalkInterop::ConvertUst);
+        .function("Initialize",      &SharpVoxInterop::Initialize)
+        .function("SetMode",         &SharpVoxInterop::SetMode)
+        .function("UpdateParam",     &SharpVoxInterop::UpdateParam)
+        .function("Speak",           &SharpVoxInterop::Speak)
+        .function("AuditionPhoneme", &SharpVoxInterop::AuditionPhoneme)
+        .function("StopBtn",         &SharpVoxInterop::StopBtn)
+        .function("DownloadWav",     &SharpVoxInterop::DownloadWav)
+        .function("OnPresetChange",  &SharpVoxInterop::OnPresetChange)
+        .function("ExportPreset",    &SharpVoxInterop::ExportPreset)
+        .function("HandleImport",    &SharpVoxInterop::HandleImport)
+        .function("ConvertUst",      &SharpVoxInterop::ConvertUst);
 }

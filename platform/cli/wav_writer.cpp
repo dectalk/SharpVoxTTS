@@ -3,7 +3,7 @@
 #include <cstring>
 #include <stdexcept>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 WavStreamWriter::WavStreamWriter(const std::string& path, int32_t sampleRate)
     : _sampleRate(sampleRate), _dataBytes(0), _disposed(false) {
@@ -82,4 +82,4 @@ void WavWriter::WriteWav(const std::string& path, const std::vector<int16_t>& sa
     writer.Write(samples);
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

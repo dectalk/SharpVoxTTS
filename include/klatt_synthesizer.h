@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_KLATT_SYNTHESIZER_H
-#define SHARPTALK_KLATT_SYNTHESIZER_H
+#ifndef SHARPVOX_KLATT_SYNTHESIZER_H
+#define SHARPVOX_KLATT_SYNTHESIZER_H
 
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     struct Frame {
         int16_t Av;
@@ -245,6 +245,6 @@ namespace SharpTalk {
         void InitFixedFormants();
     };
 
-} // namespace SharpTalk
+} // namespace SharpVox
 
-#endif // SHARPTALK_KLATT_SYNTHESIZER_H
+#endif // SHARPVOX_KLATT_SYNTHESIZER_H

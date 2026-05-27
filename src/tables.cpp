@@ -1,6 +1,6 @@
 #include "tables.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 int32_t Tables::PhonemeLanguage(int32_t id) {
     if (id < kEnglishBlockSize) { return kLangEnglish; }
@@ -705,4 +705,4 @@ const int16_t Tables::FemaleEnvelopeTable[] =
 145, 30, 120, 60, 275, 30, 195, 70,
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_SPEAKER_H
-#define SHARPTALK_SPEAKER_H
+#ifndef SHARPVOX_SPEAKER_H
+#define SHARPVOX_SPEAKER_H
 
 #include <cstdint>
 #include <functional>
@@ -8,13 +8,13 @@
 
 #include "../../include/tts_engine.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 enum class VoicePreset { Baseline, Whisper, Custom };
 
-class SharpTalkSpeaker {
+class SharpVoxSpeaker {
 public:
-    SharpTalkSpeaker();
+    SharpVoxSpeaker();
 
     int32_t SampleRate = 22050;
 
@@ -291,6 +291,6 @@ private:
     VoiceData BuildVoice();
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_SPEAKER_H
+#endif  // SHARPVOX_SPEAKER_H

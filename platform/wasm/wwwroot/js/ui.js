@@ -56,7 +56,7 @@ window.ui = {
                 display.innerText = value;
             }
         }
-        window.sharpTalk?.UpdateParam(name, value);
+        window.sharpVox?.UpdateParam(name, value);
         if (name !== 'sampleRate' && name !== 'OutputVolume' && !name.startsWith('kl'))
             window.ui._markCustom();
     },
@@ -68,11 +68,11 @@ window.ui = {
 
     speak: () => {
         const text = document.getElementById('inputText').value;
-        window.sharpTalk?.Speak(text);
+        window.sharpVox?.Speak(text);
     },
 
     stop: () => {
-        window.sharpTalk?.StopBtn();
+        window.sharpVox?.StopBtn();
     },
 
     setMode: (mode) => {
@@ -98,7 +98,7 @@ window.ui = {
             inputTextArea.placeholder = "Enter text to speak...";
         }
 
-        window.sharpTalk?.SetMode(klattsch || ust);
+        window.sharpVox?.SetMode(klattsch || ust);
     },
 
     onUstFileSelected: () => {
@@ -139,7 +139,7 @@ window.ui = {
             bank = compat ? "auto" : null;
         }
 
-        const resultJson = window.sharpTalk?.ConvertUst(text, language, offset, bank);
+        const resultJson = window.sharpVox?.ConvertUst(text, language, offset, bank);
         if (resultJson) {
             const result = JSON.parse(resultJson);
             document.getElementById('inputText').value = result.klattsch;
@@ -155,34 +155,34 @@ window.ui = {
         window.ui._setCookie('st_last_preset', val);
         if (val === 'custom') {
             const json = window.ui._getCookie('st_custom_voice');
-            if (json) window.sharpTalk?.HandleImport(json);
+            if (json) window.sharpVox?.HandleImport(json);
             return;
         }
         if (val === 'baseline') {
-            window.sharpTalk?.OnPresetChange(val);
+            window.sharpVox?.OnPresetChange(val);
         } else {
             try {
                 const resp = await fetch(`voices/${val}.json`);
                 if (resp.ok) {
                     const json = await resp.text();
-                    window.sharpTalk?.HandleImport(json);
+                    window.sharpVox?.HandleImport(json);
                 } else {
                     // Fallback to C# hardcoded presets if fetch fails (like whisper)
-                    window.sharpTalk?.OnPresetChange(val);
+                    window.sharpVox?.OnPresetChange(val);
                 }
             } catch (e) {
-                window.sharpTalk?.OnPresetChange(val);
+                window.sharpVox?.OnPresetChange(val);
             }
         }
     },
 
     toggleFemale: (checked) => {
-        window.sharpTalk?.UpdateParam('VoiceType', checked ? "1" : "0");
+        window.sharpVox?.UpdateParam('VoiceType', checked ? "1" : "0");
         window.ui._markCustom();
     },
 
     exportPreset: () => {
-        window.sharpTalk?.ExportPreset();
+        window.sharpVox?.ExportPreset();
     },
 
     importPreset: () => {
@@ -192,22 +192,22 @@ window.ui = {
     handleImport: async () => {
         const json = await window.ui.readFileContent('importFile');
         if (json) {
-            window.sharpTalk?.HandleImport(json);
+            window.sharpVox?.HandleImport(json);
         }
     },
 
     downloadWav: () => {
         const text = document.getElementById('inputText').value;
-        window.sharpTalk?.DownloadWav(text);
+        window.sharpVox?.DownloadWav(text);
     },
 
     auditionPhoneme: (code) => {
-        window.sharpTalk?.AuditionPhoneme(code);
+        window.sharpVox?.AuditionPhoneme(code);
     },
 
     renderVideo: () => {
         const text = document.getElementById('inputText').value;
-        window.sharpTalk?.ExportVideo(text);
+        window.sharpVox?.ExportVideo(text);
     },
 
     startVideoExport: async (pcmBytes, sampleRate, eventsJson, timesJson, wordTimesJson, duration, sourceText, lipsyncTimesJson, lipsyncV1Json, lipsyncV2Json) => {
@@ -564,10 +564,10 @@ window.ui = {
                 setTimeout(() => window.ui.onPresetChange(lastPreset), 0);
             } else if (customJson) {
                 if (sel) sel.value = 'custom';
-                setTimeout(() => window.sharpTalk?.HandleImport(customJson), 0);
+                setTimeout(() => window.sharpVox?.HandleImport(customJson), 0);
             } else {
                 if (sel) sel.value = 'baseline';
-                setTimeout(() => window.sharpTalk?.OnPresetChange('baseline'), 0);
+                setTimeout(() => window.sharpVox?.OnPresetChange('baseline'), 0);
             }
         }
     },

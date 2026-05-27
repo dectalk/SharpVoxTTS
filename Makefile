@@ -31,23 +31,23 @@ CLI_SRCS := \
 CLI_OBJS := $(CLI_SRCS:.cpp=.o)
 
 # Shared library sources
-SHLIB_SRCS := platform/lib/sharptalk_speaker.cpp
+SHLIB_SRCS := platform/lib/sharpvox_speaker.cpp
 SHLIB_OBJS := $(SHLIB_SRCS:.cpp=.o)
 
 # Output targets
-CLI_BIN  := sharptalk
-SHLIB    := libsharptalk.so
-ARCHIVE  := libsharptalk.a
+CLI_BIN  := sharpvox
+SHLIB    := libsharpvox.so
+ARCHIVE  := libsharpvox.a
 
 TEST_SRCS := tests/dump_stages.cpp
 TEST_BIN  := tests/dump_stages
 
 # WASM sources (same engine + speaker + wasm interop)
 WASM_SRCS := $(LIB_SRCS) \
-    platform/lib/sharptalk_speaker.cpp \
-    platform/wasm/sharptalk_wasm.cpp
+    platform/lib/sharpvox_speaker.cpp \
+    platform/wasm/sharpvox_wasm.cpp
 
-WASM_OUT  := platform/wasm/wwwroot/js/sharptalk.js
+WASM_OUT  := platform/wasm/wwwroot/js/sharpvox.js
 
 EMCC      := emcc
 EMCCFLAGS := -std=c++17 -O2 -Iinclude \
@@ -58,7 +58,7 @@ EMCCFLAGS := -std=c++17 -O2 -Iinclude \
     -sINITIAL_MEMORY=134217728 \
     -sSTACK_SIZE=2097152 \
     -sMODULARIZE=1 \
-    -sEXPORT_NAME=SharpTalkModule \
+    -sEXPORT_NAME=SharpVoxModule \
     -sEXPORTED_RUNTIME_METHODS=['UTF8ToString'] \
     -sEXPORT_ES6=1 \
     -sENVIRONMENT=web
@@ -98,4 +98,4 @@ wasm:
 
 clean:
 	rm -f $(LIB_OBJS) $(CLI_OBJS) $(SHLIB_OBJS) $(CLI_BIN) $(SHLIB) $(ARCHIVE)
-	rm -f $(WASM_OUT) platform/wasm/wwwroot/js/sharptalk.wasm
+	rm -f $(WASM_OUT) platform/wasm/wwwroot/js/sharpvox.wasm

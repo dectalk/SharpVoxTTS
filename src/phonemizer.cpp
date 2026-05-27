@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <unordered_set>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // Local aliases for AudioProcessor opcode constants
     static const uint8_t OP_STRESS1   = AudioProcessor::kOpStress1;
@@ -914,7 +914,7 @@ namespace SharpTalk {
     std::string Phonemizer::Normalizer::Normalize(const std::string& text) {
         std::string t = text;
 
-        // 0. Split CamelCase/PascalCase so "SharpTalk" -> "Sharp Talk"
+        // 0. Split CamelCase/PascalCase so "SharpVox" -> "Sharp Talk"
         t = SplitCamelCase(t);
 
         // 10. Parentheses -> comma-separated pauses
@@ -1429,4 +1429,4 @@ namespace SharpTalk {
         }
     }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

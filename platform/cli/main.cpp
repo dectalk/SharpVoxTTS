@@ -11,13 +11,13 @@
 #include "../../include/tts_engine.h"
 #include "wav_writer.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 namespace Cli {
 
 static void PrintHelp() {
     // in case it wasn't obvious enough
-    std::cout << "SharpTalk TTS\n";
-    std::cout << "Usage: sharptalk [options] [\"text\"]\n";
+    std::cout << "SharpVox TTS\n";
+    std::cout << "Usage: sharpvox [options] [\"text\"]\n";
     std::cout << "\n";
     std::cout << "Options:\n";
     std::cout << "  -o, --output <file>    Output WAV file (default: out.wav)\n";
@@ -208,11 +208,11 @@ static bool TryLoadVoiceJson(const std::string& name, VoiceData& out) {
 }
 
 }  // namespace Cli
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
 int main(int argc, char* argv[]) {
-    using namespace SharpTalk;
-    using namespace SharpTalk::Cli;
+    using namespace SharpVox;
+    using namespace SharpVox::Cli;
 
     if (argc == 1) {
         PrintHelp();

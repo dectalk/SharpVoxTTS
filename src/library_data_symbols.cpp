@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Short phoneme aliases - thin wrappers around AudioProcessor constants.
 namespace {
@@ -134,4 +134,4 @@ const std::unordered_map<std::string, std::vector<uint8_t>> LibraryData::Symbols
     {"[", {Ph::S1, Ph::OW, Ph::P, Ph::AX, Ph::N, 60, Ph::B, Ph::R, Ph::S1, Ph::AE, Ph::K, Ph::IH, Ph::T}}, // open bracket
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

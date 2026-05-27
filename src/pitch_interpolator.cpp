@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     PitchInterpolator::PitchInterpolator(const SynthInputDump& dump)
         : _dump(dump)
@@ -561,4 +561,4 @@ namespace SharpTalk {
         _timeIntoPhonCp++;
     }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

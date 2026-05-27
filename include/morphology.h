@@ -1,11 +1,11 @@
-#ifndef SHARPTALK_MORPHOLOGY_H
-#define SHARPTALK_MORPHOLOGY_H
+#ifndef SHARPVOX_MORPHOLOGY_H
+#define SHARPVOX_MORPHOLOGY_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     class DictReader;
 
@@ -90,6 +90,6 @@ namespace SharpTalk {
         static std::vector<uint8_t> Concat(const std::vector<uint8_t>& a, std::initializer_list<int16_t> b);
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_MORPHOLOGY_H
+#endif  // SHARPVOX_MORPHOLOGY_H

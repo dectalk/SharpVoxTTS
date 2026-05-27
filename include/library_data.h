@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_LIBRARY_DATA_H
-#define SHARPTALK_LIBRARY_DATA_H
+#ifndef SHARPVOX_LIBRARY_DATA_H
+#define SHARPVOX_LIBRARY_DATA_H
 
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // LibraryData holds the static binary assets embedded in the library:
 //   - dictionary: the STDICT phoneme dictionary blob (library_data_dictionary.cpp)
@@ -23,6 +23,6 @@ public:
     static const std::unordered_map<std::string, std::vector<uint8_t>> SymbolsTable;
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_LIBRARY_DATA_H
+#endif  // SHARPVOX_LIBRARY_DATA_H

@@ -30,7 +30,7 @@ static constexpr int16_t _T_  = 46; static constexpr int16_t _D_  = 47;
 static constexpr int16_t _K_  = 48; static constexpr int16_t _G_  = 49;
 static constexpr int16_t _CH_ = 50; static constexpr int16_t _JH_ = 51;
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Static member definitions
 uint8_t LetterToSound::CharacterFeatureTable[128] = {};
@@ -807,4 +807,4 @@ std::vector<uint8_t> LetterToSound::Convert(const std::string& word) {
     return phons;
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

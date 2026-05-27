@@ -15,7 +15,7 @@
 #include "../include/tables.h"
 #include "../include/klattsch_parser.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Global Klattsch mode flag
 bool EmbeddedCmd::KlattschMode = false;
@@ -472,4 +472,4 @@ std::string EmbeddedCmd::StripCommands(const std::string& text) {
     return Parse(text, nullptr);
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

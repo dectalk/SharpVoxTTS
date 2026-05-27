@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_KLATTSCH_PARSER_H
-#define SHARPTALK_KLATTSCH_PARSER_H
+#ifndef SHARPVOX_KLATTSCH_PARSER_H
+#define SHARPVOX_KLATTSCH_PARSER_H
 
 #include <cstdint>
 #include <string>
@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Forward declaration
 struct PhonemeToken;
@@ -48,11 +48,11 @@ public:
     // Reset persistent Klattsch state to defaults.
     static void Reset();
 
-    // Mapping from SharpTalk phoneme ID -> Klattsch uppercase code (e.g. _IY_ -> "IY").
+    // Mapping from SharpVox phoneme ID -> Klattsch uppercase code (e.g. _IY_ -> "IY").
     static const std::unordered_map<int16_t, std::string>& GetPhonemeNamesTable();
 
-    // Mapping from Klattsch uppercase code -> SharpTalk phoneme ID.
-    static const std::unordered_map<std::string, int16_t>& GetKlattschToSharpTalkPhonemeTable();
+    // Mapping from Klattsch uppercase code -> SharpVox phoneme ID.
+    static const std::unordered_map<std::string, int16_t>& GetKlattschToSharpVoxPhonemeTable();
 
 private:
     // Persistent state for Klattsch mode
@@ -101,6 +101,6 @@ private:
     static const std::unordered_map<char, int32_t>      NoteSemitonesTable;
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_KLATTSCH_PARSER_H
+#endif  // SHARPVOX_KLATTSCH_PARSER_H

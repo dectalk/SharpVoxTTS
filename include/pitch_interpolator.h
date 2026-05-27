@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_PITCH_INTERPOLATOR_H
-#define SHARPTALK_PITCH_INTERPOLATOR_H
+#ifndef SHARPVOX_PITCH_INTERPOLATOR_H
+#define SHARPVOX_PITCH_INTERPOLATOR_H
 
 #include <cstdint>
 #include <vector>
 #include "synth_data.h"
 #include "voice_data.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // Generates F0 values via Taylor (2000) Tilt model for speech or portamento for singing.
     class PitchInterpolator {
@@ -183,6 +183,6 @@ namespace SharpTalk {
         void Interpolate_Pitch();
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_PITCH_INTERPOLATOR_H
+#endif  // SHARPVOX_PITCH_INTERPOLATOR_H

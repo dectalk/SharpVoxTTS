@@ -1,6 +1,6 @@
 #include "library_data.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 const uint8_t LibraryData::dictionary[] =
 {
@@ -18890,4 +18890,4 @@ const uint8_t LibraryData::dictionary[] =
 
 const int32_t LibraryData::dictionarySize = sizeof(LibraryData::dictionary);
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

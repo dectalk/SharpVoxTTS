@@ -1,11 +1,11 @@
-#ifndef SHARPTALK_HETERONYM_RESOLVER_H
-#define SHARPTALK_HETERONYM_RESOLVER_H
+#ifndef SHARPVOX_HETERONYM_RESOLVER_H
+#define SHARPVOX_HETERONYM_RESOLVER_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // Contextual heteronym disambiguation.
     // For each ambiguous word we store a default pronunciation and a list of
@@ -20,6 +20,6 @@ namespace SharpTalk {
         static std::vector<uint8_t> Resolve(const std::vector<std::string>& words, int32_t index);
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_HETERONYM_RESOLVER_H
+#endif  // SHARPVOX_HETERONYM_RESOLVER_H

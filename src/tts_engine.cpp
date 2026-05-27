@@ -12,7 +12,7 @@
 #include <cmath>
 #include <cstring>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     const std::vector<int32_t>& TtsEngine::SupportedSampleRates() {
         static std::vector<int32_t> rates = KlattSynthesizer::SupportedSampleRates();
@@ -293,4 +293,4 @@ namespace SharpTalk {
         _synth.InvDFT(_voice.VWave, _voice.VWave1, (int16_t)_voice.VGain);
     }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

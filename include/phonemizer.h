@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_PHONEMIZER_H
-#define SHARPTALK_PHONEMIZER_H
+#ifndef SHARPVOX_PHONEMIZER_H
+#define SHARPVOX_PHONEMIZER_H
 
 #include <cstdint>
 #include <functional>
@@ -10,7 +10,7 @@
 #include "../include/synth_data.h"
 #include "../include/lexicon_reader.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
     class Phonemizer {
     public:
@@ -82,6 +82,6 @@ namespace SharpTalk {
                               bool isContent, bool isPronoun = false);
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_PHONEMIZER_H
+#endif  // SHARPVOX_PHONEMIZER_H

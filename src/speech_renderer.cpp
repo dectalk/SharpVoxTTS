@@ -5,7 +5,7 @@
 #include <cstring>
 #include <stdexcept>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // ============================================================
 // SpeechRenderer.cs — constructor, RenderStreaming, Render,
@@ -1405,4 +1405,4 @@ void SpeechRenderer::TailRules(ControlBlock& cb, int32_t bt) {
     }
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

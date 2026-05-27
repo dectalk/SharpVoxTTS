@@ -8,7 +8,7 @@
 #include <string>
 #include <initializer_list>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // Contextual heteronym disambiguation.
     // For each ambiguous word we store a default pronunciation and a list of
@@ -182,4 +182,4 @@ namespace SharpTalk {
         return entry.Default;
     }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

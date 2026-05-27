@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // Reads a uint32_t in little-endian byte order from the given offset.
 static uint32_t ReadU32LE(const uint8_t* data, int32_t off) {
@@ -117,4 +117,4 @@ void DictReader::EnumerateAll(
     }
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

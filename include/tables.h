@@ -1,9 +1,9 @@
-#ifndef SHARPTALK_TABLES_H
-#define SHARPTALK_TABLES_H
+#ifndef SHARPVOX_TABLES_H
+#define SHARPVOX_TABLES_H
 
 #include <cstdint>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 class Tables {
 public:
@@ -224,6 +224,6 @@ public:
     static const int16_t FemaleEnvelopeTable[];
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_TABLES_H
+#endif  // SHARPVOX_TABLES_H

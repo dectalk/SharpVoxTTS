@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_AUDIO_PROCESSOR_H
-#define SHARPTALK_AUDIO_PROCESSOR_H
+#ifndef SHARPVOX_AUDIO_PROCESSOR_H
+#define SHARPVOX_AUDIO_PROCESSOR_H
 
 #include <cstdint>
 #include <vector>
@@ -7,7 +7,7 @@
 #include "../include/voice_data.h"
 #include "../include/tables.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // Input unit to AudioProcessor::Process().
     // Phon is the phoneme ID (_IY_, _T_, etc.); Ctrl carries prosodic control flags.
@@ -341,6 +341,6 @@ namespace SharpTalk {
         void InsertPlosiveRelease();
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_AUDIO_PROCESSOR_H
+#endif  // SHARPVOX_AUDIO_PROCESSOR_H

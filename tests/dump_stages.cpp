@@ -13,7 +13,7 @@
 #include "../include/voice_data.h"
 
 int main() {
-    using namespace SharpTalk;
+    using namespace SharpVox;
 
     // Build default voice (matches C# VoiceData.BaselineVoice)
     VoiceData voice = VoiceData::baseline_voice();

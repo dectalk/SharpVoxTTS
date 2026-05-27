@@ -1,11 +1,11 @@
-#ifndef SHARPTALK_SYNTH_DATA_H
-#define SHARPTALK_SYNTH_DATA_H
+#ifndef SHARPVOX_SYNTH_DATA_H
+#define SHARPVOX_SYNTH_DATA_H
 
 #include <cstdint>
 #include <vector>
 #include <array>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     struct PitchState {
         int16_t NextPitchBufTime;
@@ -130,6 +130,6 @@ namespace SharpTalk {
         }
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_SYNTH_DATA_H
+#endif  // SHARPVOX_SYNTH_DATA_H

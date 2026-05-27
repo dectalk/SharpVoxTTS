@@ -1,8 +1,8 @@
-import SharpTalkModule from './sharptalk.js';
+import SharpVoxModule from './sharpvox.js';
 
-const Module = await SharpTalkModule();
-const instance = new Module.SharpTalkInterop();
-window.sharpTalk = instance;
+const Module = await SharpVoxModule();
+const instance = new Module.SharpVoxInterop();
+window.sharpVox = instance;
 instance.Initialize();
 
 const activeTab = document.querySelector('.tab-btn.active');
@@ -11,4 +11,4 @@ if (activeTab) {
     instance.SetMode(mode === 'klattsch' || mode === 'ust');
 }
 
-window.dispatchEvent(new Event('sharptalk-ready'));
+window.dispatchEvent(new Event('sharpvox-ready'));

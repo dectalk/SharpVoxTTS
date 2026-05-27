@@ -13,7 +13,7 @@
 // (AudioProcessor::kSingingPhon, AudioProcessor::kWord_Start, etc.) all come from tts_engine.h.
 #include "../include/tts_engine.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 // ---------------------------------------------------------------------------
 // Persistent state for Klattsch mode
@@ -71,7 +71,7 @@ const std::unordered_set<std::string> KlattschParser::StopPhonemeCodesTable = {
 };
 
 // ---------------------------------------------------------------------------
-// PhonemeNamesTable and KlattschToSharpTalkPhonemeTable
+// PhonemeNamesTable and KlattschToSharpVoxPhonemeTable
 // (populated from AudioProcessor constants, mirrors C# dictionaries)
 // ---------------------------------------------------------------------------
 
@@ -96,7 +96,7 @@ const std::unordered_map<int16_t, std::string>& KlattschParser::GetPhonemeNamesT
     return t;
 }
 
-const std::unordered_map<std::string, int16_t>& KlattschParser::GetKlattschToSharpTalkPhonemeTable() {
+const std::unordered_map<std::string, int16_t>& KlattschParser::GetKlattschToSharpVoxPhonemeTable() {
     static const std::unordered_map<std::string, int16_t> t = {
         { "IY", AudioProcessor::_IY_ }, { "IH", AudioProcessor::_IH_ }, { "EH", AudioProcessor::_EH_ }, { "AE", AudioProcessor::_AE_ },
         { "AA", AudioProcessor::_AA_ }, { "AO", AudioProcessor::_AO_ }, { "AH", AudioProcessor::_AH_ }, { "UH", AudioProcessor::_UH_ },
@@ -416,7 +416,7 @@ KlattschParser::Token* KlattschParser::ClassifyPart(const std::string& part, Tok
         }
         if (pos > codeStart) {
             std::string code = part.substr(codeStart, pos - codeStart);
-            const auto& phonTable = GetKlattschToSharpTalkPhonemeTable();
+            const auto& phonTable = GetKlattschToSharpVoxPhonemeTable();
             if (phonTable.count(code)) {
                 bool stressed = (pos < part.size() && (part[pos] == '\'' || part[pos] == '!'));
                 if (stressed) {
@@ -572,7 +572,7 @@ std::vector<KlattschParser::Token> KlattschParser::Tokenize(const std::string& r
 void KlattschParser::EmitPhoneme(const Token& t, float durationMs,
                                   bool isStartOfBeat, bool isEndOfBeat,
                                   std::vector<PhonemeToken>& result) {
-    const auto& phonTable = GetKlattschToSharpTalkPhonemeTable();
+    const auto& phonTable = GetKlattschToSharpVoxPhonemeTable();
     auto it = phonTable.find(t.Code);
     if (it == phonTable.end()) {
         return;
@@ -771,4 +771,4 @@ std::vector<PhonemeToken> KlattschParser::CompileToTokens(const std::vector<Toke
     return result;
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

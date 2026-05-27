@@ -1,12 +1,12 @@
-#ifndef SHARPTALK_WAV_WRITER_H
-#define SHARPTALK_WAV_WRITER_H
+#ifndef SHARPVOX_WAV_WRITER_H
+#define SHARPVOX_WAV_WRITER_H
 
 #include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
 class WavStreamWriter {
 public:
@@ -39,6 +39,6 @@ public:
     static void WriteWav(const std::string& path, const std::vector<int16_t>& samples, int32_t sampleRate);
 };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_WAV_WRITER_H
+#endif  // SHARPVOX_WAV_WRITER_H

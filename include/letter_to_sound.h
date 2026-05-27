@@ -1,11 +1,11 @@
-#ifndef SHARPTALK_LETTER_TO_SOUND_H
-#define SHARPTALK_LETTER_TO_SOUND_H
+#ifndef SHARPVOX_LETTER_TO_SOUND_H
+#define SHARPVOX_LETTER_TO_SOUND_H
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // English letter-to-sound rules derived from NRL Report 7948
     // (Elovitz, Johnson, McHugh, Shore - "Automatic Translation of English Text to Phonetics", 1976)
@@ -72,6 +72,6 @@ namespace SharpTalk {
         static bool MatchSuffix(const std::vector<char>& inp, int pos, int& end);
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_LETTER_TO_SOUND_H
+#endif  // SHARPVOX_LETTER_TO_SOUND_H

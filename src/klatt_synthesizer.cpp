@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 
-namespace SharpTalk {
+namespace SharpVox {
 
     // NoiseScale and OutputGain were tuned empirically: lower sample rates need louder
     // noise and higher output gain to compensate for the narrower spectral bandwidth.
@@ -712,4 +712,4 @@ namespace SharpTalk {
         return (int16_t)((baseFreq * exp) >> 15);
     }
 
-} // namespace SharpTalk
+} // namespace SharpVox

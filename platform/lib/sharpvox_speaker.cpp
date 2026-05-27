@@ -1,4 +1,4 @@
-#include "sharptalk_speaker.h"
+#include "sharpvox_speaker.h"
 
 #include <cstdio>
 #include <stdexcept>
@@ -6,7 +6,7 @@
 #include "../../include/tts_engine.h"
 #include "../../include/library_data.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
 static std::function<const uint8_t*(const std::string&, size_t&)> MakeSymbolsLookup() {
     return [](const std::string& key, size_t& outSize) -> const uint8_t* {
@@ -20,13 +20,13 @@ static std::function<const uint8_t*(const std::string&, size_t&)> MakeSymbolsLoo
     };
 }
 
-SharpTalkSpeaker::SharpTalkSpeaker()
+SharpVoxSpeaker::SharpVoxSpeaker()
     : _engine(BuildVoice(), LibraryData::dictionary,
               static_cast<size_t>(LibraryData::dictionarySize),
               MakeSymbolsLookup(), SampleRate) {
 }
 
-std::string SharpTalkSpeaker::PrepareText(const std::string& text) {
+std::string SharpVoxSpeaker::PrepareText(const std::string& text) {
     if (!KlattschMode) {
         return text;
     }
@@ -39,7 +39,7 @@ std::string SharpTalkSpeaker::PrepareText(const std::string& text) {
     return std::string("[:klattsch on] ") + buf + " " + text + " [:klattsch off]";
 }
 
-void SharpTalkSpeaker::Speak(const std::string& text,
+void SharpVoxSpeaker::Speak(const std::string& text,
                              std::function<void(const int16_t*, int32_t)> onBuffer) {
     _isSpeaking = true;
     try {
@@ -51,7 +51,7 @@ void SharpTalkSpeaker::Speak(const std::string& text,
     }
 }
 
-void SharpTalkSpeaker::SpeakWithEvents(const std::string& text,
+void SharpVoxSpeaker::SpeakWithEvents(const std::string& text,
                                        std::function<void(const int16_t*, int32_t)> onBuffer,
                                        std::function<void(const std::vector<PhonemeEvent>&)> onEventsReady) {
     _isSpeaking = true;
@@ -70,7 +70,7 @@ void SharpTalkSpeaker::SpeakWithEvents(const std::string& text,
     }
 }
 
-void SharpTalkSpeaker::PollAbsolute(float absoluteSeconds) {
+void SharpVoxSpeaker::PollAbsolute(float absoluteSeconds) {
     if (!OnPhoneme || _nextPhonemeIndex >= static_cast<int32_t>(_phonemeEvents.size())) {
         return;
     }
@@ -81,25 +81,25 @@ void SharpTalkSpeaker::PollAbsolute(float absoluteSeconds) {
     }
 }
 
-void SharpTalkSpeaker::SetVoice(VoiceData voice) {
+void SharpVoxSpeaker::SetVoice(VoiceData voice) {
     voice.Rate = static_cast<int16_t>(Rate);
     voice.PitchHz = static_cast<int16_t>(PitchHz);
     _engine.GetVoice() = voice;
 }
 
-void SharpTalkSpeaker::ApplyVoice() {
+void SharpVoxSpeaker::ApplyVoice() {
     _engine = TtsEngine(BuildVoice(), LibraryData::dictionary,
                         static_cast<size_t>(LibraryData::dictionarySize),
                         MakeSymbolsLookup(), SampleRate);
 }
 
-void SharpTalkSpeaker::ApplyVoiceInPlace() {
+void SharpVoxSpeaker::ApplyVoiceInPlace() {
     _engine.SampleRate = SampleRate;
     _engine.SetVoice(BuildVoice());
 }
 
 // yep, it's a preset
-void SharpTalkSpeaker::SetPreset(VoicePreset value) {
+void SharpVoxSpeaker::SetPreset(VoicePreset value) {
     _preset = value;
     if (value == VoicePreset::Custom) {
         return;
@@ -160,14 +160,14 @@ void SharpTalkSpeaker::SetPreset(VoicePreset value) {
     _applyingPreset = false;
 }
 
-void SharpTalkSpeaker::MarkCustom() {
+void SharpVoxSpeaker::MarkCustom() {
     if (!_applyingPreset) {
         _preset = VoicePreset::Custom;
     }
 }
 
 // yep, make a new one
-VoiceData SharpTalkSpeaker::BuildVoice() {
+VoiceData SharpVoxSpeaker::BuildVoice() {
     VoiceData v;
     switch (_preset) {
         case VoicePreset::Whisper:
@@ -235,10 +235,10 @@ VoiceData SharpTalkSpeaker::BuildVoice() {
     return v;
 }
 
-void SharpTalkSpeaker::ApplyVoiceData(const VoiceData& v) {
+void SharpVoxSpeaker::ApplyVoiceData(const VoiceData& v) {
     _engine = TtsEngine(v, LibraryData::dictionary,
                         static_cast<size_t>(LibraryData::dictionarySize),
                         MakeSymbolsLookup(), SampleRate);
 }
 
-}  // namespace SharpTalk
+}  // namespace SharpVox

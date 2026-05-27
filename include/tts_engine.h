@@ -1,5 +1,5 @@
-#ifndef SHARPTALK_TTS_ENGINE_H
-#define SHARPTALK_TTS_ENGINE_H
+#ifndef SHARPVOX_TTS_ENGINE_H
+#define SHARPVOX_TTS_ENGINE_H
 
 #include <cstdint>
 #include <functional>
@@ -14,7 +14,7 @@
 #include "../include/voice_data.h"
 #include "../include/synth_data.h"
 
-namespace SharpTalk {
+namespace SharpVox {
 
     struct PhonemeEvent {
         int16_t Phoneme;
@@ -114,6 +114,6 @@ namespace SharpTalk {
         void RebuildPipeline();
     };
 
-}  // namespace SharpTalk
+}  // namespace SharpVox
 
-#endif  // SHARPTALK_TTS_ENGINE_H
+#endif  // SHARPVOX_TTS_ENGINE_H
