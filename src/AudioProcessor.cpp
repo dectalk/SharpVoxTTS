@@ -713,10 +713,15 @@ namespace SharpVox {
             bool     delFwd     = false;
             bool     insertGlot = false;
 
+            // Skip all phoneme-merge coarticulation rules for explicit singing/klattsch tokens.
+            // These modes give the user direct phoneme control; merges would override intended
+            // pitch boundaries and durations.
+            bool isSinging = (curCtrl & kSingingPhon) != 0 || (prevCtrl & kSingingPhon) != 0;
+
             // EN rule: IX+N -> EN (syllabic N). "button" IX N -> EN, collapses the
             // schwa into the syllabic nasal. Not applied when the stop before IX is B or G,
             // or when the stop is D preceded by a vowel (prevents "hidden" flap context).
-            if (curPhon == _N_ && prevPhon == _IX_) {
+            if (!isSinging && curPhon == _N_ && prevPhon == _IX_) {
                 if ((prev2Flags & kPlosFricF) != 0 && prev2Phon != _B_ && prev2Phon != _G_) {
                     if (!(prev2Phon == _D_ && (prev3Flags & kVowelF) != 0)) {
                         _phonBuf2[_phonBuf2InIndex - 1] = _EN_;
@@ -727,7 +732,7 @@ namespace SharpVox {
 
             // EL rule: AX/UH + L -> EL (syllabic L) in unstressed non-word-initial position.
             // "bottle" AX L -> EL; "petal" UH L -> EL.
-            if (curPhon == _L_ && (curCtrl & (kPrimOrEmphStress | kWord_Initial_Consonant)) == 0) {
+            if (!isSinging && curPhon == _L_ && (curCtrl & (kPrimOrEmphStress | kWord_Initial_Consonant)) == 0) {
                 if (prevPhon == _AX_ || prevPhon == _UH_) {
                     _phonBuf2[_phonBuf2InIndex - 1] = _EL_;
                     delFwd = true;
@@ -738,7 +743,8 @@ namespace SharpVox {
             // LX / RX rules: post-vocalic L and R in unstressed non-initial position become
             // dark-L (LX) and syllabic-R (RX). The R rule also merges vowel+R into a rhotic
             // vowel (UR, OR, AR, ER, IR, XR) so the resulting segment has a single set of formant targets.
-            if ((curCtrl & (kPrimOrEmphStress | kWord_Initial_Consonant)) == 0 &&
+            if (!isSinging &&
+                (curCtrl & (kPrimOrEmphStress | kWord_Initial_Consonant)) == 0 &&
                 (prevFlags & kVowel1F) != 0) {
                 if (curPhon == _L_) {
                     targetPhon = _LX_;
@@ -762,7 +768,8 @@ namespace SharpVox {
 
             // yUW -> YU rule. Skip the merge when the vowel is stressed so the
             // diphthong trajectory has the full two-phoneme duration to complete.
-            if ((prevCtrl & kWord_Initial_Consonant) != 0 && prevPhon == _Y_ &&
+            if (!isSinging &&
+                (prevCtrl & kWord_Initial_Consonant) != 0 && prevPhon == _Y_ &&
                 curPhon == _UW_ && nextPhon != _R_ &&
                 (curCtrl & kSyllableTypeField) >= kWord_End &&
                 (curCtrl & kPrimOrEmphStress) == 0) {
