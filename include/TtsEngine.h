@@ -90,6 +90,11 @@ namespace SharpVox {
         // Returns one record per synthesis frame (5 ms each) with pitch and tilt diagnostics.
         std::vector<PitchFrameRecord> DumpPitchFrames(const std::string& text);
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+        void SetGlottalSample(const float* pcm, int32_t len, int32_t srcRate, float naturalPitchHz);
+        void ClearGlottalSample();
+#endif
+
         void Speak(const std::string& text,
                    void (*onBuffer)(const int16_t* buf, int32_t len, void* userdata),
                    void* userdata = nullptr);
@@ -109,6 +114,11 @@ namespace SharpVox {
         KlattSynthesizerFP _synth;
 #else
         KlattSynthesizer _synth;
+#endif
+#ifdef SHARPVOX_SAMPLED_GLOT
+        std::vector<float> _glotPcm;
+        int32_t _glotSrcRate  = 0;
+        float   _glotNatHz    = 0.0f;
 #endif
 
         void ProcessSentenceStreaming(const std::vector<PhonemeToken>& tokens, int16_t endPunct,

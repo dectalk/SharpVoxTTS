@@ -479,6 +479,23 @@
             </fieldset>
 
             <fieldset>
+                <legend>glottal source</legend>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                    <button onclick="document.getElementById('glotFile').click()">Load WAV</button>
+                    <input type="file" id="glotFile" accept="audio/*" style="display:none"
+                        onchange="ui.onGlotFileChange(this)">
+                    <button onclick="ui.clearGlotSample()">Clear</button>
+                    <span id="glot-status" style="color:var(--dim);font-size:0.8rem">polynomial (default)</span>
+                </div>
+                <div class="slider-group" onmouseover="ui.updateDesc('GlotNaturalPitch','Natural F0 of the loaded glottal source WAV in Hz — playback speed is scaled so this pitch matches the synthesis F0')">
+                    <label>Natural pitch Hz</label>
+                    <input type="number" id="glot-pitch" min="50" max="500" value="120"
+                        oninput="ui.onGlotPitchChange(this.value)"
+                        style="width:70px;background:#1a1a1a;color:var(--fg);border:1px solid var(--line);border-radius:2px;padding:2px 5px;font:inherit;font-size:0.82rem">
+                </div>
+            </fieldset>
+
+            <fieldset>
                 <legend>formants (F4–F6)</legend>
                 <div class="slider-group" onmouseover="ui.updateDesc('F4Freq', '4th formant frequency (Hz) — adds brightness')">
                     <label>F4Freq</label>

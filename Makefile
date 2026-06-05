@@ -62,7 +62,7 @@ WASM_SRCS := $(LIB_SRCS) \
 WASM_OUT  := platform/wasm/wwwroot/js/sharpvox.js
 
 EMCC      := emcc
-EMCCFLAGS := -std=c++17 -O2 -Iinclude -DSHARPVOX_FIXED_POINT_SYNTH \
+EMCCFLAGS := -std=c++17 -O2 -Iinclude -DSHARPVOX_FIXED_POINT_SYNTH -DSHARPVOX_SAMPLED_GLOT \
     --bind \
     -fwasm-exceptions \
     -sALLOW_MEMORY_GROWTH=1 \

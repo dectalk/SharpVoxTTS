@@ -88,6 +88,12 @@ namespace SharpVox {
 
         _glotPhase = _glotPhaseInc = 0;
         _chorusPhase = _chorusPhaseInc = 0;
+#ifdef SHARPVOX_SAMPLED_GLOT
+        _useSampledGlot = false;
+        _sgNatPitchHz = 1.0f;
+        _sgPhase = 0.0f;
+        _sgBufSize = 0;
+#endif
 
         _lfOq = 0.5f;
         _lfAlpha256 = _lfSinFreq = _lfRetScale = _lfEps256 = _lfExpEnd = _lfGain = 0.0f;
@@ -248,6 +254,38 @@ namespace SharpVox {
         return pink * 0.18f;
     }
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+    void KlattSynthesizer::SetGlottalSample(const float* pcm, int32_t length,
+                                             int32_t srcRate, float naturalPitchHz) {
+        float ratio = (float)_sampleRate / (float)srcRate;
+        int32_t outLen = std::max(2, (int32_t)roundf((float)length * ratio));
+        _sgBuf.resize(outLen);
+        float invRatio = 1.0f / ratio;
+        for (int32_t i = 0; i < outLen; i++) {
+            float srcPos = (float)i * invRatio;
+            int32_t s0 = (int32_t)srcPos;
+            int32_t s1 = std::min(s0 + 1, length - 1);
+            float frac = srcPos - (float)s0;
+            _sgBuf[i] = pcm[s0] + frac * (pcm[s1] - pcm[s0]);
+        }
+        float maxAbs = 0.0f;
+        for (float v : _sgBuf) { float a = v < 0 ? -v : v; if (a > maxAbs) maxAbs = a; }
+        if (maxAbs > 0.0f) { float inv = 0.5f / maxAbs; for (float& v : _sgBuf) v *= inv; }
+        _sgNatPitchHz = (naturalPitchHz > 0.0f) ? naturalPitchHz : 1.0f;
+        _sgBufSize    = outLen;
+        _sgPhase      = 0.0f;
+        _useSampledGlot = true;
+    }
+
+    void KlattSynthesizer::ClearGlottalSample() {
+        _useSampledGlot = false;
+        _sgBuf.clear();
+        _sgBuf.shrink_to_fit();
+        _sgBufSize = 0;
+        _sgPhase   = 0.0f;
+    }
+#endif
+
     // Synthesizes one frame with linear parameter interpolation to ensure smooth transitions.
     void KlattSynthesizer::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int32_t offset) {
         float targetVoiceAmp = frame.Av * _speechVolume;
@@ -264,6 +302,9 @@ namespace SharpVox {
         if ((_voiceAmp == 0) && (_fricAmp == 0) && (targetVoiceAmp > 0 || targetFricAmp > 0)) {
             _glotPhase = 0;
             _chorusPhase = 0;
+#ifdef SHARPVOX_SAMPLED_GLOT
+            _sgPhase = 0.0f;
+#endif
             _shimmerScale = 1.0f;
             _diploScale = 1.0f;
             _cycleCount = 0;
@@ -456,7 +497,21 @@ namespace SharpVox {
                         rawE = 0.0f;
                     }
                     glotSample = rawE * _lfGain;
+#ifdef SHARPVOX_SAMPLED_GLOT
+                    if (_useSampledGlot && _sgBufSize > 0) {
+                        _sgPhase += effF0Hz / _sgNatPitchHz;
+                        if (_sgPhase >= (float)_sgBufSize) _sgPhase -= (float)_sgBufSize;
+                        int32_t idx  = (int32_t)_sgPhase;
+                        float   frac = _sgPhase - (float)idx;
+                        int32_t idx1 = idx + 1 < _sgBufSize ? idx + 1 : 0;
+                        glotSample = (_sgBuf[idx] + frac * (_sgBuf[idx1] - _sgBuf[idx])) * _lfGain;
+                    }
+#endif
+#ifdef SHARPVOX_SAMPLED_GLOT
+                    if (VoiceChorus != 0 && !_useSampledGlot) {
+#else
                     if (VoiceChorus != 0) {
+#endif
                         _chorusPhase = (_chorusPhaseInc + _chorusPhase) & 0xFFFFFF;
                         float phi2 = float(_chorusPhase) * (1.0f / 16777216.0f);
                         float rawE2;

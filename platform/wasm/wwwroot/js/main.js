@@ -3,6 +3,8 @@ import './AudioPlayer.js';
 const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
 
 let _pendingPlayAt = null;
+let _glotMono = null;
+let _glotSrcRate = 0;
 let _pendingCustomString = null;
 
 worker.onmessage = ({ data }) => {
@@ -74,4 +76,31 @@ window.sharpVox = {
     DownloadWav:     (text)                        => worker.postMessage({ type: 'DownloadWav', text }),
     AuditionPhoneme: (code)                        => worker.postMessage({ type: 'AuditionPhoneme', code }),
     ExportVideo:     (text)                        => worker.postMessage({ type: 'ExportVideo', text }),
+    SetGlottalSample: async (file, naturalPitchHz) => {
+        const arrayBuf = await file.arrayBuffer();
+        const audioCtx = new OfflineAudioContext(1, 1, 44100);
+        const decoded  = await audioCtx.decodeAudioData(arrayBuf);
+        // Mix down to mono by averaging all channels
+        const numCh = decoded.numberOfChannels;
+        const len   = decoded.length;
+        const mono  = new Float32Array(len);
+        for (let ch = 0; ch < numCh; ch++) {
+            const ch_data = decoded.getChannelData(ch);
+            for (let i = 0; i < len; i++) mono[i] += ch_data[i];
+        }
+        if (numCh > 1) { for (let i = 0; i < len; i++) mono[i] /= numCh; }
+        _glotMono = mono;
+        _glotSrcRate = decoded.sampleRate;
+        const copy = mono.slice();
+        worker.postMessage({ type: 'SetGlottalSample', pcm: copy, srcRate: _glotSrcRate, naturalPitchHz }, [copy.buffer]);
+    },
+    UpdateGlotPitch: (naturalPitchHz) => {
+        if (!_glotMono) return;
+        const copy = _glotMono.slice();
+        worker.postMessage({ type: 'SetGlottalSample', pcm: copy, srcRate: _glotSrcRate, naturalPitchHz }, [copy.buffer]);
+    },
+    ClearGlottalSample: () => {
+        _glotMono = null; _glotSrcRate = 0;
+        worker.postMessage({ type: 'ClearGlottalSample' });
+    },
 };

@@ -91,6 +91,11 @@ namespace SharpVox {
 
         void ComputeGlotWave(int16_t vGain);
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+        void SetGlottalSample(const float* pcm, int32_t length, int32_t srcRate, float naturalPitchHz);
+        void ClearGlottalSample();
+#endif
+
         // Synthesizes one frame with linear parameter interpolation to ensure smooth transitions.
         void SynthesizeFrame(Frame frame, int16_t* outputBuffer, int32_t offset);
 
@@ -223,6 +228,14 @@ namespace SharpVox {
         float _frameTiltBias = 0.0f;
 
         int16_t _openQuotient = 50;
+
+#ifdef SHARPVOX_SAMPLED_GLOT
+        std::vector<float> _sgBuf;
+        float   _sgNatPitchHz;
+        float   _sgPhase;
+        int32_t _sgBufSize;
+        bool    _useSampledGlot;
+#endif
 
         // Pink noise state - add to class fields
         float _pink0, _pink1, _pink2, _pink3, _pink4, _pink5, _pink6;

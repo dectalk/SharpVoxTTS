@@ -112,6 +112,15 @@ void SharpVoxSpeaker::ApplyVoiceInPlace() {
     _engine.SetVoice(BuildVoice());
 }
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+void SharpVoxSpeaker::SetGlottalSample(const float* pcm, int32_t len, int32_t srcRate, float naturalPitchHz) {
+    _engine.SetGlottalSample(pcm, len, srcRate, naturalPitchHz);
+}
+void SharpVoxSpeaker::ClearGlottalSample() {
+    _engine.ClearGlottalSample();
+}
+#endif
+
 // yep, it's a preset
 void SharpVoxSpeaker::SetPreset(VoicePreset value) {
     _preset = value;

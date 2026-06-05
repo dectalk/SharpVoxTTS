@@ -561,6 +561,19 @@ public:
         return s;
     }
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+    void SetGlottalSample(emscripten::val floatArray, int32_t srcRate, float naturalPitchHz) {
+        int32_t len = floatArray["length"].as<int32_t>();
+        std::vector<float> pcm(len);
+        auto view = emscripten::val(emscripten::typed_memory_view(len, pcm.data()));
+        view.call<void>("set", floatArray);
+        _speaker.SetGlottalSample(pcm.data(), len, srcRate, naturalPitchHz);
+    }
+    void ClearGlottalSample() {
+        _speaker.ClearGlottalSample();
+    }
+#endif
+
     void HandleImport(const std::string& json) {
         if (json.empty()) return;
         try {
@@ -770,5 +783,10 @@ EMSCRIPTEN_BINDINGS(sharpvox_interop) {
         .function("GetCustomString", &SharpVoxInterop::GetCustomString)
         .function("HandleImport",    &SharpVoxInterop::HandleImport)
         .function("ConvertUst",      &SharpVoxInterop::ConvertUst)
-        .function("ExportVideo",     &SharpVoxInterop::ExportVideo);
+        .function("ExportVideo",     &SharpVoxInterop::ExportVideo)
+#ifdef SHARPVOX_SAMPLED_GLOT
+        .function("SetGlottalSample",&SharpVoxInterop::SetGlottalSample)
+        .function("ClearGlottalSample",&SharpVoxInterop::ClearGlottalSample)
+#endif
+        ;
 }

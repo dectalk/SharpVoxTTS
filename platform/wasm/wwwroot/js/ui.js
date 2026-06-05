@@ -642,7 +642,30 @@ window.ui = {
 
     showDownloadBtn: (show) => {
         document.getElementById('downloadBtn').style.display = show ? 'inline-block' : 'none';
-    }
+    },
+
+    onGlotFileChange: async (input) => {
+        const file = input.files[0];
+        if (!file) return;
+        const naturalPitchHz = parseFloat(document.getElementById('glot-pitch').value) || 120;
+        document.getElementById('glot-status').textContent = 'loading…';
+        try {
+            await window.sharpVox.SetGlottalSample(file, naturalPitchHz);
+            document.getElementById('glot-status').textContent = file.name;
+        } catch (e) {
+            document.getElementById('glot-status').textContent = 'error: ' + e.message;
+        }
+        input.value = '';
+    },
+
+    clearGlotSample: () => {
+        window.sharpVox.ClearGlottalSample();
+        document.getElementById('glot-status').textContent = 'polynomial (default)';
+    },
+
+    onGlotPitchChange: (value) => {
+        window.sharpVox.UpdateGlotPitch(parseFloat(value) || 120);
+    },
 };
 
 (function () {

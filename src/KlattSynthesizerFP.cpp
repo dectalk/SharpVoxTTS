@@ -286,7 +286,7 @@ void KlattSynthesizerFP::SetGlottalSample(const float* pcm, int32_t length,
     }
     float maxAbs = 0.0f;
     for (float v : _sgBuf) { float a = v < 0 ? -v : v; if (a > maxAbs) maxAbs = a; }
-    if (maxAbs > 0.0f) { float inv = 1.0f / maxAbs; for (float& v : _sgBuf) v *= inv; }
+    if (maxAbs > 0.0f) { float inv = 0.5f / maxAbs; for (float& v : _sgBuf) v *= inv; }
     _sgNatPitchHz = (naturalPitchHz > 0.0f) ? naturalPitchHz : 1.0f;
     _sgBufSize    = outLen;
     _sgPhase      = 0.0f;

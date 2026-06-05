@@ -341,6 +341,22 @@ namespace SharpVox {
         }
     }
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+    void TtsEngine::SetGlottalSample(const float* pcm, int32_t len, int32_t srcRate, float naturalPitchHz) {
+        _glotPcm.assign(pcm, pcm + len);
+        _glotSrcRate = srcRate;
+        _glotNatHz   = naturalPitchHz;
+        _synth.SetGlottalSample(pcm, len, srcRate, naturalPitchHz);
+    }
+    void TtsEngine::ClearGlottalSample() {
+        _glotPcm.clear();
+        _glotPcm.shrink_to_fit();
+        _glotSrcRate = 0;
+        _glotNatHz   = 0.0f;
+        _synth.ClearGlottalSample();
+    }
+#endif
+
     void TtsEngine::RebuildPipeline() {
         _be = AudioProcessor(_voice);
         _renderer = SpeechRenderer(_voice);
@@ -373,6 +389,10 @@ namespace SharpVox {
         _synth.PitchOffsetHz   = _voice.PitchOffsetHz;
         _synth.LipRounding     = _voice.LipRounding;
         _synth.ComputeGlotWave((int16_t)_voice.VGain);
+#ifdef SHARPVOX_SAMPLED_GLOT
+        if (!_glotPcm.empty())
+            _synth.SetGlottalSample(_glotPcm.data(), (int32_t)_glotPcm.size(), _glotSrcRate, _glotNatHz);
+#endif
     }
 
 }  // namespace SharpVox

@@ -43,5 +43,11 @@ self.onmessage = ({ data }) => {
         case 'ExportVideo':
             instance.ExportVideo(data.text);
             break;
+        case 'SetGlottalSample':
+            instance.SetGlottalSample(data.pcm, data.srcRate, data.naturalPitchHz);
+            break;
+        case 'ClearGlottalSample':
+            instance.ClearGlottalSample();
+            break;
     }
 };

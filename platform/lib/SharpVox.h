@@ -41,6 +41,11 @@ public:
     void ApplyVoiceInPlace();
     void ApplyVoiceData(const VoiceData& v);
 
+#ifdef SHARPVOX_SAMPLED_GLOT
+    void SetGlottalSample(const float* pcm, int32_t len, int32_t srcRate, float naturalPitchHz);
+    void ClearGlottalSample();
+#endif
+
     int32_t Rate = 200;
     int32_t PitchHz = 122;
     float AudioVolume = 1.0f;
