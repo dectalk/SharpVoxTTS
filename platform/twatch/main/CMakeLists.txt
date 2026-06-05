@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "axp202.c"
+        "st7789.c"
+        "i2s_audio.c"
+        "ble_spp.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        driver
+        esp_lcd
+        log
+        freertos
+        esp_timer
+        esp_driver_i2s
+        sharptalk
+        bt
+        nvs_flash
+)

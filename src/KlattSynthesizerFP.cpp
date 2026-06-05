@@ -1,0 +1,719 @@
+#include "../include/KlattSynthesizerFP.h"
+#include "../include/SynthData.h"
+#include "../include/VoiceData.h"
+
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
+#include <stdexcept>
+#include <string>
+#include <map>
+
+
+namespace SharpVox {
+
+// Sin LUT: 512 entries, Q1
+// Phase [0, 1<<17) maps to [0, 2); index = phase >> 8.
+
+static int16_t s_sin_lut[512];
+static bool    s_sin_lut_ready = false;
+
+void KlattSynthesizerFP::InitSinLut() {
+    if (s_sin_lut_ready) return;
+    for (int i = 0; i < 512; i++) {
+        s_sin_lut[i] = (int16_t)(32767.0f * sinf(2.0f * (float)M_PI * i / 512.0f));
+    }
+    s_sin_lut_ready = true;
+}
+
+static inline int32_t fp_sin(uint32_t phase) {
+    return s_sin_lut[(phase >> 8) & 511];
+}
+
+//  Q15 coefficient helper 
+
+void KlattSynthesizerFP::ToQ15(float A, float B, float C,
+                                int32_t& Aq, int32_t& Bq, int32_t& Cq) {
+    Aq = (int32_t)(A * 32768.0f);
+    Bq = (int32_t)(B * 32768.0f);
+    Cq = (int32_t)(C * 32768.0f);
+}
+
+//  IIR step: Q15 coefficients x Q0 delay taps 
+// Equivalent to float: out = A*x + B*d1 + C*d2.
+// Products Q15*Q0 = Q15; shift right 15 gives Q0 result.
+
+static inline int32_t fp_iir(int32_t A, int32_t B, int32_t C,
+                              int32_t x, int32_t& d1, int32_t& d2) {
+    int64_t acc = (int64_t)A * x + (int64_t)B * d1 + (int64_t)C * d2;
+    int32_t y = (int32_t)(acc >> 15);
+    d2 = d1;
+    d1 = y;
+    return y;
+}
+
+// Cascade IIR with float delay taps  avoids integer quantization artifacts
+// at high sample rates where pole radii approach 1.  Q15 coefficients are
+// converted to float inline; the cost is negligible vs. the synthesis loop.
+static inline float fp_iir_f(int32_t A, int32_t B, int32_t C,
+                               float x, float& d1, float& d2) {
+    static const float k = 1.0f / 32768.0f;
+    float y = A * k * x + B * k * d1 + C * k * d2;
+    d2 = d1;
+    d1 = y;
+    return y;
+}
+
+// All-float cascade IIR  used for F1/F2/F3 where coefficients are derived
+// directly from (r, cos) without Q15 quantization.
+static inline float fp_iir_ff(float A, float B, float C,
+                                float x, float& d1, float& d2) {
+    float y = A * x + B * d1 + C * d2;
+    d2 = d1;
+    d1 = y;
+    return y;
+}
+
+//  Rate presets (identical to float version) 
+
+struct SampleRatePresetFP { float NoiseScale; float OutputGain; };
+static const std::map<int32_t, SampleRatePresetFP> _ratePresetsFP = {
+    { 8000,  { 0.67f, 1.50f  } },
+    { 11025, { 0.22f, 2.35f  } },
+    { 22050, { 1.00f, 5.00f  } },
+    { 44100, { 1.40f, 9.20f  } },
+    { 48000, { 1.47f, 10.00f } },
+    { 96000, { 2.39f, 15.00f } },
+};
+
+std::vector<int32_t> KlattSynthesizerFP::SupportedSampleRates() {
+    std::vector<int32_t> keys;
+    keys.reserve(_ratePresetsFP.size());
+    for (auto& kv : _ratePresetsFP) keys.push_back(kv.first);
+    return keys;
+}
+
+//  Constructor 
+
+KlattSynthesizerFP::KlattSynthesizerFP(int32_t sampleRate) {
+    auto it = _ratePresetsFP.find(sampleRate);
+    if (it == _ratePresetsFP.end()) {
+        throw std::invalid_argument(
+            "Unsupported sample rate " + std::to_string(sampleRate) + " Hz.");
+    }
+
+    InitSinLut();
+
+    _sampleRate     = sampleRate;
+    _internalRate   = sampleRate;
+    _noiseScale     = it->second.NoiseScale;
+    _outputGain     = it->second.OutputGain;
+    _speechVolume   = 150.0f;
+    _hfEmph         = true;
+
+    _outputGain_q15   = (int32_t)(_outputGain * 32768.0f);
+    _noiseGain_q0     = 0;  // set in SetVoice
+
+    // (1<<28)/sampleRate in Q4: glotPhaseInc = effF0Hz * _phaseIncPerHz_q4 >> 4
+    _phaseIncPerHz_q4 = (int32_t)((1LL << 28) / sampleRate);
+
+    double rawLen = sampleRate * (KDefaultSampFrameLen / (double)KDefaultSampleRate);
+    int32_t len = (int32_t)std::floor(rawLen + 0.5);
+    if (len < 2) len = 2;
+    SampFrameLen = len;
+
+    // Fixed subglottal resonator ~350 Hz / BW 80.
+    {
+        float A, B, C;
+        Calc_Pole_Coefficients(A, B, C, HzToPitch(350), 80);
+        ToQ15(A, B, C, _sgA, _sgB, _sgC);
+    }
+
+    // Zero-initialise IIR coefficients.
+    _f2A=_f2B=_f2C=0; _f3A=_f3B=_f3C=0;
+    _f4A=_f4B=_f4C=0; _f5cA=_f5cB=_f5cC=0;
+    _f4pA=_f4pB=_f4pC=0; _f5pA=_f5pB=_f5pC=0; _f6pA=_f6pB=_f6pC=0;
+    _nzA=_nzB=_nzC=0; _npA=_npB=_npC=0;
+
+    // Cascade F1-F3 physical interpolation state: neutral (pole at origin).
+    _f1r=0.0f; _f1cosw=1.0f; _f2r=0.0f; _f2cosw=1.0f; _f3r=0.0f; _f3cosw=1.0f;
+
+    // Zero-initialise delay taps and filter state.
+    _f1D1=_f1D2=0; _f2D1=_f2D2=0; _f3D1=_f3D2=0;
+    _f4D1=_f4D2=0; _f5cD1=_f5cD2=0;
+    _f2pD1=_f2pD2=0; _f3pD1=_f3pD2=0;
+    _f4pD1=_f4pD2=0; _f5pD1=_f5pD2=0; _f6pD1=_f6pD2=0;
+    _nzD1=_nzD2=0; _npD1=_npD2=0;
+    _sgD1=_sgD2=0; _preemphPrev=0; _tiltPrev=0;
+
+    _voiceAmp_q8=_fricAmp_q8=_abAmp_q8=0;
+    _pAmp2_q8=_pAmp3_q8=_pAmp4_q8=_pAmp5_q8=_pAmp6_q8=0;
+    _nasalNorm_q15=32768;
+
+    _glotPhase=_glotPhaseInc=0;
+    _chorusPhase=_chorusPhaseInc=0;
+    _Ne_fp = _chorusNe_fp = 655360;
+    _glotInvNe_f = _chorusInvNe_f = 1.0f / 655360.0f;
+    _voiceGain_f = 0.0f;
+
+    _shimmerScale=1.0f; _diploScale=1.0f;
+    _cycleCount=0; _fryStallSamples=0;
+
+    _vibratoPhase_fp=0; _tremoloPhase_fp=0;
+    _vibDepth_q8=0; _vibRate_q8=0;
+    _tremDepth_q15=0; _tremRate_q8=0;
+    _asp_q15=0; _tilt_q15=0;
+
+    _pink0=_pink1=_pink2=_pink3=_pink4=_pink5=_pink6=0;
+
+    {
+        float rat = 22050.0f / (float)sampleRate;
+        const float po[] = {0.99886f,0.99332f,0.96900f,0.86650f,0.55000f,0.76160f};
+        const float go[] = {0.0555179f,0.0750759f,0.1538520f,0.3104856f,0.5329522f,0.0168980f};
+        int32_t* pq[] = {&_pnP0q15,&_pnP1q15,&_pnP2q15,&_pnP3q15,&_pnP4q15,&_pnP5mq15};
+        int32_t* gq[] = {&_pnG0q15,&_pnG1q15,&_pnG2q15,&_pnG3q15,&_pnG4q15,&_pnG5q15};
+        for (int i = 0; i < 6; i++) {
+            float p = powf(po[i], rat);
+            float g = go[i] * sqrtf((1.0f - p*p) / (1.0f - po[i]*po[i]));
+            *pq[i] = (int32_t)(p * 32768.0f);
+            *gq[i] = (int32_t)(g * 32768.0f);
+        }
+    }
+
+    _noiseSeed=0x12345;
+
+    _noiseAmp=0.0f; _breathGain=0.0f; _breathCycle=0;
+    _nasalPoleFreq=0; _nasalPoleBW=0;
+    _f4cFreq=_f4cBW=0; _f5cFreq=_f5cBW=0;
+    _f4pFreq=_f4pBW=0; _f5pFreq=_f5pBW=0; _f6pFreq=_f6pBW=0;
+
+    _voiceTiltBias=0.0f; _openQuotient=50;
+}
+
+//  SetVoice 
+
+void KlattSynthesizerFP::SetVoice(int16_t nGain, bool bit16,
+                                   int16_t f4_Freq,  int16_t f4_BW,
+                                   int16_t f5_Freq,  int16_t f5_BW,
+                                   int16_t f4p_Freq, int16_t bw4p_BW,
+                                   int16_t f5p_Freq, int16_t bw5p_BW,
+                                   int16_t f6p_Freq, int16_t bw6p_BW,
+                                   int16_t nasal_Base, int16_t nasal_BW,
+                                   int16_t aGain, int16_t aCycle) {
+    _breathGain  = (aGain * KNoiseGain) / 100.0f;
+    _breathCycle = aCycle;
+
+    _noiseAmp = nGain / 100.0f;
+    if (bit16) _noiseAmp *= (0xCCCC / 65536.0f);
+
+    _f4cFreq = HzToPitch(f4_Freq);  _f4cBW = f4_BW;
+    _f5cFreq = HzToPitch(f5_Freq);  _f5cBW = f5_BW;
+    _f4pFreq = HzToPitch(f4p_Freq); _f4pBW = bw4p_BW;
+    _f5pFreq = HzToPitch(f5p_Freq); _f5pBW = bw5p_BW;
+    _f6pFreq = HzToPitch(f6p_Freq); _f6pBW = bw6p_BW;
+    _nasalPoleFreq = HzToPitch(nasal_Base);
+    _nasalPoleBW   = nasal_BW;
+
+    _noiseGain_q0 = (int32_t)(128.0f * _noiseAmp * _noiseScale);
+
+    InitFixedFormants();
+}
+
+void KlattSynthesizerFP::InitFixedFormants() {
+    float A, B, C;
+
+    Calc_Pole_Coefficients(A, B, C, _f4cFreq, _f4cBW);
+    ToQ15(A, B, C, _f4A, _f4B, _f4C);
+
+    Calc_Pole_Coefficients(A, B, C, _f5cFreq, _f5cBW);
+    ToQ15(A, B, C, _f5cA, _f5cB, _f5cC);
+
+    float nyq = _internalRate * 0.5f;
+    auto pBankFade = [&](int16_t pitchCode) -> float {
+        float hz = (float)PitchToHz(pitchCode);
+        if (hz >= nyq * 0.85f) return 0.0f;
+        if (hz <= nyq * 0.65f) return 1.0f;
+        return (nyq * 0.85f - hz) / (nyq * 0.20f);
+    };
+
+    Calc_Pole_Coefficients(A, B, C, _f4pFreq, _f4pBW);
+    A *= (KNoiseGain / 8192.0f) * pBankFade(_f4pFreq);
+    ToQ15(A, B, C, _f4pA, _f4pB, _f4pC);
+
+    Calc_Pole_Coefficients(A, B, C, _f5pFreq, _f5pBW);
+    A *= (KNoiseGain / 8192.0f) * pBankFade(_f5pFreq);
+    ToQ15(A, B, C, _f5pA, _f5pB, _f5pC);
+
+    Calc_Pole_Coefficients(A, B, C, _f6pFreq, _f6pBW);
+    A *= (KNoiseGain / 8192.0f) * pBankFade(_f6pFreq);
+    ToQ15(A, B, C, _f6pA, _f6pB, _f6pC);
+
+    Calc_Pole_Coefficients(A, B, C, _nasalPoleFreq, _nasalPoleBW);
+    ToQ15(A, B, C, _npA, _npB, _npC);
+}
+
+void KlattSynthesizerFP::ComputeGlotWave(int16_t vGain) {
+    float Oq       = 0.30f + _openQuotient * 0.004f;
+    float chorusOq = Oq + VoiceChorus * 0.0004f;
+
+    _Ne_fp       = std::max(655360,  std::min(16056320, (int32_t)roundf(Oq       * 16777216.0f)));
+    _chorusNe_fp = std::max(655360,  std::min(16056320, (int32_t)roundf(chorusOq * 16777216.0f)));
+    _glotInvNe_f   = 1.0f / (float)_Ne_fp;
+    _chorusInvNe_f = 1.0f / (float)_chorusNe_fp;
+    _voiceGain_f   = (vGain > 0) ? (vGain * 288.0f) : 0.0f;
+}
+
+//  AdjFormant / NextNoise 
+
+int16_t KlattSynthesizerFP::AdjFormant(int16_t pitch, int32_t formant) {
+    if (LarynxOffset==0 && PharyngealAmt==0 && LipRounding==0) return pitch;
+    int32_t hz = PitchToHz(pitch) + LarynxOffset;
+    hz += formant==1 ? PharyngealAmt - (LipRounding/2)
+        : formant==2 ? -PharyngealAmt*2 - (LipRounding*3)
+        : formant==3 ? -LipRounding : 0;
+    hz = std::max(hz, (int32_t)50);
+    hz = std::min(hz, (int32_t)8000);
+    return HzToPitch((int16_t)hz);
+}
+
+int32_t KlattSynthesizerFP::NextNoise() {
+    _noiseSeed = (_noiseSeed * 1103515245 + 12345) & 0x7FFFFFFF;
+    return (_noiseSeed >> 16) & 0xFF;
+}
+
+//  Pink noise (Q15) 
+// State variables are Q15.  White input (NextNoise()-128)<<8  32768 (Q15).
+// Poles and gains are rate-adapted at construction; _pnP*q15/_pnG*q15 are Q15.
+
+int32_t KlattSynthesizerFP::NextPinkNoise_q15() {
+    int32_t w = (NextNoise() - 128) << 8;  // Q15 white noise
+
+    _pink0 = (int32_t)(((int64_t)_pnP0q15  * _pink0 + (int64_t)_pnG0q15 * w) >> 15);
+    _pink1 = (int32_t)(((int64_t)_pnP1q15  * _pink1 + (int64_t)_pnG1q15 * w) >> 15);
+    _pink2 = (int32_t)(((int64_t)_pnP2q15  * _pink2 + (int64_t)_pnG2q15 * w) >> 15);
+    _pink3 = (int32_t)(((int64_t)_pnP3q15  * _pink3 + (int64_t)_pnG3q15 * w) >> 15);
+    _pink4 = (int32_t)(((int64_t)_pnP4q15  * _pink4 + (int64_t)_pnG4q15 * w) >> 15);
+    _pink5 = (int32_t)((-(int64_t)_pnP5mq15 * _pink5 - (int64_t)_pnG5q15 * w) >> 15);
+    int32_t sum = _pink0 + _pink1 + _pink2 + _pink3 + _pink4 + _pink5
+                + _pink6 + (int32_t)(((int64_t)17574 * w) >> 15);
+    _pink6 = (int32_t)(((int64_t)3799 * w) >> 15);
+
+    return (int32_t)(((int64_t)5898 * sum) >> 15);
+}
+
+//  Calc_Pole / Calc_Zero Coefficients 
+// Identical to float version  output is float A/B/C, converted to Q15 by callers.
+
+void KlattSynthesizerFP::Calc_Pole_Coefficients(float& Acoeff, float& Bcoeff, float& Ccoeff,
+                                                  int16_t pitch, int16_t bandWidth,
+                                                  int32_t voiceMinBW) {
+    if (bandWidth > KMaxBandWidth) bandWidth = (int16_t)KMaxBandWidth;
+    if (bandWidth < voiceMinBW)    bandWidth = (int16_t)voiceMinBW;
+    if (pitch < 256)               pitch = 256;
+
+    float hz = (float)PitchToHz(pitch);
+    float nyquist = _internalRate * 0.5f;
+    if (hz >= nyquist * 0.85f) {
+        hz = nyquist * 0.80f;
+        bandWidth = std::max(bandWidth, (int16_t)2000);
+    }
+    float r = expf(-(float)M_PI * bandWidth / _internalRate);
+    float w = 2.0f * (float)M_PI * hz / _internalRate;
+    Ccoeff = -(r * r);
+    Bcoeff = 2.0f * r * cosf(w);
+    Acoeff = 1.0f - Bcoeff - Ccoeff;
+}
+
+void KlattSynthesizerFP::Calc_Zero_Coefficients(float& Acoeff, float& Bcoeff, float& Ccoeff,
+                                                  int16_t pitch, int16_t bandWidth) {
+    if (bandWidth > KMaxBandWidth) bandWidth = (int16_t)KMaxBandWidth;
+    if (pitch < 256)               pitch = 256;
+
+    float hz = (float)PitchToHz(pitch);
+    float r = expf(-(float)M_PI * bandWidth / _internalRate);
+    float w = 2.0f * (float)M_PI * hz / _internalRate;
+    Ccoeff =  r * r;
+    Bcoeff = -2.0f * r * cosf(w);
+    Acoeff =  1.0f + Bcoeff + Ccoeff;
+}
+
+//  SynthesizeFrame 
+
+void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int32_t offset) {
+
+    //  Frame-boundary target amplitudes (Q8 = float * 256) 
+    int32_t tVoiceAmp = (int32_t)(frame.Av * _speechVolume * 256.0f);
+    int32_t tFricAmp  = (int32_t)(frame.Af * _speechVolume * 4.0f * 256.0f);
+    int32_t tAbAmp    = (int32_t)(frame.AB * _speechVolume * 256.0f);
+    int32_t tPAmp2    = (int32_t)(frame.A2 / 32.0f * 256.0f);
+    int32_t tPAmp3    = (int32_t)(frame.A3 / 32.0f * 256.0f);
+    int32_t tPAmp4    = (int32_t)(frame.A4 / 32.0f * 256.0f);
+    int32_t tPAmp5    = (int32_t)(frame.A5 / 32.0f * 256.0f);
+    int32_t tPAmp6    = (int32_t)(frame.A6 / 32.0f * 256.0f);
+
+    //  Onset reset (voiced/fricated start from silence) 
+    if (_voiceAmp_q8==0 && _fricAmp_q8==0 && (tVoiceAmp>0 || tFricAmp>0)) {
+        _glotPhase=0; _chorusPhase=0;
+        _shimmerScale=1.0f; _diploScale=1.0f;
+        _cycleCount=0; _fryStallSamples=0;
+        _sgD1=_sgD2=0;
+        _f1D1=_f1D2=_f2D1=_f2D2=_f3D1=_f3D2=_f4D1=_f4D2=_f5cD1=_f5cD2=0;
+        _npD1=_npD2=_nzD1=_nzD2=0;
+        _preemphPrev=0; _tiltPrev=0;
+
+        float A,B,C;
+        Calc_Pole_Coefficients(A,B,C, AdjFormant((int16_t)(frame.F1+_f1FreqOffset),1), frame.Bw1);
+        _f1r = sqrtf(-C); _f1cosw = (_f1r > 0.0f) ? B / (2.0f * _f1r) : 1.0f;
+        Calc_Pole_Coefficients(A,B,C, AdjFormant((int16_t)(frame.F2+_f2FreqOffset),2), frame.Bw2);
+        _f2r = sqrtf(-C); _f2cosw = (_f2r > 0.0f) ? B / (2.0f * _f2r) : 1.0f;
+        _f2B = (int32_t)(2.0f*_f2r*_f2cosw*32768.0f); _f2C = -(int32_t)(_f2r*_f2r*32768.0f); _f2A = 32768-_f2B-_f2C;
+        Calc_Pole_Coefficients(A,B,C, AdjFormant((int16_t)(frame.F3+_f3FreqOffset),3), frame.Bw3);
+        _f3r = sqrtf(-C); _f3cosw = (_f3r > 0.0f) ? B / (2.0f * _f3r) : 1.0f;
+        _f3B = (int32_t)(2.0f*_f3r*_f3cosw*32768.0f); _f3C = -(int32_t)(_f3r*_f3r*32768.0f); _f3A = 32768-_f3B-_f3C;
+
+        if (frame.FNZ != _nasalPoleFreq) {
+            Calc_Zero_Coefficients(A,B,C, (int16_t)(frame.FNZ+_nasalFreqOffset), _nasalPoleBW);
+            _nasalNorm_q15 = (A != 0.0f)
+                ? (int32_t)((_npA / 32768.0f) / A * 32768.0f) : 32768;
+            ToQ15(A,B,C, _nzA,_nzB,_nzC);
+        } else {
+            _nzA=_npA; _nzB=-_npB; _nzC=-_npC;
+            _nasalNorm_q15=32768;
+        }
+
+        _voiceAmp_q8=0; _fricAmp_q8=0; _abAmp_q8=0;
+        _pAmp2_q8=tPAmp2; _pAmp3_q8=tPAmp3; _pAmp4_q8=tPAmp4;
+        _pAmp5_q8=tPAmp5; _pAmp6_q8=tPAmp6;
+    }
+
+    //  Target (r, cos) for variable cascade formants 
+    float f1TA,f1TB,f1TC, f2TA,f2TB,f2TC, f3TA,f3TB,f3TC;
+    Calc_Pole_Coefficients(f1TA,f1TB,f1TC, AdjFormant((int16_t)(frame.F1+_f1FreqOffset),1), frame.Bw1);
+    Calc_Pole_Coefficients(f2TA,f2TB,f2TC, AdjFormant((int16_t)(frame.F2+_f2FreqOffset),2), frame.Bw2);
+    Calc_Pole_Coefficients(f3TA,f3TB,f3TC, AdjFormant((int16_t)(frame.F3+_f3FreqOffset),3), frame.Bw3);
+
+    float f1T_r = sqrtf(-f1TC), f1T_cw = f1T_r > 0.0f ? f1TB/(2.0f*f1T_r) : 1.0f;
+    float f2T_r = sqrtf(-f2TC), f2T_cw = f2T_r > 0.0f ? f2TB/(2.0f*f2T_r) : 1.0f;
+    float f3T_r = sqrtf(-f3TC), f3T_cw = f3T_r > 0.0f ? f3TB/(2.0f*f3T_r) : 1.0f;
+
+    int32_t nzTA_q,nzTB_q,nzTC_q, tNasalNorm_q15=32768;
+    if (frame.FNZ != _nasalPoleFreq) {
+        float A,B,C;
+        Calc_Zero_Coefficients(A,B,C, (int16_t)(frame.FNZ+_nasalFreqOffset), _nasalPoleBW);
+        tNasalNorm_q15 = (A != 0.0f)
+            ? (int32_t)((_npA / 32768.0f) / A * 32768.0f) : 32768;
+        ToQ15(A,B,C, nzTA_q,nzTB_q,nzTC_q);
+    } else {
+        nzTA_q=_npA; nzTB_q=-_npB; nzTC_q=-_npC;
+    }
+
+    //  Per-sample interpolation deltas 
+    int32_t dVoiceAmp=(tVoiceAmp-_voiceAmp_q8)/SampFrameLen;
+    int32_t dFricAmp =(tFricAmp -_fricAmp_q8) /SampFrameLen;
+    int32_t dAbAmp   =(tAbAmp   -_abAmp_q8)   /SampFrameLen;
+    int32_t dPAmp2   =(tPAmp2   -_pAmp2_q8)   /SampFrameLen;
+    int32_t dPAmp3   =(tPAmp3   -_pAmp3_q8)   /SampFrameLen;
+    int32_t dPAmp4   =(tPAmp4   -_pAmp4_q8)   /SampFrameLen;
+    int32_t dPAmp5   =(tPAmp5   -_pAmp5_q8)   /SampFrameLen;
+    int32_t dPAmp6   =(tPAmp6   -_pAmp6_q8)   /SampFrameLen;
+
+    float df1r =(f1T_r -_f1r) /SampFrameLen, df1cw=(f1T_cw-_f1cosw)/SampFrameLen;
+    float df2r =(f2T_r -_f2r) /SampFrameLen, df2cw=(f2T_cw-_f2cosw)/SampFrameLen;
+    float df3r =(f3T_r -_f3r) /SampFrameLen, df3cw=(f3T_cw-_f3cosw)/SampFrameLen;
+    int32_t dNzA=(nzTA_q-_nzA)/SampFrameLen, dNzB=(nzTB_q-_nzB)/SampFrameLen, dNzC=(nzTC_q-_nzC)/SampFrameLen;
+    int32_t dNasalNorm=(tNasalNorm_q15-_nasalNorm_q15)/SampFrameLen;
+
+    // Modulation targets (Q8 for depth/rate; Q15 for tremDepth/asp/tilt).
+    int32_t tVibDepth  = (int32_t)frame.VibDepth * 256;
+    int32_t tVibRate   = (int32_t)(frame.VibRate  / 10.0f * 256.0f);
+    int32_t tTremDepth = (int32_t)(frame.TremDepth / 100.0f * 32768.0f);
+    int32_t tTremRate  = (int32_t)(frame.TremRate  / 10.0f * 256.0f);
+    int32_t tAsp       = (int32_t)(frame.Aspiration / 100.0f * 32768.0f);
+    int32_t tTilt      = (int32_t)(((frame.Tilt / 100.0f) * 1.9f - 0.95f) * 32768.0f);
+
+    int32_t dVibDepth =(tVibDepth -_vibDepth_q8)  /SampFrameLen;
+    int32_t dVibRate  =(tVibRate  -_vibRate_q8)   /SampFrameLen;
+    int32_t dTremDepth=(tTremDepth-_tremDepth_q15)/SampFrameLen;
+    int32_t dTremRate =(tTremRate -_tremRate_q8)  /SampFrameLen;
+    int32_t dAsp      =(tAsp      -_asp_q15)      /SampFrameLen;
+    int32_t dTilt     =(tTilt     -_tilt_q15)     /SampFrameLen;
+
+    // OQ/tilt bias  computed once in float before the hot loop.
+    float frameTiltBias = _voiceTiltBias;
+    if (OQStressLink != 0 && frame.Effort > 0)
+        frameTiltBias -= (frame.Effort/100.0f) * (OQStressLink/100.0f) * 0.3f;
+    if (OQF0Link != 0 && frame.F0 > 0) {
+        float f0Hz  = (float)PitchToHz(frame.F0) + PitchOffsetHz;
+        float f0Ref = BasePitchHz > 0 ? BasePitchHz : 100.0f;
+        float ratio = std::max(0.0f, std::min(2.0f, (f0Hz-f0Ref)/f0Ref)) * 0.5f;
+        frameTiltBias += ratio * (OQF0Link/100.0f) * 0.3f;
+    }
+    frameTiltBias = std::max(-0.95f, std::min(0.95f, frameTiltBias));
+    int32_t frameTiltBias_q15 = (int32_t)(frameTiltBias * 32768.0f);
+
+    float breathGainBase = _breathGain / 8192.0f;
+
+    //  Per-sample loop 
+    for (int32_t sampCtr = SampFrameLen - 1; sampCtr >= 0; --sampCtr) {
+
+        // Step all interpolated state.
+        _voiceAmp_q8+=dVoiceAmp; _fricAmp_q8+=dFricAmp; _abAmp_q8+=dAbAmp;
+        _pAmp2_q8+=dPAmp2; _pAmp3_q8+=dPAmp3; _pAmp4_q8+=dPAmp4; _pAmp5_q8+=dPAmp5; _pAmp6_q8+=dPAmp6;
+        // Step F1-F3 in (r, cos) space  poles are always stable by construction.
+        _f1r += df1r; _f1cosw += df1cw;
+        _f2r += df2r; _f2cosw += df2cw;
+        _f3r += df3r; _f3cosw += df3cw;
+        // Derive float B/C for cascade; derive Q15 for F2/F3 parallel bank.
+        float f1Bf = 2.0f*_f1r*_f1cosw, f1Cf = -_f1r*_f1r;
+        float f2Bf = 2.0f*_f2r*_f2cosw, f2Cf = -_f2r*_f2r;
+        float f3Bf = 2.0f*_f3r*_f3cosw, f3Cf = -_f3r*_f3r;
+        _f2B=(int32_t)(f2Bf*32768.0f); _f2C=(int32_t)(f2Cf*32768.0f); _f2A=32768-_f2B-_f2C;
+        _f3B=(int32_t)(f3Bf*32768.0f); _f3C=(int32_t)(f3Cf*32768.0f); _f3A=32768-_f3B-_f3C;
+        _nzA+=dNzA; _nzB+=dNzB; _nzC+=dNzC;
+        _nasalNorm_q15+=dNasalNorm;
+        _vibDepth_q8+=dVibDepth; _vibRate_q8+=dVibRate;
+        _tremDepth_q15+=dTremDepth; _tremRate_q8+=dTremRate;
+        _asp_q15+=dAsp; _tilt_q15+=dTilt;
+
+        // Vibrato: accumulate phase; look up sin; compute integer effF0Hz.
+        // Phase increment = vibRate_q8 * 512 / sampleRate
+        //   (vibRate_q8 = Hz*256; 512 = (1<<17)/256; gives increment in [0, 1<<17))
+        _vibratoPhase_fp += (uint32_t)(_vibRate_q8 * 512u / (uint32_t)_sampleRate);
+        int32_t sinVib = fp_sin(_vibratoPhase_fp);  // Q15
+
+        // vibratoHz = (vibDepth_q8/256) * (sinVib/32768) = vibDepth_q8*sinVib >> 23
+        int32_t vibratoHz = (int32_t)((int64_t)_vibDepth_q8 * sinVib >> 23);
+
+        int32_t effF0Hz = (int32_t)PitchToHz(frame.F0) + PitchOffsetHz + vibratoHz;
+        if (effF0Hz < 20) effF0Hz = 20;
+        // glotPhaseInc = effF0Hz * (1<<24) / sampleRate  effF0Hz * _phaseIncPerHz_q4 >> 4
+        _glotPhaseInc = (int32_t)((int64_t)effF0Hz * _phaseIncPerHz_q4 >> 4);
+
+        if (VoiceChorus != 0) {
+            int32_t cF0Hz = (int32_t)PitchToHz((int16_t)(frame.F0+VoiceChorus)) + PitchOffsetHz + vibratoHz;
+            if (cF0Hz < 20) cF0Hz = 20;
+            _chorusPhaseInc = (int32_t)((int64_t)cF0Hz * _phaseIncPerHz_q4 >> 4);
+        }
+
+        // Tremolo: accumulate phase; compute tremMod Q15 = 1 - depth*(0.5+0.5*sin).
+        _tremoloPhase_fp += (uint32_t)(_tremRate_q8 * 512u / (uint32_t)_sampleRate);
+        int32_t sinTrem = fp_sin(_tremoloPhase_fp);  // Q15
+        // 0.5 + 0.5*sin in Q15 = 16384 + sinTrem/2
+        int32_t halfSin = 16384 + (sinTrem >> 1);
+        int32_t tremMod_q15 = 32768 - (int32_t)(((int64_t)_tremDepth_q15 * halfSin) >> 15);
+
+        // voiceAmpTrem Q8 = voiceAmp_q8 * tremMod_q15 >> 15
+        int32_t voiceAmpTrem_q8 = (int32_t)(((int64_t)_voiceAmp_q8 * tremMod_q15) >> 15);
+
+        float   cascadeInF=0.0f, cascadeOutF=0.0f;
+        int32_t cascadeOut=0;
+        int32_t sampAB=0, samp2=0, samp3=0, samp4=0, samp5=0, samp6=0;
+
+        bool active = voiceAmpTrem_q8>0 || _fricAmp_q8>0 || _abAmp_q8>0
+                   || _pAmp2_q8>0 || _pAmp3_q8>0 || _pAmp4_q8>0
+                   || _pAmp5_q8>0 || _pAmp6_q8>0;
+                   // _asp_q15 excluded: aspGain is already gated by voiceAmpTrem_q8
+
+        if (active) {
+            if (voiceAmpTrem_q8 > 0) {
+                int32_t glotSample;
+
+                if (_fryStallSamples > 0) _fryStallSamples--;
+                int32_t prevPhase = _glotPhase;
+                _glotPhase = (_fryStallSamples>0 ? 0 : (_glotPhaseInc+_glotPhase)) & 0xFFFFFF;
+
+                if (_glotPhase < prevPhase) {  // glottal cycle boundary
+                    if (Shimmer > 0) {
+                        float sd = Shimmer * 0.002f;
+                        _shimmerScale = 1.0f + ((NextNoise()-128)/128.0f) * sd;
+                    }
+                    if (Diplophonia > 0) {
+                        _cycleCount++;
+                        float wr = std::max(0.0f, 1.0f - Diplophonia*0.01f);
+                        _diploScale = (_cycleCount&1)==0 ? 1.0f : wr;
+                    }
+                    if (Jitter > 0) {
+                        int32_t jr = (int32_t)(Jitter * 0.0005f * (1<<24));
+                        _glotPhase = (_glotPhase + ((NextNoise()-128)*jr>>7)) & 0xFFFFFF;
+                    }
+                    if (FryAmount>0 && (NextNoise()&0xFF)<FryAmount) {
+                        int32_t period = _glotPhaseInc>0
+                            ? std::min((1<<24)/_glotPhaseInc, (int32_t)1500) : (int32_t)200;
+                        _fryStallSamples = (NextNoise()*period)>>8;
+                        if (_fryStallSamples>0) _glotPhase=0;
+                    }
+                }
+
+                {
+                    int32_t phi = (int32_t)_glotPhase;
+                    float tau = (float)phi * _glotInvNe_f;
+                    glotSample = (phi < _Ne_fp)
+                        ? (int32_t)(tau * (0.33333333f - tau * 0.5f) * _voiceGain_f)
+                        : 0;
+                }
+                if (VoiceChorus != 0) {
+                    _chorusPhase = (_chorusPhaseInc+_chorusPhase) & 0xFFFFFF;
+                    int32_t phi2 = (int32_t)_chorusPhase;
+                    float tau2 = (float)phi2 * _chorusInvNe_f;
+                    int32_t chorus = (phi2 < _chorusNe_fp)
+                        ? (int32_t)(tau2 * (0.33333333f - tau2 * 0.5f) * _voiceGain_f)
+                        : 0;
+                    glotSample = (glotSample + chorus) / 2;
+                }
+
+                // Spectral tilt: 1-pole IIR lowpass y[n] = (1-d)*x[n] + d*y[n-1].
+                // Matches float variant. Clamp d to 0.95 (= 31130 Q15).
+                int32_t eTilt = _tilt_q15 + frameTiltBias_q15;
+                if (eTilt >  31130) eTilt =  31130;
+                if (eTilt <      0) eTilt =      0;
+                int32_t tiltedSample = (int32_t)(((int64_t)(32768 - eTilt) * glotSample
+                                                + (int64_t)eTilt * _tiltPrev) >> 15);
+                _tiltPrev = tiltedSample;
+
+                // cascadeInF (float-scale) = tiltedSample * voiceAmpTrem * shimDiplo / 8192.
+                float shimDiplo = _shimmerScale * _diploScale;
+                cascadeInF = (float)tiltedSample * (float)voiceAmpTrem_q8
+                             * (shimDiplo / (256.0f * 8192.0f));
+
+                // Subglottal resonance (~350 Hz chest-cavity coupling).
+                if (SubglottalAmt > 0) {
+                    float sg = fp_iir_f(_sgA, _sgB, _sgC, cascadeInF, _sgD1, _sgD2);
+                    cascadeInF += sg * (SubglottalAmt * 0.005f);
+                }
+
+                // Cycle-synchronous breathiness.
+                if (BreathAmt > 0) {
+                    int32_t openness = std::max((int32_t)0, glotSample);
+                    cascadeInF += (float)(NextNoise()-128) * openness
+                                  * (voiceAmpTrem_q8/256.0f) * (BreathAmt * 0.00004f)
+                                  * _noiseScale / 8192.0f;
+                }
+            } else {
+                if (_breathGain > 0)
+                    _glotPhase = (_glotPhaseInc+_glotPhase) & 0xFFFFFF;
+                else { _glotPhase=0; _chorusPhase=0; }
+                cascadeInF = 0.0f;
+            }
+
+            // Aspiration / breath gating.
+            float breathGainNow = breathGainBase * (voiceAmpTrem_q8 / 256.0f);
+            if (breathGainNow > 0.0f && (_glotPhase>>16) > _breathCycle)
+                cascadeInF += (float)(NextNoise()-128) * breathGainNow * _noiseScale / 2048.0f;
+
+            if (_asp_q15 > 0) {
+                float aspGain = (_asp_q15/32768.0f) * (voiceAmpTrem_q8/256.0f) * 0.5f;
+                cascadeInF += (float)(NextNoise()-128) * aspGain * _noiseScale / 8192.0f;
+            }
+
+            bool hasSound = voiceAmpTrem_q8>0 || _fricAmp_q8>0
+                         || breathGainNow>0.0f || _asp_q15>0;
+            if (hasSound) {
+                // Frication noise into cascade.
+                cascadeInF += (float)(NextNoise()-128)
+                              * (_fricAmp_q8/256.0f) * _noiseScale / 8192.0f;
+
+                // Nasal antiresonator (NZ): A=1 (same as float version; _nzA not applied here).
+                cascadeOutF = cascadeInF
+                            + (_nzB / 32768.0f) * _nzD1
+                            + (_nzC / 32768.0f) * _nzD2;
+                _nzD2=_nzD1; _nzD1=cascadeInF;
+                cascadeOutF *= (_nasalNorm_q15 / 32768.0f);
+
+                // Nasal resonator (NP).
+                cascadeOutF = fp_iir_f(32768, _npB, _npC, cascadeOutF, _npD1, _npD2);
+
+                // Cascade F1F5.  F1-F3: all-float coefficients from (r,cos)  no Q15 rounding.
+                cascadeOutF = fp_iir_ff(1.0f-f1Bf-f1Cf, f1Bf, f1Cf, cascadeOutF, _f1D1, _f1D2);
+                cascadeOutF = fp_iir_ff(1.0f-f2Bf-f2Cf, f2Bf, f2Cf, cascadeOutF, _f2D1, _f2D2);
+                cascadeOutF = fp_iir_ff(1.0f-f3Bf-f3Cf, f3Bf, f3Cf, cascadeOutF, _f3D1, _f3D2);
+                cascadeOutF = fp_iir_f(_f4A, _f4B, _f4C, cascadeOutF, _f4D1, _f4D2);
+                cascadeOutF = fp_iir_f(_f5cA, _f5cB, _f5cC, cascadeOutF, _f5cD1, _f5cD2);
+            }
+            cascadeOut = (int32_t)cascadeOutF;
+
+            // Parallel bank noise. pink_fp / pink_float  32768 = 2^15 (from Q15 filter states),
+            // so >>15 yields Q0 (float-scale), matching cascadeOut above.
+            int32_t pink = NextPinkNoise_q15();
+            int32_t parallelNoise = (int32_t)(((int64_t)pink * _noiseGain_q0) >> 15);
+
+            // Parallel bank amplitudes.
+            // Target: A_float * pAmp_float * noise  (Q0 result)
+            // A_q15 * pAmp_q8 * noise >> 23  =  (A_float*32768) * (pAmp_float*256) * noise / (32768*256)
+            //                                 =  A_float * pAmp_float * noise  
+            // Using >> 23 (not >>8 then /4096) preserves precision for small amplitudes.
+            if (_abAmp_q8 > 0)
+                sampAB = (int32_t)(((int64_t)parallelNoise * _abAmp_q8) >> 20);
+                // _abAmp is frame.AB * speechVolume / 4096: >>20 = >>8(Q8) + >>12(4096)
+
+            if (_pAmp2_q8 > 0) {
+                int32_t in2 = (int32_t)(((int64_t)_f2A * _pAmp2_q8 * parallelNoise) >> 23);
+                samp2 = fp_iir(32768, _f2B, _f2C, in2, _f2pD1, _f2pD2);
+            }
+            if (_pAmp3_q8 > 0) {
+                int32_t in3 = (int32_t)(((int64_t)_f3A * _pAmp3_q8 * parallelNoise) >> 23);
+                samp3 = fp_iir(32768, _f3B, _f3C, in3, _f3pD1, _f3pD2);
+            }
+            if (_pAmp4_q8 > 0) {
+                int32_t in4 = (int32_t)(((int64_t)_f4pA * _pAmp4_q8 * parallelNoise) >> 23);
+                samp4 = fp_iir(32768, _f4pB, _f4pC, in4, _f4pD1, _f4pD2);
+            }
+            if (_pAmp5_q8 > 0) {
+                int32_t in5 = (int32_t)(((int64_t)_f5pA * _pAmp5_q8 * parallelNoise) >> 23);
+                samp5 = fp_iir(32768, _f5pB, _f5pC, in5, _f5pD1, _f5pD2);
+            }
+            if (_pAmp6_q8 > 0) {
+                int32_t in6 = (int32_t)(((int64_t)_f6pA * _pAmp6_q8 * parallelNoise) >> 23);
+                samp6 = fp_iir(32768, _f6pB, _f6pC, in6, _f6pD1, _f6pD2);
+            }
+
+            int32_t sample = cascadeOut + (sampAB - samp3 + samp4 - samp5 + samp6 - samp2);
+
+            // Pre-emphasis: y = x - 0.97*x[n-1]  (0.97 * 32768 = 31785 in Q15)
+            if (_hfEmph) {
+                int32_t pe = sample - (int32_t)(((int64_t)31785 * _preemphPrev) >> 15);
+                _preemphPrev = sample;
+                sample = pe;
+            }
+
+            // Output gain (Q15), clip 8191, 4 to reach int16_t range.
+            // sample is Q0 (cascade >>8 + parallel Q0); _outputGain_q15 = OutputGain*32768; >>15 = Q0 out.
+            int32_t out = (int32_t)(((int64_t)sample * _outputGain_q15) >> 15);
+            if (out >  8191) out =  8191;
+            if (out < -8191) out = -8191;
+            out *= 4;
+            if (out >  INT16_MAX) out =  INT16_MAX;
+            if (out < -INT16_MAX) out = -INT16_MAX;
+            outputBuffer[offset++] = (int16_t)out;
+
+        } else {
+            _glotPhase=0; _chorusPhase=0;
+            outputBuffer[offset++] = 0;
+        }
+    }
+
+    // Snap interpolated state to frame targets.
+    // Integer delta truncation leaves small residuals (e.g. voiceAmp_q8=10 when
+    // target=0), which keep 'active' true and generate faint noise during silence.
+    _voiceAmp_q8   = tVoiceAmp;
+    _fricAmp_q8    = tFricAmp;
+    _abAmp_q8      = tAbAmp;
+    _pAmp2_q8      = tPAmp2;
+    _pAmp3_q8      = tPAmp3;
+    _pAmp4_q8      = tPAmp4;
+    _pAmp5_q8      = tPAmp5;
+    _pAmp6_q8      = tPAmp6;
+    _vibDepth_q8   = tVibDepth;
+    _vibRate_q8    = tVibRate;
+    _tremDepth_q15 = tTremDepth;
+    _tremRate_q8   = tTremRate;
+    _asp_q15       = tAsp;
+    _tilt_q15      = tTilt;
+    _f1r = f1T_r; _f1cosw = f1T_cw;
+    _f2r = f2T_r; _f2cosw = f2T_cw;
+    _f3r = f3T_r; _f3cosw = f3T_cw;
+    // Keep F2/F3 Q15 in sync with snapped r/cos.
+    _f2B=(int32_t)(2.0f*_f2r*_f2cosw*32768.0f); _f2C=-(int32_t)(_f2r*_f2r*32768.0f); _f2A=32768-_f2B-_f2C;
+    _f3B=(int32_t)(2.0f*_f3r*_f3cosw*32768.0f); _f3C=-(int32_t)(_f3r*_f3r*32768.0f); _f3A=32768-_f3B-_f3C;
+}
+
+} // namespace SharpVox
