@@ -1,0 +1,349 @@
+#include "../include/JapaneseParser.h"
+#include "../include/AudioProcessor.h"
+
+namespace SharpVox {
+
+    // Vowel shorthands: JP-specific IDs for formant table lookup
+    static const int16_t J_AA  = AudioProcessor::_JP_A_;
+    static const int16_t J_IY  = AudioProcessor::_JP_I_;
+    static const int16_t J_UH  = AudioProcessor::_JP_U_;
+    static const int16_t J_EH  = AudioProcessor::_JP_E_;
+    static const int16_t J_AO  = AudioProcessor::_JP_O_;
+
+    // Consonant shorthands: English IDs
+    static const uint8_t J_K   = (uint8_t)AudioProcessor::_K_;
+    static const uint8_t J_G   = (uint8_t)AudioProcessor::_G_;
+    static const uint8_t J_S   = (uint8_t)AudioProcessor::_S_;
+    static const uint8_t J_Z   = (uint8_t)AudioProcessor::_Z_;
+    static const uint8_t J_SH  = (uint8_t)AudioProcessor::_SH_;
+    static const uint8_t J_JH  = (uint8_t)AudioProcessor::_JH_;
+    static const uint8_t J_T   = (uint8_t)AudioProcessor::_T_;
+    static const uint8_t J_D   = (uint8_t)AudioProcessor::_D_;
+    static const uint8_t J_CH  = (uint8_t)AudioProcessor::_CH_;
+    static const uint8_t J_N   = (uint8_t)AudioProcessor::_N_;
+    static const uint8_t J_HH  = (uint8_t)AudioProcessor::_HH_;
+    static const uint8_t J_F   = (uint8_t)AudioProcessor::_F_;
+    static const uint8_t J_B   = (uint8_t)AudioProcessor::_B_;
+    static const uint8_t J_P   = (uint8_t)AudioProcessor::_P_;
+    static const uint8_t J_M   = (uint8_t)AudioProcessor::_M_;
+    static const uint8_t J_Y   = (uint8_t)AudioProcessor::_Y_;
+    static const uint8_t J_DX  = (uint8_t)AudioProcessor::_DX_;  // alveolar tap for Japanese /r/
+    static const uint8_t J_NG  = (uint8_t)AudioProcessor::_NG_;
+    static const uint8_t J_W   = (uint8_t)AudioProcessor::_W_;
+    static const uint8_t J_V   = (uint8_t)AudioProcessor::_V_;
+
+    // Sentinel values in Mora.vowel (all outside valid int16_t phoneme range when cast to uint8_t)
+    static const uint8_t JP_GEMINATE   = 0xFE;
+    static const uint8_t JP_SYLLABIC_N = 0xFD;
+    static const uint8_t JP_INVALID    = 0xFF;
+
+    struct Mora {
+        uint8_t c1;          // first consonant, 0xFF = bare vowel
+        uint8_t c2;          // second consonant (tsuu = T+S), 0xFF = none
+        uint8_t vowel;       // JP_* sentinel or JP vowel ID cast to uint8_t
+        bool    yoon_base;   // mora ends in /i/ and can take a yoon modifier
+        bool    palatalized; // already palatalized (sh/ch/jh): yoon omits Y glide
+    };
+
+    static Mora LookupMora(uint32_t cp) {
+        Mora m = { 0xFF, 0xFF, JP_INVALID, false, false };
+        uint8_t va = (uint8_t)J_AA, vi = (uint8_t)J_IY, vu = (uint8_t)J_UH,
+                ve = (uint8_t)J_EH, vo = (uint8_t)J_AO;
+        switch (cp) {
+            // -- bare vowels --
+            case 0x3041: case 0x3042: m.vowel = va; break;  // a  a
+            case 0x3043: case 0x3044: m.vowel = vi; break;  // i  i
+            case 0x3045: case 0x3046: m.vowel = vu; break;  // u  u
+            case 0x3047: case 0x3048: m.vowel = ve; break;  // e  e
+            case 0x3049: case 0x304A: m.vowel = vo; break;  // o  o
+            // -- K-row --
+            case 0x304B: m.c1 = J_K; m.vowel = va; break;
+            case 0x304C: m.c1 = J_G; m.vowel = va; break;
+            case 0x304D: m.c1 = J_K; m.vowel = vi; m.yoon_base = true; break;
+            case 0x304E: m.c1 = J_G; m.vowel = vi; m.yoon_base = true; break;
+            case 0x304F: m.c1 = J_K; m.vowel = vu; break;
+            case 0x3050: m.c1 = J_G; m.vowel = vu; break;
+            case 0x3051: m.c1 = J_K; m.vowel = ve; break;
+            case 0x3052: m.c1 = J_G; m.vowel = ve; break;
+            case 0x3053: m.c1 = J_K; m.vowel = vo; break;
+            case 0x3054: m.c1 = J_G; m.vowel = vo; break;
+            // -- S-row --
+            case 0x3055: m.c1 = J_S;  m.vowel = va; break;
+            case 0x3056: m.c1 = J_Z;  m.vowel = va; break;
+            case 0x3057: m.c1 = J_SH; m.vowel = vi; m.yoon_base = true; m.palatalized = true; break;
+            case 0x3058: m.c1 = J_JH; m.vowel = vi; m.yoon_base = true; m.palatalized = true; break;
+            case 0x3059: m.c1 = J_S;  m.vowel = vu; break;
+            case 0x305A: m.c1 = J_Z;  m.vowel = vu; break;
+            case 0x305B: m.c1 = J_S;  m.vowel = ve; break;
+            case 0x305C: m.c1 = J_Z;  m.vowel = ve; break;
+            case 0x305D: m.c1 = J_S;  m.vowel = vo; break;
+            case 0x305E: m.c1 = J_Z;  m.vowel = vo; break;
+            // -- T-row --
+            case 0x305F: m.c1 = J_T;  m.vowel = va; break;
+            case 0x3060: m.c1 = J_D;  m.vowel = va; break;
+            case 0x3061: m.c1 = J_CH; m.vowel = vi; m.yoon_base = true; m.palatalized = true; break;
+            case 0x3062: m.c1 = J_JH; m.vowel = vi; m.yoon_base = true; m.palatalized = true; break;
+            case 0x3063: m.vowel = JP_GEMINATE; break;
+            case 0x3064: m.c1 = J_T; m.c2 = J_S; m.vowel = vu; break;  // T+S+u
+            case 0x3065: m.c1 = J_Z; m.vowel = vu; break;
+            case 0x3066: m.c1 = J_T; m.vowel = ve; break;
+            case 0x3067: m.c1 = J_D; m.vowel = ve; break;
+            case 0x3068: m.c1 = J_T; m.vowel = vo; break;
+            case 0x3069: m.c1 = J_D; m.vowel = vo; break;
+            // -- N-row --
+            case 0x306A: m.c1 = J_N; m.vowel = va; break;
+            case 0x306B: m.c1 = J_N; m.vowel = vi; m.yoon_base = true; break;
+            case 0x306C: m.c1 = J_N; m.vowel = vu; break;
+            case 0x306D: m.c1 = J_N; m.vowel = ve; break;
+            case 0x306E: m.c1 = J_N; m.vowel = vo; break;
+            // -- H/B/P-row --
+            case 0x306F: m.c1 = J_HH; m.vowel = va; break;
+            case 0x3070: m.c1 = J_B;  m.vowel = va; break;
+            case 0x3071: m.c1 = J_P;  m.vowel = va; break;
+            case 0x3072: m.c1 = J_HH; m.vowel = vi; m.yoon_base = true; break;
+            case 0x3073: m.c1 = J_B;  m.vowel = vi; m.yoon_base = true; break;
+            case 0x3074: m.c1 = J_P;  m.vowel = vi; m.yoon_base = true; break;
+            case 0x3075: m.c1 = J_F;  m.vowel = vu; break;
+            case 0x3076: m.c1 = J_B;  m.vowel = vu; break;
+            case 0x3077: m.c1 = J_P;  m.vowel = vu; break;
+            case 0x3078: m.c1 = J_HH; m.vowel = ve; break;
+            case 0x3079: m.c1 = J_B;  m.vowel = ve; break;
+            case 0x307A: m.c1 = J_P;  m.vowel = ve; break;
+            case 0x307B: m.c1 = J_HH; m.vowel = vo; break;
+            case 0x307C: m.c1 = J_B;  m.vowel = vo; break;
+            case 0x307D: m.c1 = J_P;  m.vowel = vo; break;
+            // -- M-row --
+            case 0x307E: m.c1 = J_M; m.vowel = va; break;
+            case 0x307F: m.c1 = J_M; m.vowel = vi; m.yoon_base = true; break;
+            case 0x3080: m.c1 = J_M; m.vowel = vu; break;
+            case 0x3081: m.c1 = J_M; m.vowel = ve; break;
+            case 0x3082: m.c1 = J_M; m.vowel = vo; break;
+            // -- Y-row --
+            case 0x3083: case 0x3084: m.c1 = J_Y; m.vowel = va; break;
+            case 0x3085: case 0x3086: m.c1 = J_Y; m.vowel = vu; break;
+            case 0x3087: case 0x3088: m.c1 = J_Y; m.vowel = vo; break;
+            // -- R-row: alveolar tap --
+            case 0x3089: m.c1 = J_DX; m.vowel = va; break;
+            case 0x308A: m.c1 = J_DX; m.vowel = vi; m.yoon_base = true; break;
+            case 0x308B: m.c1 = J_DX; m.vowel = vu; break;
+            case 0x308C: m.c1 = J_DX; m.vowel = ve; break;
+            case 0x308D: m.c1 = J_DX; m.vowel = vo; break;
+            // -- W-row + particles --
+            case 0x308E: case 0x308F: m.c1 = J_W; m.vowel = va; break;
+            case 0x3090: m.c1 = J_W; m.vowel = vi; break;
+            case 0x3091: m.c1 = J_W; m.vowel = ve; break;
+            case 0x3092: m.vowel = vo; break;   // particle wo
+            case 0x3093: m.vowel = JP_SYLLABIC_N; break;
+            case 0x3094: m.c1 = J_V; m.vowel = vu; break;
+            case 0x3095: m.c1 = J_K; m.vowel = va; break;
+            case 0x3096: m.c1 = J_K; m.vowel = ve; break;
+        }
+        return m;
+    }
+
+    static bool IsHiragana(uint32_t cp) {
+        return (cp >= 0x3041 && cp <= 0x3096) || cp == 0x30FC;
+    }
+
+    // Remap topic/directional particles to their spoken form.
+    // ha (0x306F) and he (0x3078) become wa/e when preceded by any kana.
+    // boundary[i] is set true at remapped positions so vowel-length rules skip them.
+    static void NormalizeParticles(std::vector<uint32_t>& cps, std::vector<bool>& boundary) {
+        bool hadKana = false;
+        for (size_t i = 0; i < cps.size(); i++) {
+            uint32_t cp = cps[i];
+            if (cp == 0x306F && hadKana) { cps[i] = 0x308F; boundary[i] = true; }
+            else if (cp == 0x3078 && hadKana) { cps[i] = 0x3048; boundary[i] = true; }
+            if (IsHiragana(cp)) hadKana = true;
+        }
+    }
+
+    static uint32_t Utf8Decode(const unsigned char* s, size_t n, size_t& i) {
+        if (i >= n) return 0xFFFFFFFF;
+        uint8_t b0 = s[i];
+        if (b0 < 0x80) { i++; return b0; }
+        if ((b0 & 0xE0) == 0xC0) {
+            if (i + 1 >= n) { i++; return 0xFFFFFFFF; }
+            uint32_t cp = ((b0 & 0x1F) << 6) | (s[i+1] & 0x3F);
+            i += 2; return cp;
+        }
+        if ((b0 & 0xF0) == 0xE0) {
+            if (i + 2 >= n) { i++; return 0xFFFFFFFF; }
+            uint32_t cp = ((b0 & 0x0F) << 12) | ((s[i+1] & 0x3F) << 6) | (s[i+2] & 0x3F);
+            i += 3; return cp;
+        }
+        if ((b0 & 0xF8) == 0xF0) {
+            if (i + 3 >= n) { i++; return 0xFFFFFFFF; }
+            uint32_t cp = ((b0 & 0x07) << 18) | ((s[i+1] & 0x3F) << 12) |
+                          ((s[i+2] & 0x3F) << 6)  | (s[i+3] & 0x3F);
+            i += 4; return cp;
+        }
+        i++; return 0xFFFFFFFF;
+    }
+
+    static bool IsSmallYoon(uint32_t cp) {
+        return cp == 0x3083 || cp == 0x3085 || cp == 0x3087;
+    }
+
+    static int16_t SmallYoonVowel(uint32_t cp) {
+        if (cp == 0x3083) return J_AA;
+        if (cp == 0x3085) return J_UH;
+        return J_AO; // 0x3087
+    }
+
+    // Returns the vowel quality ('a','i','u','e','o') at the end of the mora at cps[i].
+    // peek is cps[i+1] — needed to detect yoon compounds.
+    static char MoraEndVowelQuality(uint32_t cp, uint32_t peek) {
+        if (IsSmallYoon(peek)) {
+            Mora m = LookupMora(cp);
+            if (m.yoon_base) {
+                if (peek == 0x3083) return 'a';
+                if (peek == 0x3085) return 'u';
+                return 'o';  // 0x3087
+            }
+        }
+        Mora m = LookupMora(cp);
+        if (m.vowel == JP_INVALID || m.vowel == JP_GEMINATE || m.vowel == JP_SYLLABIC_N) return 0;
+        uint8_t v = m.vowel;
+        if (v == (uint8_t)J_AA) return 'a';
+        if (v == (uint8_t)J_IY) return 'i';
+        if (v == (uint8_t)J_UH) return 'u';
+        if (v == (uint8_t)J_EH) return 'e';
+        if (v == (uint8_t)J_AO) return 'o';
+        return 0;
+    }
+
+    // True when cp is a bare hiragana vowel that lengthens a mora of quality prevQ.
+    // Rules: same vowel repeats; ou -> o:; ei -> e:
+    static bool IsLengtheningVowel(char prevQ, uint32_t cp) {
+        if (prevQ == 0) return false;
+        char q = 0;
+        if (cp == 0x3041 || cp == 0x3042) q = 'a';
+        else if (cp == 0x3043 || cp == 0x3044) q = 'i';
+        else if (cp == 0x3045 || cp == 0x3046) q = 'u';
+        else if (cp == 0x3047 || cp == 0x3048) q = 'e';
+        else if (cp == 0x3049 || cp == 0x304A) q = 'o';
+        else return false;
+        return (prevQ == q) || (prevQ == 'o' && q == 'u') || (prevQ == 'e' && q == 'i');
+    }
+
+    // Replaces length-marking vowels (ou, ei, aa, ii, uu, ee, oo) with the long
+    // vowel mark so the main loop treats them as duration extensions.
+    // Skips positions marked in boundary (particle-remapped codepoints).
+    static void NormalizeVowelLength(std::vector<uint32_t>& cps,
+                                     const std::vector<bool>& boundary) {
+        for (size_t i = 0; i + 1 < cps.size(); i++) {
+            if (boundary[i]) continue;
+            uint32_t peek = cps[i + 1];
+            char q = MoraEndVowelQuality(cps[i], peek);
+            if (q == 0) continue;
+            bool yoonConsumed = IsSmallYoon(peek) && LookupMora(cps[i]).yoon_base;
+            size_t nextIdx = yoonConsumed ? i + 2 : i + 1;
+            if (nextIdx < cps.size() && !boundary[nextIdx] && IsLengtheningVowel(q, cps[nextIdx])) {
+                cps[nextIdx] = 0x30FC;
+            }
+        }
+    }
+
+    std::vector<PhonemeToken> JapaneseParser::SpanToPhonemes(
+            const std::string& text, size_t pos, size_t len) {
+        std::vector<PhonemeToken> out;
+
+        const unsigned char* s = (const unsigned char*)text.c_str() + pos;
+        size_t n = len;
+
+        // Decode entire span to codepoints, then normalize particles.
+        std::vector<uint32_t> cps;
+        {
+            size_t i = 0;
+            while (i < n) {
+                uint32_t cp = Utf8Decode(s, n, i);
+                if (cp != 0xFFFFFFFF) cps.push_back(cp);
+            }
+        }
+        std::vector<bool> particleBoundary(cps.size(), false);
+        NormalizeParticles(cps, particleBoundary);
+        NormalizeVowelLength(cps, particleBoundary);
+
+        bool geminate  = false;
+        bool wordStart = true;
+        int16_t lastVowel = -1;
+        size_t firstSecondaryIdx = (size_t)-1;
+
+        auto EmitCons = [&](uint8_t phon) {
+            PhonemeToken tok;
+            tok.Phon = (int16_t)phon;
+            tok.Ctrl = AudioProcessor::kContent_Word;
+            if (wordStart) { tok.Ctrl |= AudioProcessor::kWord_Start; wordStart = false; }
+            out.push_back(tok);
+        };
+
+        auto EmitVowel = [&](int16_t phon) {
+            PhonemeToken tok;
+            tok.Phon = phon;
+            tok.Ctrl = AudioProcessor::kContent_Word | AudioProcessor::kSecondaryStress;
+            if (wordStart) { tok.Ctrl |= AudioProcessor::kWord_Start; wordStart = false; }
+            if (firstSecondaryIdx == (size_t)-1) firstSecondaryIdx = out.size();
+            out.push_back(tok);
+            lastVowel = phon;
+        };
+
+        for (size_t ci = 0; ci < cps.size(); ci++) {
+            uint32_t cp = cps[ci];
+            if (cp == 0xFFFFFFFF) break;
+
+            // Long vowel mark: repeat previous vowel
+            if (cp == 0x30FC) {
+                if (lastVowel >= 0) EmitVowel(lastVowel);
+                continue;
+            }
+
+            Mora m = LookupMora(cp);
+            if (m.vowel == JP_INVALID) continue;
+
+            if (m.vowel == JP_GEMINATE) { geminate = true; continue; }
+
+            // Syllabic N (ん): context-sensitive nasal assimilation
+            if (m.vowel == JP_SYLLABIC_N) {
+                if (geminate) { EmitCons(J_N); geminate = false; }
+                uint8_t nasal = J_N;
+                if (ci + 1 < cps.size()) {
+                    Mora nm = LookupMora(cps[ci + 1]);
+                    if (nm.c1 == J_B || nm.c1 == J_P || nm.c1 == J_M) nasal = J_M;
+                    else if (nm.c1 == J_K || nm.c1 == J_G) nasal = J_NG;
+                }
+                EmitVowel((int16_t)nasal);
+                continue;
+            }
+
+            // Yoon lookahead
+            if (m.yoon_base) {
+                if (ci + 1 < cps.size() && IsSmallYoon(cps[ci + 1])) {
+                    uint32_t next_cp = cps[++ci];
+                    int16_t yv = SmallYoonVowel(next_cp);
+                    if (geminate && m.c1 != 0xFF) { EmitCons(m.c1); geminate = false; }
+                    if (m.c1 != 0xFF) EmitCons(m.c1);
+                    if (!m.palatalized) EmitCons(J_Y);
+                    EmitVowel(yv);
+                    continue;
+                }
+            }
+
+            // Normal mora
+            if (geminate && m.c1 != 0xFF) { EmitCons(m.c1); geminate = false; }
+            if (m.c1 != 0xFF) EmitCons(m.c1);
+            if (m.c2 != 0xFF) EmitCons(m.c2);
+            EmitVowel((int16_t)m.vowel);
+        }
+
+        // Promote first secondary to primary (no function-word demotion for Japanese)
+        if (firstSecondaryIdx != (size_t)-1) {
+            out[firstSecondaryIdx].Ctrl =
+                (out[firstSecondaryIdx].Ctrl & ~AudioProcessor::kSecondaryStress) |
+                AudioProcessor::kPrimaryStress;
+        }
+
+        return out;
+    }
+
+}  // namespace SharpVox

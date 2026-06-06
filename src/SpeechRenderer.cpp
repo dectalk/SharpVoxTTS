@@ -133,10 +133,7 @@ int32_t SpeechRenderer::GP(int32_t i) const {
 
 // Phoneme feature flags; returns 0 for out-of-range phoneme indices
 uint32_t SpeechRenderer::PF(int32_t p) const {
-    if (p >= 0 && p < Tables::PhonemeFeatureFlagsLength) {
-        return Tables::GetFeatureFlags(p);
-    }
-    return 0;
+    return p >= 0 ? Tables::GetFeatureFlags(p) : 0u;
 }
 
 // Phoneme control field; returns 0 for out-of-range indices

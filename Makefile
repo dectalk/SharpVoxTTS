@@ -25,7 +25,8 @@ LIB_SRCS := \
     src/HeteronymResolver.cpp \
     src/TextCommands.cpp \
     src/KlattschParser.cpp \
-    src/VoicePresets.cpp
+    src/VoicePresets.cpp \
+    src/JapaneseParser.cpp
 
 LIB_OBJS := $(LIB_SRCS:.cpp=.o)
 

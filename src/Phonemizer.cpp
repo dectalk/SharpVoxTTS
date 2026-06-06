@@ -6,6 +6,7 @@
 #include "../include/HeteronymResolver.h"
 #include "../include/LibraryData.h"
 #include "../include/TextCommands.h"
+#include "../include/JapaneseParser.h"
 #include <sstream>
 #include <algorithm>
 #include <cctype>
@@ -967,7 +968,7 @@ namespace SharpVox {
 
     // Tokenizer  replaces the three identical static std::regex TokenRe objects.
     // Mirrors: (\d+)|([a-zA-Z]+(?:'[a-zA-Z]+)*)|([,;:])|(\.\.\.|\.| !|\?|~)|(\s+)
-    enum class TokKind : uint8_t { Digits, Word, ClausePunct, SentPunct, Space };
+    enum class TokKind : uint8_t { Digits, Word, ClausePunct, SentPunct, Space, Hiragana };
     struct Token { TokKind kind; uint32_t pos; uint32_t len; };
 
     static std::vector<Token> TokenizeText(const std::string& s) {
@@ -1006,6 +1007,42 @@ namespace SharpVox {
                 size_t start = i;
                 while (i < n && std::isspace((unsigned char)s[i])) ++i;
                 out.push_back({TokKind::Space, (uint32_t)start, (uint32_t)(i - start)});
+            } else if (c == 0xE3 && i + 2 < n) {
+                uint8_t b1 = (unsigned char)s[i+1];
+                uint8_t b2 = (unsigned char)s[i+2];
+                if (b1 == 0x80 && b2 == 0x82) {       // U+3002 = 。
+                    out.push_back({TokKind::SentPunct, (uint32_t)i, 3});
+                    i += 3;
+                } else if (b1 == 0x80 && b2 == 0x81) { // U+3001 = 、
+                    out.push_back({TokKind::ClausePunct, (uint32_t)i, 3});
+                    i += 3;
+                } else {
+                    // Hiragana U+3040-U+309F or long vowel mark U+30FC
+                    auto isHira = [](uint8_t t0, uint8_t t1, uint8_t t2) -> bool {
+                        if (t0 != 0xE3) return false;
+                        if (t1 == 0x81) return true;
+                        if (t1 == 0x82 && t2 <= 0x9F) return true;
+                        return false;
+                    };
+                    auto isLVMark = [](uint8_t t0, uint8_t t1, uint8_t t2) -> bool {
+                        return t0 == 0xE3 && t1 == 0x83 && t2 == 0xBC;
+                    };
+                    if (isHira(c, b1, b2) || isLVMark(c, b1, b2)) {
+                        size_t start = i;
+                        while (i + 2 < n) {
+                            uint8_t t0 = (unsigned char)s[i];
+                            uint8_t t1 = (unsigned char)s[i+1];
+                            uint8_t t2 = (unsigned char)s[i+2];
+                            if (isHira(t0, t1, t2) || isLVMark(t0, t1, t2))
+                                i += 3;
+                            else
+                                break;
+                        }
+                        out.push_back({TokKind::Hiragana, (uint32_t)start, (uint32_t)(i - start)});
+                    } else {
+                        ++i;
+                    }
+                }
             } else {
                 ++i;
             }
@@ -1015,7 +1052,14 @@ namespace SharpVox {
 
     // Map a SentPunct token string to a LastEndPunct value.
     static int16_t SentPunctToEndPunct(const std::string& s, size_t pos, size_t len) {
-        if (len == 3)  return AudioProcessor::_Ellipsis_;
+        if (len == 3) {
+            // U+3002 = 。 (Japanese period) maps to period, not ellipsis
+            if ((unsigned char)s[pos] == 0xE3 &&
+                (unsigned char)s[pos+1] == 0x80 &&
+                (unsigned char)s[pos+2] == 0x82)
+                return AudioProcessor::_Period_;
+            return AudioProcessor::_Ellipsis_;
+        }
         if (len == 1) {
             char c = s[pos];
             if (c == '?') return AudioProcessor::_Quest_;
@@ -1166,6 +1210,9 @@ namespace SharpVox {
                     !IsFunctionWord(wordLower),
                     IsPronounWord(wordLower));
                 wordIdx++;
+            } else if (t.kind == TokKind::Hiragana) {
+                auto jptoks = JapaneseParser::SpanToPhonemes(normalized, t.pos, t.len);
+                tokens.insert(tokens.end(), jptoks.begin(), jptoks.end());
             } else if (t.kind == TokKind::ClausePunct) {
                 PhonemeToken tok;
                 tok.Phon = AudioProcessor::_SIL_;
@@ -1231,6 +1278,9 @@ namespace SharpVox {
                     AppendWordTokens(tokens, stream, isContent,
                         IsPronounWord(wordLower));
                     wordIdx++;
+                } else if (t.kind == TokKind::Hiragana) {
+                    auto jptoks = JapaneseParser::SpanToPhonemes(normalized, t.pos, t.len);
+                    tokens.insert(tokens.end(), jptoks.begin(), jptoks.end());
                 } else if (t.kind == TokKind::ClausePunct) {
                     PhonemeToken tok;
                     tok.Phon = AudioProcessor::_SIL_;

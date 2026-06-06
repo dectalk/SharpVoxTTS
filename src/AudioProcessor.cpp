@@ -64,19 +64,19 @@ namespace SharpVox {
         /* 53 _DX_ */ "DX",
         /* 54 _QX_ */ "QX",
         /* 55 _DD_ */ "DD",
-        /* 56 */      nullptr,
-        /* 57 */      nullptr,
-        /* 58 */      nullptr,
-        /* 59 */      nullptr,
-        /* 60 */      nullptr,
+        /* 56 _JP_A_*/ "JP_A",
+        /* 57 _JP_I_*/ "JP_I",
+        /* 58 _JP_U_*/ "JP_U",
+        /* 59 _JP_E_*/ "JP_E",
+        /* 60 _JP_O_*/ "JP_O",
         /* 61 */      nullptr,
         /* 62 */      nullptr,
         /* 63 */      nullptr,
-        /* 64 _JP_A_*/ "JP_A",
-        /* 65 _JP_I_*/ "JP_I",
-        /* 66 _JP_U_*/ "JP_U",
-        /* 67 _JP_E_*/ "JP_E",
-        /* 68 _JP_O_*/ "JP_O",
+        /* 64 */      nullptr,
+        /* 65 */      nullptr,
+        /* 66 */      nullptr,
+        /* 67 */      nullptr,
+        /* 68 */      nullptr,
     };
 
     // Constructor
@@ -1962,7 +1962,7 @@ namespace SharpVox {
             }
 
             uint32_t curFlags = Tables::GetFeatureFlags(cur);
-            if ((curFlags & kHasReleaseF) == 0) {
+            if ((curFlags & kHasReleaseF) == 0 || (curFlags & kNasalF) != 0) {
                 continue;
             }
             if (_phonBuf2InIndex >= _phonBuf2Limit) {
