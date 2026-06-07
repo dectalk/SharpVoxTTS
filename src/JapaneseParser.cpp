@@ -372,6 +372,58 @@ namespace SharpVox {
             EmitVowel((int16_t)m.vowel);
         }
 
+        // OJT Rule 5 devoicing: /i/ and /u/ between voiceless consonant onsets.
+        // Rule 3: consecutive devoiced moras are suppressed.
+        // Exceptions (spirant chains): s->s/sh, f->f/h, h->f/h resist devoicing.
+        {
+            using AP = AudioProcessor;
+            const int64_t kVowelBit = AP::kSecondaryStress | AP::kPrimaryStress;
+
+            auto isVoiceless = [](uint8_t c) -> bool {
+                return c == J_K || c == J_S || c == J_SH || c == J_T || c == J_CH
+                    || c == J_HH || c == J_F || c == J_P;
+            };
+            auto isException = [](uint8_t onset, uint8_t next) -> bool {
+                if (onset == J_S  && (next == J_S  || next == J_SH)) return true;
+                if (onset == J_F  && (next == J_F  || next == J_HH)) return true;
+                if (onset == J_HH && (next == J_HH || next == J_F )) return true;
+                return false;
+            };
+
+            bool prevDevoiced = false;
+            for (size_t j = 0; j < out.size(); j++) {
+                bool isVowel = (out[j].Ctrl & kVowelBit) != 0;
+                if (!isVowel) continue;
+
+                int16_t phon = out[j].Phon;
+                if (phon != J_IY && phon != J_UH) { prevDevoiced = false; continue; }
+
+                // Find onset (first consonant of current mora, scanning backward over cons)
+                uint8_t onset = 0xFF;
+                for (size_t jj = j; jj-- > 0;) {
+                    if (out[jj].Ctrl & kVowelBit) break;
+                    onset = (uint8_t)out[jj].Phon;
+                }
+
+                if (onset == 0xFF || !isVoiceless(onset)) { prevDevoiced = false; continue; }
+
+                // Find first consonant of next mora
+                uint8_t nextCons = 0xFF;
+                for (size_t jj = j + 1; jj < out.size(); jj++) {
+                    if (out[jj].Ctrl & kVowelBit) break;
+                    nextCons = (uint8_t)out[jj].Phon;
+                    break;
+                }
+
+                if (nextCons == 0xFF || !isVoiceless(nextCons)) { prevDevoiced = false; continue; }
+                if (isException(onset, nextCons))                { prevDevoiced = false; continue; }
+                if (prevDevoiced)                                { prevDevoiced = false; continue; }
+
+                out[j].UserDur = 20;
+                prevDevoiced = true;
+            }
+        }
+
         // Promote first secondary to primary (no function-word demotion for Japanese)
         if (firstSecondaryIdx != (size_t)-1) {
             out[firstSecondaryIdx].Ctrl =

@@ -1546,7 +1546,9 @@ namespace SharpVox {
 
             if ((curCtrl & kJapaneseMora) != 0) {
                 inJp = true;
-                if ((curFlags & kVowelF) != 0 && vowelCount < 64) {
+                bool isPitchBearer = (curFlags & kVowelF) != 0 ||
+                    _phonBuf2[i] == (int16_t)_N_;
+                if (isPitchBearer && vowelCount < 64) {
                     vowelIdx[vowelCount++] = i;
                 }
             } else {
@@ -1799,7 +1801,9 @@ namespace SharpVox {
                 pitchIsFallen = true;
             }
 
-            if ((curFlags & kVowelF) != 0) {
+            bool isVowelSlot = (curFlags & kVowelF) != 0 ||
+                ((curCtrl & kJapaneseMora) != 0 && curPhon == _N_);
+            if (isVowelSlot) {
                 // NUCLEAR RISE - begin of nuclear accent
                 if ((curCtrl & kPitchRise) != 0 && pitchIsFallen) {
                     int16_t riseAmt = _vpRiseAmt;
@@ -1808,10 +1812,18 @@ namespace SharpVox {
                     }
                     // Pure-rise event (tilt = +64): only the rise component fires here;
                     // the matching fall fires at the kPitchFall vowel below.
-                    int16_t timeT = (curCtrl & kPitchFall) != 0
-                        ? (int16_t)((-80) / kFrameTime)
-                        : (int16_t)0;
-                    StoreTiltEvent(riseAmt, +64, curDur, timeT, kPitchRiseFall_Flg);
+                    // JP pitch steps are abrupt (mora-boundary aligned), so cap rise
+                    // duration at 30ms rather than spreading across the full mora.
+                    // JP never uses the English early-trigger offset; timeT stays 0.
+                    int16_t timeT = ((curCtrl & kJapaneseMora) != 0)
+                        ? (int16_t)0
+                        : ((curCtrl & kPitchFall) != 0
+                            ? (int16_t)((-80) / kFrameTime)
+                            : (int16_t)0);
+                    int16_t riseDur = (curCtrl & kJapaneseMora) != 0
+                        ? (int16_t)std::min((int32_t)curDur, (int32_t)(30 / kFrameTime))
+                        : curDur;
+                    StoreTiltEvent(riseAmt, +64, riseDur, timeT, kPitchRiseFall_Flg);
                     curBaseline += riseAmt;
                     pitchIsFallen = false;
                 }
