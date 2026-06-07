@@ -342,6 +342,7 @@ namespace SharpVox {
         void ModDuration();
 
         // Pitch pipeline (AudioProcessor.Pitch.cs)
+        void JapanesePitchAssign();
         void PitchRaiseAndFall();
         int32_t CountVowelsTillBoundry(int64_t boundary, int32_t curIndex);
         int32_t CountStressVowelsTillBoundry(int64_t boundary, int32_t curIndex);

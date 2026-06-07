@@ -124,6 +124,7 @@ namespace SharpVox {
         LoadPhonemes(tokens);
         FlagPhonBuf1();
         FillPhonBuf2();
+        JapanesePitchAssign();
         PitchRaiseAndFall();
         ModDuration();
         StretchLastWordForTilde();
@@ -1515,6 +1516,46 @@ namespace SharpVox {
     // These are converted to RFC components (eqs 8-11) and then to F0 via eq. 12
     // in PitchInterpolator.TiltSynth.
 
+    // Heiban (flat) default for Japanese mora-timed clauses:
+    // mora 1 is low, mora 2 onward is high, pitch falls at the clause boundary.
+    // Clauses are silence-delimited spans where all tokens carry kJapaneseMora.
+    void AudioProcessor::JapanesePitchAssign() {
+        int32_t vowelIdx[64];
+        int32_t vowelCount = 0;
+        bool inJp = false;
+
+        auto flushClause = [&]() {
+            if (inJp && vowelCount > 0) {
+                if (vowelCount >= 2) {
+                    _phonCtrlBuf2[vowelIdx[1]] |= kPitchRise;
+                }
+                _phonCtrlBuf2[vowelIdx[vowelCount - 1]] |= kPitchFall;
+            }
+            vowelCount = 0;
+            inJp = false;
+        };
+
+        for (int32_t i = 0; i < _phonBuf2InIndex; i++) {
+            int64_t  curCtrl  = _phonCtrlBuf2[i];
+            uint32_t curFlags = Tables::GetFeatureFlags(_phonBuf2[i]);
+
+            if ((curCtrl & kSilenceTypeField) != 0) {
+                flushClause();
+                continue;
+            }
+
+            if ((curCtrl & kJapaneseMora) != 0) {
+                inJp = true;
+                if ((curFlags & kVowelF) != 0 && vowelCount < 64) {
+                    vowelIdx[vowelCount++] = i;
+                }
+            } else {
+                flushClause();
+            }
+        }
+        flushClause();
+    }
+
     // Assigns rise/fall pitch markers to vowels in the phoneme buffer.
     // The first stressed vowel in the clause starts the nuclear rise.
     // The last stressed vowel (or final vowel if none stressed) gets the nuclear fall.
@@ -1538,6 +1579,8 @@ namespace SharpVox {
                 wdIndex = 0; firstWord = 0; lastWord = 0; stressCount = 1;
                 continue;
             }
+
+            if ((curCtrl & kJapaneseMora) != 0) continue;
 
             if (pState == kRaised && (curCtrl & kBoundryTypeField) == kWord_Start) {
                 wdType[wdIndex] = (curCtrl & kContent_Word) != 0 ? kPitchRise1 : kPitchFall1;
@@ -1613,6 +1656,8 @@ namespace SharpVox {
                 int16_t  curPhon  = _phonBuf2[index];
                 int64_t  curCtrl  = _phonCtrlBuf2[index];
                 uint32_t curFlags = Tables::GetFeatureFlags(curPhon);
+
+                if ((curCtrl & kJapaneseMora) != 0) continue;
 
                 if ((curCtrl & kBoundryTypeField) == kWord_Start) {
                     action = true;

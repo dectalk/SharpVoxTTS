@@ -261,6 +261,10 @@ namespace SharpVox {
                 if (cp != 0xFFFFFFFF) cps.push_back(cp);
             }
         }
+        // Katakana (U+30A1-U+30F6) maps 1:1 to hiragana via a fixed offset.
+        for (auto& cp : cps) {
+            if (cp >= 0x30A1 && cp <= 0x30F6) cp -= 0x60;
+        }
         std::vector<bool> particleBoundary(cps.size(), false);
         NormalizeParticles(cps, particleBoundary);
         NormalizeVowelLength(cps, particleBoundary);

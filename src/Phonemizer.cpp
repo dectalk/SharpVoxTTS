@@ -1017,11 +1017,12 @@ namespace SharpVox {
                     out.push_back({TokKind::ClausePunct, (uint32_t)i, 3});
                     i += 3;
                 } else {
-                    // Hiragana U+3040-U+309F or long vowel mark U+30FC
+                    // Hiragana U+3040-U+309F or katakana U+30A0-U+30F6 or long vowel mark U+30FC
                     auto isHira = [](uint8_t t0, uint8_t t1, uint8_t t2) -> bool {
                         if (t0 != 0xE3) return false;
-                        if (t1 == 0x81) return true;
-                        if (t1 == 0x82 && t2 <= 0x9F) return true;
+                        if (t1 == 0x81) return true;           // U+3040-U+307F (hiragana)
+                        if (t1 == 0x82) return true;           // U+3080-U+30BF (hiragana + katakana)
+                        if (t1 == 0x83 && t2 <= 0xB6) return true; // U+30C0-U+30F6 (katakana)
                         return false;
                     };
                     auto isLVMark = [](uint8_t t0, uint8_t t1, uint8_t t2) -> bool {
