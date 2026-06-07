@@ -14,6 +14,7 @@
 #include "../include/TtsEngine.h"
 #include "../include/Tables.h"
 #include "../include/KlattschParser.h"
+#include "../include/JapaneseParser.h"
 
 namespace SharpVox {
 
@@ -270,11 +271,28 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                 break;
             }
 
-            if (text[i] == '_' || std::isalpha(static_cast<unsigned char>(text[i]))) {
+            unsigned char b0 = static_cast<unsigned char>(text[i]);
+            if (b0 == '_' || std::isalpha(b0) || b0 >= 0x80) {
                 // Collect all phonemes up to '<', ']', or ' '
                 // "dey<600,24>" -> [d, ey] with dur=600 note=24
                 std::vector<int16_t> group;
                 while (i < len && text[i] != '<' && text[i] != ']' && text[i] != ' ') {
+                    size_t nextIdx = i;
+                    uint32_t cp = JapaneseParser::Utf8Decode((const unsigned char*)text.c_str(), len, nextIdx);
+                    if (cp >= 0x30A1 && cp <= 0x30F6) cp -= 0x60; // Katakana -> Hiragana
+
+                    if (cp >= 0x3041 && cp <= 0x3096) {
+                        std::vector<int16_t> phons = JapaneseParser::GetPhonemes(cp);
+                        // If this is a small yoon (ya/yu/yo) and the previous phoneme was JP_I,
+                        // remove the JP_I to properly form the contraction (e.g. KI + YA -> KYA).
+                        if ((cp == 0x3083 || cp == 0x3085 || cp == 0x3087) && !group.empty() && group.back() == AudioProcessor::_JP_I_) {
+                            group.pop_back();
+                        }
+                        group.insert(group.end(), phons.begin(), phons.end());
+                        i = nextIdx;
+                        continue;
+                    }
+
                     if ((text[i] == 'J' || text[i] == 'j') && i + 3 < len
                             && (text[i + 1] == 'P' || text[i + 1] == 'p') && text[i + 2] == '_') {
                         bool matchedJp = false;

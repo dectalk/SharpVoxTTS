@@ -158,7 +158,7 @@ namespace SharpVox {
         }
     }
 
-    static uint32_t Utf8Decode(const unsigned char* s, size_t n, size_t& i) {
+    uint32_t JapaneseParser::Utf8Decode(const unsigned char* s, size_t n, size_t& i) {
         if (i >= n) return 0xFFFFFFFF;
         uint8_t b0 = s[i];
         if (b0 < 0x80) { i++; return b0; }
@@ -473,6 +473,29 @@ namespace SharpVox {
         }
 
         return out;
+    }
+
+    std::vector<int16_t> JapaneseParser::GetPhonemes(uint32_t cp) {
+        std::vector<int16_t> res;
+        Mora m = LookupMora(cp);
+        if (m.vowel == JP_INVALID) return res;
+
+        if (m.vowel == JP_GEMINATE) {
+            // In a singing context, small tsu is often treated as a glottal stop or silence.
+            // But here we'll just return SIL to let the caller handle it.
+            res.push_back((int16_t)AudioProcessor::_SIL_);
+            return res;
+        }
+        if (m.vowel == JP_SYLLABIC_N) {
+            res.push_back((int16_t)AudioProcessor::_N_);
+            return res;
+        }
+
+        if (m.c1 != 0xFF) res.push_back((int16_t)m.c1);
+        if (m.c2 != 0xFF) res.push_back((int16_t)m.c2);
+        if (m.vowel != 0xFF) res.push_back((int16_t)m.vowel);
+
+        return res;
     }
 
 }  // namespace SharpVox

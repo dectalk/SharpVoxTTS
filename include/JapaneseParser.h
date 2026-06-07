@@ -15,6 +15,15 @@ namespace SharpVox {
     public:
         static std::vector<PhonemeToken> SpanToPhonemes(const std::string& text,
                                                          size_t pos, size_t len);
+
+        // Map a single hiragana codepoint to a sequence of phoneme IDs.
+        // Supports basic moras, voiced versions, and small tsu (geminate).
+        // Does NOT handle yoon (clusters) here; those should be handled by the caller or
+        // by passing multiple codepoints.
+        static std::vector<int16_t> GetPhonemes(uint32_t cp);
+
+        // UTF-8 decoding helper
+        static uint32_t Utf8Decode(const unsigned char* s, size_t n, size_t& i);
     };
 
 }  // namespace SharpVox
