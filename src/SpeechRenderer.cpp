@@ -654,7 +654,8 @@ int16_t SpeechRenderer::GetTargetRaw(int32_t index) {
             if ((cf & kStopF) != 0 && (pf & kVoicedF) == 0) {
                 tv = 0;
             }
-            if (cur == _HH_ && (pf & kVoicedF) != 0 && (ctrl & kPrimOrEmphStress) == 0) {
+            if (cur == _HH_ && (pf & kVoicedF) != 0 && (ctrl & kPrimOrEmphStress) == 0
+                    && (ctrl & AudioProcessor::kJapaneseMora) == 0) {
                 tv = 54;
             }
         } else if (cur == _HH_) {

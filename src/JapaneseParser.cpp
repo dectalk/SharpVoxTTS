@@ -298,7 +298,7 @@ namespace SharpVox {
             if (phon == J_Y)                              return 15;
             if (phon == J_W)                              return 20;
             if (phon == J_N || phon == J_M || phon == J_NG) return 45;
-            if (phon == J_HH)                             return 35;
+            if (phon == J_HH)                             return 50;
             if (phon == J_Z)                              return 50;
             if (phon == J_SH || phon == J_S || phon == J_F) return 55;
             if (phon == J_JH || phon == J_CH)             return 65;
