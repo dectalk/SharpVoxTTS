@@ -162,6 +162,11 @@ static void visemeFor(int16_t ph, const char*& v1, const char*& v2) {
         ph == AudioProcessor::_HH_ || ph == AudioProcessor::_EN_) { v1 = "vrc.v_nn"; return; }
     if (ph == AudioProcessor::_L_  || ph == AudioProcessor::_LX_ || ph == AudioProcessor::_EL_) { v1 = "vrc.v_dd"; return; }
     if (ph == AudioProcessor::_W_) { v1 = "vrc.v_ou"; return; }
+    if (ph == AudioProcessor::_JP_A_) { v1 = "vrc.v_aa"; return; }
+    if (ph == AudioProcessor::_JP_I_) { v1 = "vrc.v_ih"; return; }
+    if (ph == AudioProcessor::_JP_U_) { v1 = "vrc.v_ou"; return; }
+    if (ph == AudioProcessor::_JP_E_) { v1 = "vrc.v_e";  return; }
+    if (ph == AudioProcessor::_JP_O_) { v1 = "vrc.v_oh"; return; }
 }
 
 //  Interop class 
