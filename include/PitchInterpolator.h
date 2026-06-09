@@ -68,6 +68,19 @@ namespace SharpVox {
         int64_t _vibratoFreq;
         int32_t _vibratoPhase1;
 
+        // Flutter: two fixed-freq oscillators (~5 Hz, ~3 Hz), difference applied post-range-scale
+        int32_t _flutterPhaseA;
+        int32_t _flutterPhaseB;
+
+        // Phrase-position downstep: accent count in current clause (reset at kPhraseReset)
+        int32_t _accentOrdinal;
+
+        // ENDDROP: terminal pitch depression for long utterances
+        int32_t _totalFrames;
+        int32_t _wordCount;
+        int32_t _endDropAccum;
+        int32_t _curFrame;
+
         // Singing state
         bool _singing;
         bool _hzGlide;
@@ -146,6 +159,12 @@ namespace SharpVox {
 
         static constexpr int32_t _SIL_ = 23;
         static constexpr int32_t _YU_ = 17;
+
+        // ENDDROP ramp parameters
+        static constexpr int32_t kEndDropMax  = 41;  // ~14 Hz max terminal drop
+        static constexpr int32_t kEndDropStep = 5;   // pitch units per frame
+
+        static constexpr int64_t kWord_Start_Bnd = 0x10000L;
 
         static constexpr int64_t kLowVibrato = 0x10L;
         static constexpr int64_t kSingingDuration = 0x40000000L;

@@ -1934,6 +1934,18 @@ namespace SharpVox {
                     pitchIsFallen = true;
                 }
 
+                // SENTENCE-FINAL GLOTTALIZATION
+                // A small downward tilt event ~100ms before end of the terminal syllable
+                // at period/exclamation, only when that syllable is NOT the nuclear fall
+                // (nuclear fall already carries a large descending motion).
+                if ((curSylType & kTerm_End) != 0
+                    && (_endPunctuation == _Period_ || _endPunctuation == _Exclam_)
+                    && (curCtrl & kPitchFall) == 0) {
+                    int16_t glotTime = (int16_t)(curDur - (100 / kFrameTime));
+                    if (glotTime < 0) glotTime = 0;
+                    StoreTiltEvent((int16_t)((kHZ_12 + kHZ_14) / 2), -64, 8, glotTime, kPitchRiseFall_Flg);
+                }
+
                 // PRONOUN ACCENT: mild rise-fall on pronoun vowels, scaled by VocalConfidence.
                 // Fires regardless of stress - confident speakers mark I/you/he/she/it/we/they
                 // with a subtle peak even when unstressed.
