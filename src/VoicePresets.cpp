@@ -457,6 +457,8 @@ bool VoicePresets::SetParam(VoiceData& v, const std::string& name, float value) 
     else if (name == "fallamt")        { v.FallAmt          = clamp(value, -200,    200); }
     else if (name == "riseamt1")       { v.RiseAmt1         = clamp(value, -200,    200); }
     else if (name == "fallamt1")       { v.FallAmt1         = clamp(value, -200,    200); }
+    // percent scale, 100 = 1.0, stored as 16.16 fixed point
+    else if (name == "assertiveness")  { v.Assertiveness    = clamp(value,    0,    400) * 0x10000 / 100; }
     else if (name == "baselinefall")   { v.BaselineFall     = clamp(value,    0,    200); }
     else if (name == "uptalk")         { v.UptalkAmt        = clamp(value,    0,    100); }
     else if (name == "stressearly")    { v.StressEarly      = clamp(value,  -50,     50); }

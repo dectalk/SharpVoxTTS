@@ -201,6 +201,13 @@ public:
     int32_t GetFallAmt() const { return _fallAmt; }
     void SetFallAmt(int32_t v) { _fallAmt = v; MarkCustom(); }
 
+    int32_t GetRiseAmt1() const { return _riseAmt1; }
+    void SetRiseAmt1(int32_t v) { _riseAmt1 = v; MarkCustom(); }
+
+    // Percent scale, 100 = 1.0; converted to 16.16 fixed point in BuildVoice
+    int32_t GetAssertiveness() const { return _assertiveness; }
+    void SetAssertiveness(int32_t v) { _assertiveness = v; MarkCustom(); }
+
     int32_t GetBaselineFall() const { return _baselineFall; }
     void SetBaselineFall(int32_t v) { _baselineFall = v; MarkCustom(); }
 
@@ -285,7 +292,9 @@ private:
     int32_t _intonation = 100;
     int32_t _riseAmt = 29;
     int32_t _fallAmt = -29;
-    int32_t _baselineFall = 51;
+    int32_t _riseAmt1 = 100;
+    int32_t _assertiveness = 100;
+    int32_t _baselineFall = 25;
     int32_t _uptalkAmt = 0;
     int32_t _stressEarly = 0;
     int32_t _breakStrength = 50;

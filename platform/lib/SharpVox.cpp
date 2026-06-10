@@ -175,6 +175,8 @@ void SharpVoxSpeaker::SetPreset(VoicePreset value) {
     _intonation = v.Intonation;
     _riseAmt = v.RiseAmt;
     _fallAmt = v.FallAmt;
+    _riseAmt1 = v.RiseAmt1;
+    _assertiveness = static_cast<int32_t>((static_cast<int64_t>(v.Assertiveness) * 100) >> 16);
     _baselineFall = v.BaselineFall;
     _uptalkAmt = v.UptalkAmt;
     _stressEarly = v.StressEarly;
@@ -243,6 +245,8 @@ VoiceData SharpVoxSpeaker::BuildVoice() {
             v.Intonation = static_cast<int16_t>(GetIntonation());
             v.RiseAmt = static_cast<int16_t>(GetRiseAmt());
             v.FallAmt = static_cast<int16_t>(GetFallAmt());
+            v.RiseAmt1 = static_cast<int16_t>(GetRiseAmt1());
+            v.Assertiveness = static_cast<int32_t>((static_cast<int64_t>(GetAssertiveness()) << 16) / 100);
             v.BaselineFall = static_cast<int16_t>(GetBaselineFall());
             v.UptalkAmt = static_cast<int16_t>(GetUptalkAmt());
             v.StressEarly = static_cast<int16_t>(GetStressEarly());

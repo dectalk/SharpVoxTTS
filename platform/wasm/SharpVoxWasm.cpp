@@ -239,8 +239,8 @@ public:
             else if (name == "PitchRange")     { _speaker.SetPitchRange(iv); }
             else if (name == "StressGain")     { _speaker.SetStressGain(iv); }
             else if (name == "Intonation")     { _speaker.SetIntonation(iv); }
-            else if (name == "RiseAmt")        { _speaker.SetRiseAmt(iv); }
-            else if (name == "FallAmt")        { _speaker.SetFallAmt(iv); }
+            else if (name == "RiseAmt1")       { _speaker.SetRiseAmt1(iv); }
+            else if (name == "Assertiveness")  { _speaker.SetAssertiveness(iv); }
             else if (name == "BaselineFall")   { _speaker.SetBaselineFall(iv); }
             else if (name == "UptalkAmt")      { _speaker.SetUptalkAmt(iv); }
             else if (name == "StressEarly")    { _speaker.SetStressEarly(iv); }
@@ -484,9 +484,9 @@ public:
         KS("PitchRange",   _speaker.GetPitchRange());
         KS("StressGain",   _speaker.GetStressGain());
         KS("Intonation",   _speaker.GetIntonation());
-        KS("RiseAmt",      _speaker.GetRiseAmt());
-        KS("FallAmt",      _speaker.GetFallAmt());
-        KS("BaselineFall", _speaker.GetBaselineFall());
+        KS("RiseAmt1",      _speaker.GetRiseAmt1());
+        KS("Assertiveness", _speaker.GetAssertiveness());
+        KS("BaselineFall",  _speaker.GetBaselineFall());
         sb += "\n}";
         js_download_file("voice.json", sb.c_str());
     }
@@ -553,8 +553,8 @@ public:
         addI("pitchrange",      _speaker.GetPitchRange(),           (int32_t)def.PitchRange);
         addI("stressgain",      _speaker.GetStressGain(),           (int32_t)def.StressGain);
         addI("intonation",      _speaker.GetIntonation(),           (int32_t)def.Intonation);
-        addI("riseamt",         _speaker.GetRiseAmt(),              (int32_t)def.RiseAmt);
-        addI("fallamt",         _speaker.GetFallAmt(),              (int32_t)def.FallAmt);
+        addI("riseamt1",        _speaker.GetRiseAmt1(),             (int32_t)def.RiseAmt1);
+        addI("assertiveness",   _speaker.GetAssertiveness(),        (int32_t)(((int64_t)def.Assertiveness * 100) >> 16));
         addI("baselinefall",    _speaker.GetBaselineFall(),         (int32_t)def.BaselineFall);
         addI("uptalk",          _speaker.GetUptalkAmt(),            (int32_t)def.UptalkAmt);
         addI("stressearly",     _speaker.GetStressEarly(),          (int32_t)def.StressEarly);
@@ -640,8 +640,8 @@ public:
             _speaker.SetPitchRange(getInt("PitchRange",   _speaker.GetPitchRange()));
             _speaker.SetStressGain(getInt("StressGain",   _speaker.GetStressGain()));
             _speaker.SetIntonation(getInt("Intonation",   _speaker.GetIntonation()));
-            _speaker.SetRiseAmt(getInt("RiseAmt",         _speaker.GetRiseAmt()));
-            _speaker.SetFallAmt(getInt("FallAmt",         _speaker.GetFallAmt()));
+            _speaker.SetRiseAmt1(getInt("RiseAmt1",       _speaker.GetRiseAmt1()));
+            _speaker.SetAssertiveness(getInt("Assertiveness", _speaker.GetAssertiveness()));
             _speaker.SetBaselineFall(getInt("BaselineFall", _speaker.GetBaselineFall()));
 
             syncAllParamsToUi();
@@ -757,9 +757,9 @@ private:
         KS("PitchRange",   _speaker.GetPitchRange());
         KS("StressGain",   _speaker.GetStressGain());
         KS("Intonation",   _speaker.GetIntonation());
-        KS("RiseAmt",      _speaker.GetRiseAmt());
-        KS("FallAmt",      _speaker.GetFallAmt());
-        KS("BaselineFall", _speaker.GetBaselineFall());
+        KS("RiseAmt1",      _speaker.GetRiseAmt1());
+        KS("Assertiveness", _speaker.GetAssertiveness());
+        KS("BaselineFall",  _speaker.GetBaselineFall());
         KF("klBaseF0",  _speaker.KlBaseF0);
         KF("klRate",    _speaker.KlRate);
         KF("klVibrato", _speaker.KlVibrato);

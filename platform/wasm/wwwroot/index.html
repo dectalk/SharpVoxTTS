@@ -607,20 +607,20 @@
                     <input type="range" min="0" max="200" value="100" id="v-Intonation" oninput="ui.onParamInput('Intonation', this.value)">
                     <span id="v-Intonation-val">100</span>
                 </div>
-                <div class="slider-group" onmouseover="ui.updateDesc('RiseAmt', 'Clause-final pitch rise amount')">
-                    <label>RiseAmt</label>
-                    <input type="range" min="-100" max="100" value="29" id="v-RiseAmt" oninput="ui.onParamInput('RiseAmt', this.value)">
-                    <span id="v-RiseAmt-val">29</span>
+                <div class="slider-group" onmouseover="ui.updateDesc('RiseAmt1', 'Accent peak height above the phrase floor — pitch hats target this peak')">
+                    <label>RiseAmt1</label>
+                    <input type="range" min="0" max="200" value="100" id="v-RiseAmt1" oninput="ui.onParamInput('RiseAmt1', this.value)">
+                    <span id="v-RiseAmt1-val">100</span>
                 </div>
-                <div class="slider-group" onmouseover="ui.updateDesc('FallAmt', 'Clause-final pitch fall amount')">
-                    <label>FallAmt</label>
-                    <input type="range" min="-100" max="100" value="-29" id="v-FallAmt" oninput="ui.onParamInput('FallAmt', this.value)">
-                    <span id="v-FallAmt-val">-29</span>
+                <div class="slider-group" onmouseover="ui.updateDesc('Assertiveness', 'Sentence-final fall depth — 100=natural, higher=harder plunge, 0=no terminal fall')">
+                    <label>Assertiveness</label>
+                    <input type="range" min="0" max="200" value="100" id="v-Assertiveness" oninput="ui.onParamInput('Assertiveness', this.value)">
+                    <span id="v-Assertiveness-val">100</span>
                 </div>
                 <div class="slider-group" onmouseover="ui.updateDesc('BaselineFall', 'Declination — pitch fall over utterance')">
                     <label>BaselineFall</label>
-                    <input type="range" min="0" max="150" value="51" id="v-BaselineFall" oninput="ui.onParamInput('BaselineFall', this.value)">
-                    <span id="v-BaselineFall-val">51</span>
+                    <input type="range" min="0" max="150" value="25" id="v-BaselineFall" oninput="ui.onParamInput('BaselineFall', this.value)">
+                    <span id="v-BaselineFall-val">25</span>
                 </div>
                 <div class="slider-group" onmouseover="ui.updateDesc('UptalkAmt', 'Sentence-final rising tendency — 0=natural fall, 100=uptalk/rising statements')">
                     <label>UptalkAmt</label>

@@ -23,7 +23,7 @@ window.ui = {
             'BwGain1':'BwGain1','BwGain2':'BwGain2','BwGain3':'BwGain3',
             'NasalBase':'NasalBase','NasalTarg':'NasalTarg','NasalBW':'NasalBW',
             'PitchRange':'PitchRange','StressGain':'StressGain','Intonation':'Intonation',
-            'RiseAmt':'RiseAmt','FallAmt':'FallAmt','BaselineFall':'BaselineFall',
+            'RiseAmt1':'RiseAmt1','Assertiveness':'Assertiveness','BaselineFall':'BaselineFall',
             'UptalkAmt':'UptalkAmt','StressEarly':'StressEarly','BreakStrength':'BreakStrength',
             'EmphasisBoost':'EmphasisBoost','VocalConfidence':'VocalConfidence',
         };
