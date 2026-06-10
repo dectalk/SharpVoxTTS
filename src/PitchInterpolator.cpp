@@ -315,8 +315,13 @@ namespace SharpVox {
         int32_t dFall = duration * (64 - tiltX64) / 128;
 
         // Nuclear events (kPitchRiseFall_Flg) update _tiltHeldLevel permanently.
-        // Transient events (stress, head, boundary) restore _tiltHeldLevel afterwards.
+        // Head events (kPitchRiseFall1_Flg) step it up by aRise - aFall: the MITalk
+        // hat pattern (O'Shaughnessy 1976) rises 40 pct and falls only 20 pct of the
+        // line-to-peak distance, so the contour holds an elevated plateau between
+        // accents instead of returning to baseline.
+        // Transient events (stress, pronoun) restore _tiltHeldLevel afterwards.
         bool isNuclear = (flags & kPitchRiseFall_Flg) != 0;
+        bool isStepping = isNuclear || (flags & kPitchRiseFall1_Flg) != 0;
 
         int32_t held = _tiltHeldLevel;
 
@@ -335,15 +340,24 @@ namespace SharpVox {
             _tiltPhaseDur = dRise;
             _tiltA = -aRise;
             // Transient events start from the current excursion for continuity.
-            // Nuclear events anchor to _tiltHeldLevel to preserve the held-level ceiling.
-            _tiltAbs = (isNuclear ? held : curExcursion) + aRise;
+            // Stepping events anchor to _tiltHeldLevel so plateau bookkeeping stays exact.
+            _tiltAbs = (isStepping ? held : curExcursion) + aRise;
 
             if (aFall > 0 && dFall > 0) {
                 _tiltFallPending = true;
-                _tiltFallA = aFall;
                 _tiltFallDur = dFall;
-                // Nuclear fall ends below old held level; transient fall restores to it
-                _tiltFallAbs = isNuclear ? held + aRise - aFall : held;
+                if (isNuclear) {
+                    // Nuclear fall lands at an absolute floor, consuming the accumulated
+                    // hat plateau with a correspondingly sharper final fall (MITalk Tune A:
+                    // the last fall always reaches the same low terminal value).
+                    _tiltFallAbs = aRise - aFall;
+                } else if (isStepping) {
+                    _tiltFallAbs = held + aRise - aFall;
+                } else {
+                    _tiltFallAbs = held;
+                }
+                // Fall starts where the rise ends, whatever the endpoint target is.
+                _tiltFallA = _tiltAbs - _tiltFallAbs;
             } else {
                 _tiltFallPending = false;
             }
@@ -351,6 +365,8 @@ namespace SharpVox {
             _tiltPhase = 2; // FALL (no rise)
             _tiltFrame = 0;
             _tiltPhaseDur = dFall;
+            // Pure falls stay held-relative: the Japanese mora model pairs a pure rise
+            // with a pure fall whose amplitude already includes the rise to undo.
             _tiltAbs = isNuclear ? held - aFall : held;
             // Adjust _tiltA so the curve starts at curExcursion and ends at _tiltAbs,
             // giving continuity without changing the intended endpoint.
