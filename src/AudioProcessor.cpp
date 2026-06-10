@@ -1609,15 +1609,11 @@ namespace SharpVox {
             if ((curFlags & kVowelF) != 0) {
                 if (pState == kStart) {
                     if (CountVowelsTillBoundry(kTerm_End, index) == 0) {
-                        if (_endPunctuation != _Comma_) {
-                            _phonCtrlBuf2[index] |= kPitchFall;
-                        }
+                        _phonCtrlBuf2[index] |= kPitchFall;
                         pState = kFinished;
                         break;
                     } else if (CountStressVowelsTillBoundry(kTerm_End, index) == 0) {
-                        if (_endPunctuation != _Comma_) {
-                            _phonCtrlBuf2[index] |= kPitchFall;
-                        }
+                        _phonCtrlBuf2[index] |= kPitchFall;
                         pState = kFinished;
                     } else if ((curCtrl & kIsStressed) != 0) {
                         _phonCtrlBuf2[index] |= kPitchRise;
@@ -1629,16 +1625,12 @@ namespace SharpVox {
                     }
 
                     if (CountVowelsTillBoundry(kTerm_End, index) == 0) {
-                        if (_endPunctuation != _Comma_) {
-                            _phonCtrlBuf2[index] |= kPitchFall;
-                        }
+                        _phonCtrlBuf2[index] |= kPitchFall;
                         pState = kFallen;
                         savedWdIndex = wdIndex; savedFirstWord = firstWord; savedLastWord = lastWord;
                     } else if ((curCtrl & kPrimOrEmphStress) != 0 &&
                              CountStressVowelsTillBoundry(kTerm_End, index) == 0) {
-                        if (_endPunctuation != _Comma_) {
-                            _phonCtrlBuf2[index] |= kPitchFall;
-                        }
+                        _phonCtrlBuf2[index] |= kPitchFall;
                         pState = kFallen;
                         savedWdIndex = wdIndex; savedFirstWord = firstWord; savedLastWord = lastWord;
                     }
@@ -1887,7 +1879,8 @@ namespace SharpVox {
                     int16_t fallAmt;
                     if ((curSylType & kTerm_End) != 0) {
                         if (_endPunctuation == _Comma_) {
-                            fallAmt = (int16_t)0;
+                            // Continuation: moderate fall, boundary rise supplies the L-H%.
+                            fallAmt = (int16_t)(0 - kHZ_12);
                         } else if (_endPunctuation == _Period_) {
                             fallAmt = (int16_t)(0 - kHZ_20);
                         } else if (_endPunctuation == _Quest_) {
