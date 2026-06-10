@@ -70,7 +70,7 @@ struct VoiceData {
 
     int16_t RiseAmt = 29;
     int16_t FallAmt = -29;
-    int16_t RiseAmt1 = 29;
+    int16_t RiseAmt1 = 41;
     int16_t FallAmt1 = -29;
     int32_t Assertiveness = 0x10000;
     int16_t BaselineFall = 51;
