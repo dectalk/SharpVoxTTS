@@ -1612,7 +1612,6 @@ namespace SharpVox {
                     if (CountVowelsTillBoundry(kTerm_End, index) == 0) {
                         _phonCtrlBuf2[index] |= kPitchFall;
                         pState = kFinished;
-                        break;
                     } else if ((curCtrl & kPrimOrEmphStress) != 0 &&
                              CountStressVowelsTillBoundry(kTerm_End, index) == 0) {
                         _phonCtrlBuf2[index] |= kPitchFall;
@@ -1867,12 +1866,7 @@ namespace SharpVox {
                 // Only emphatic stress (user-commanded, e.g. ALL CAPS) fires a Tilt event.
                 if (curStress == kEmphaticStress &&
                     (curCtrl & (kPitchRise | kPitchFall | kPitchRise1 | kPitchFall1)) == 0) {
-                    int16_t pitchT;
-                    if (curStress == kEmphaticStress) {
-                        pitchT = (int16_t)(kHZ_28 + (_vpEmphasisBoost * kHZ_14 / 100));
-                    } else {
-                        pitchT = kHZ_14;
-                    }
+                    int16_t pitchT = (int16_t)(kHZ_28 + (_vpEmphasisBoost * kHZ_14 / 100));
 
                     switch (stressCounter) {
                         case 0:  pitchT += kHZ_10; break;
@@ -1886,23 +1880,14 @@ namespace SharpVox {
                         pitchT >>= 1;
                     }
 
-                    int16_t timeT;
-                    if ((curCtrl & kPitchFall) != 0 || (curSylType & kTerm_End) != 0) {
-                        timeT = (int16_t)((-60) / kFrameTime);
-                    } else if (curStress == kEmphaticStress) {
-                        timeT = 0;
-                    } else {
-                        timeT = (int16_t)(curDur * (25 + _vpStressEarly / 2) / 100);
-                    }
+                    int16_t timeT = (curSylType & kTerm_End) != 0
+                        ? (int16_t)((-60) / kFrameTime)
+                        : (int16_t)0;
 
                     int32_t stressGain = (_endPunctuation == _Exclam_)
                         ? _vpStressGain * 3 / 2
                         : _vpStressGain;
                     pitchT = (int16_t)((stressGain * pitchT) >> 16);
-
-                    if ((curSylType & kTerm_End) != 0 && curStress != kEmphaticStress && _endPunctuation != _Exclam_) {
-                        pitchT = (int16_t)(0 - kHZ_4);
-                    }
 
                     // Stress accent: brief rise-fall, tilt 0 (symmetric shape), amplitude pitchT
                     StoreTiltEvent(pitchT, 0, curDur, timeT, kPitchStress_Flg);
@@ -1965,7 +1950,8 @@ namespace SharpVox {
                 // PRONOUN ACCENT: mild rise-fall on pronoun vowels, scaled by VocalConfidence.
                 // Fires regardless of stress - confident speakers mark I/you/he/she/it/we/they
                 // with a subtle peak even when unstressed.
-                if (_vocalConfidence > 0 && (curCtrl & kPronounWord) != 0) {
+                if (_vocalConfidence > 0 && (curCtrl & kPronounWord) != 0 &&
+                    (curCtrl & (kPitchRise | kPitchFall | kPitchRise1 | kPitchFall1)) == 0) {
                     int16_t pronounAmt = (int16_t)(kHZ_10 * _vocalConfidence / 100);
                     if (pronounAmt > 0) {
                         StoreTiltEvent(pronounAmt, 0, curDur, (int16_t)(curDur / 2), kPitchStress_Flg);
@@ -2009,8 +1995,10 @@ namespace SharpVox {
                                         int16_t time, int16_t flags) {
         int32_t absTime = _pitchTimeOffset + time;
         int32_t relTime = absTime - _lastEventTime;
-        _pitchBufTime[_pitchBufInIndex]     = (int16_t)(relTime >= 0 ? relTime : 0);
-        _lastEventTime                      = absTime;
+        // Clamp early events without rewinding the clock, so later events keep their timing.
+        if (relTime < 0) relTime = 0;
+        _pitchBufTime[_pitchBufInIndex]     = (int16_t)relTime;
+        _lastEventTime                     += relTime;
         _pitchBufFreq[_pitchBufInIndex]     = amplitude;
         _pitchBufTiltX64[_pitchBufInIndex]  = tiltX64;
         _pitchBufDuration[_pitchBufInIndex] = (int16_t)std::min(duration, (int32_t)INT16_MAX);
