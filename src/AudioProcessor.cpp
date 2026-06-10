@@ -1876,8 +1876,12 @@ namespace SharpVox {
 
                 // NUCLEAR FALL
                 if ((curCtrl & kPitchFall) != 0) {
+                    // Nuclear depth comes from clause type, not nucleus position (Taylor 2000):
+                    // a mid-clause nucleus falls as far as a clause-final one.
                     int16_t fallAmt;
-                    if ((curSylType & kTerm_End) != 0) {
+                    if ((curSylType & kTerm_End) == 0 && (curSylType & kVerb_End) != 0) {
+                        fallAmt = 0;
+                    } else {
                         if (_endPunctuation == _Comma_) {
                             // Continuation: moderate fall, boundary rise supplies the L-H%.
                             fallAmt = (int16_t)(0 - kHZ_12);
@@ -1897,10 +1901,6 @@ namespace SharpVox {
                         if (_endPunctuation == _Period_ || _endPunctuation == _Exclam_) {
                             fallAmt += (int16_t)(_vpUptalkAmt * (kHZ_20 + kHZ_4) / 100);
                         }
-                    } else if ((curSylType & kVerb_End) != 0) {
-                        fallAmt = 0;
-                    } else {
-                        fallAmt = _vpFallAmt;
                     }
 
                     // Japanese: pure-fall with rise compensation; legacy timeT formula.
