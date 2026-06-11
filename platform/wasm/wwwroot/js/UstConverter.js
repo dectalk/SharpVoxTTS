@@ -290,7 +290,50 @@
 
 
   function ticksToMs(ticks, tempo) {
-    return Math.max(1, Math.round(ticks / 480.0 * 60000.0 / tempo));
+    return ticks / 480.0 * 60000.0 / tempo;
+  }
+
+  // Engine timing model mirrored from KlattschParser FlushSyllable and
+  // AudioProcessor ProcessSinging: a ( ) group splits the r= beat, every
+  // duration floors to 5ms request units, one unit renders one synth frame.
+  const STOP_TOKENS = new Set(["P","B","T","D","K","G","CH","JH"]);
+  const MAX_PAUSE_UNITS = 6000;
+
+  function unitMsFor(sampleRate) {
+    const frameLen = Math.max(2, Math.floor(sampleRate * 112 / 22050 + 0.5));
+    return frameLen / sampleRate * 1000.0;
+  }
+
+  function groupUnits(phons, rate) {
+    const n = phons.length;
+    const equalSlot = rate / n;
+    const stopBurst = Math.min(25, equalSlot * 0.3);
+    const nStops = phons.reduce((s, p) => s + (STOP_TOKENS.has(p) ? 1 : 0), 0);
+    const nOther = n - nStops;
+    const otherDur = nOther > 0 ? (rate - nStops * stopBurst) / nOther : equalSlot;
+    let units = 0;
+    for (const p of phons) {
+      const dur = Math.trunc(Math.max(5, STOP_TOKENS.has(p) ? stopBurst : otherDur));
+      units += Math.max(1, Math.trunc(dur / 5));
+    }
+    return units;
+  }
+
+  // Smallest int16-safe rate whose group renders >= target units, then the
+  // nearer of it and its predecessor (unit count is monotonic in rate).
+  function rateForUnits(phons, target) {
+    let lo = 5, hi = 30000;
+    if (groupUnits(phons, hi) <= target) return hi;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (groupUnits(phons, mid) >= target) hi = mid; else lo = mid + 1;
+    }
+    if (lo > 5) {
+      const over = groupUnits(phons, lo) - target;
+      const under = target - groupUnits(phons, lo - 1);
+      if (under < over) return lo - 1;
+    }
+    return lo;
   }
 
   function midiToNoteName(midi) {
@@ -625,10 +668,11 @@
   }
 
 
-  function convert(ustText, language, noteOffset, compatBank) {
+  function convert(ustText, language, noteOffset, compatBank, sampleRate) {
     language   = language   || "auto";
     noteOffset = noteOffset || 0;
     compatBank = compatBank || null;
+    sampleRate = sampleRate || 48000;
 
     const compatAuto = compatBank === "auto";
     let { notes, tempo, notationType } = parseUst(ustText, language);
@@ -640,11 +684,26 @@
       compatBank = (notationType === "japanese" || notationType === "arpa_jp")
         ? "ja-mokhtari-2000" : null;
 
+    const unit = unitMsFor(sampleRate);
     const parts = [];
+    const timing = [];
     const phonemeCounts = new Map();
     const unknownLyrics = new Set();
     let curNote = null, curRate = -1, lastPhoneme = null;
+    let statedMs = 0.0, doneUnits = 0, gapPending = false;
     let i = 0;
+
+    // Emit pause chunks bringing doneUnits up to the unit nearest targetMs.
+    function flushGap(targetMs) {
+      let needed = Math.round(targetMs / unit) - doneUnits;
+      while (needed >= 1) {
+        const u = Math.min(needed, MAX_PAUSE_UNITS);
+        parts.push(`p=${u * 5}`);
+        doneUnits += u;
+        needed -= u;
+      }
+      gapPending = false;
+    }
 
     while (i < notes.length) {
       const note = notes[i];
@@ -660,16 +719,17 @@
         if (notes[j].pby.length > 0) { mergedPby.length = 0; mergedPby.push(...notes[j].pby); }
         j++;
       }
+      const onsetMs = statedMs;
+      statedMs += durMs;
 
       if (isRest(note.lyric)) {
-        if (durMs > 0) parts.push(`p=${durMs}`);
+        gapPending = true;
         lastPhoneme = null;
       } else {
         const phonemes = lyricToPhonemes(note.lyric, notationType, unknownLyrics);
-        if (phonemes === null) {
-          lastPhoneme = null;
-        } else if (phonemes.length === 0) {
-          if (durMs > 0) parts.push(`p=${durMs}`);
+        if (phonemes === null || phonemes.length === 0) {
+          // Unknown or silent lyric: keep its stated time as a gap.
+          gapPending = true;
           lastPhoneme = null;
         } else {
           for (const p of phonemes) phonemeCounts.set(p, (phonemeCounts.get(p) || 0) + 1);
@@ -702,8 +762,17 @@
             lastPhoneme = p;
           }
 
+          if (gapPending) flushGap(onsetMs);
+
+          // Pick the r= whose group renders the unit count that lands the
+          // NEXT onset closest to its stated time; residual carries forward.
+          const target = Math.round((onsetMs + durMs) / unit) - doneUnits;
+          const rate = rateForUnits(klattsch, Math.max(target, klattsch.length));
+          doneUnits += groupUnits(klattsch, rate);
+          timing.push({ onsetMs: onsetMs, phonemeCount: klattsch.length });
+
           if (noteName !== curNote) { parts.push(`b=${noteName}`); curNote = noteName; }
-          if (durMs !== curRate)    { parts.push(`r=${durMs}`);    curRate = durMs; }
+          if (rate !== curRate)     { parts.push(`r=${rate}`);     curRate = rate; }
 
           if (Math.abs(note.pbsValue) >= PITCH_CENTS_THRESHOLD) {
             const mod = pitchModifier(baseHz, note.pbsValue, true);
@@ -717,14 +786,20 @@
           }
 
           parts.push("( " + klattsch.join(" ") + " )");
+
+          // Rate saturated (e.g. all-stop group capped at 25ms bursts):
+          // pad the shortfall with silence, which reads as stop closure.
+          if (rate === 30000) flushGap(onsetMs + durMs);
         }
       }
       i = j;
     }
+    if (gapPending) flushGap(statedMs);
 
     const prefix = compatBank ? `[bank=${compatBank}] ` : "";
     return {
       klattsch:    prefix + parts.join(" "),
+      timing:      timing,
       diagnostics: buildDiagnostics(notationType, tempo, phonemeCounts, unknownLyrics),
     };
   }

@@ -138,7 +138,8 @@ window.ui = {
             bank = compat ? "auto" : null;
         }
 
-        const result = window.UstConverter.convert(text, language, offset, bank);
+        const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 48000;
+        const result = window.UstConverter.convert(text, language, offset, bank, sampleRate);
         document.getElementById('inputText').value = result.klattsch;
         document.getElementById('toolsDiagnostics').innerText = result.diagnostics;
         window.ui.updateStatus("conversion complete — klattsch ready");
