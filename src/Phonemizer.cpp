@@ -29,6 +29,9 @@ namespace SharpVox {
     static const uint8_t OP_QUEST     = kOpQuest;
     static const uint8_t OP_EXCLAM    = kOpExclam;
 
+    // Forced clause-split threshold for unpunctuated run-ons (see TextToSentenceTokens).
+    static const int32_t kMaxClauseWords = 96;
+
     // Subject pronouns: receive kPronounWord on every phoneme so the backend can
     // apply vocal-confidence emphasis (pitch accent + vowel lengthening).
     static const char* const PronounWordsTableArr[] = {
@@ -1262,13 +1265,29 @@ namespace SharpVox {
             // Each clause gets its own BackEnd.Process call so pitch resets cleanly.
             std::string plain = Normalizer::Normalize(seg.plainText);
             size_t start = 0;
+            int32_t wordsSinceStart = 0;
             auto toks = TokenizeText(plain);
             for (const auto& t : toks) {
+                if (t.kind == TokKind::Word || t.kind == TokKind::Digits) wordsSinceStart++;
+                // Safety valve: an unpunctuated run-on would phonemize as one
+                // oversized clause. After kMaxClauseWords words with no punct,
+                // force a flush at the next word boundary. Set far past any
+                // normal sentence so well-punctuated text never trips it; the
+                // span ends on a space so LastEndPunct stays 0 (neutral).
+                if (t.kind == TokKind::Space && wordsSinceStart >= kMaxClauseWords) {
+                    std::string sentence = plain.substr(start, t.pos - start);
+                    auto tokens = TextSegmentToPhonemes(sentence);
+                    emit(std::move(tokens), LastEndPunct);
+                    start = t.pos + t.len;
+                    wordsSinceStart = 0;
+                    continue;
+                }
                 if (t.kind != TokKind::SentPunct && t.kind != TokKind::ClausePunct) continue;
                 std::string sentence = plain.substr(start, (t.pos + t.len) - start);
                 auto tokens = TextSegmentToPhonemes(sentence);
                 emit(std::move(tokens), LastEndPunct);
                 start = t.pos + t.len;
+                wordsSinceStart = 0;
             }
             if (start < plain.size()) {
                 std::string remaining = plain.substr(start);
