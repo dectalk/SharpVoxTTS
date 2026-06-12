@@ -559,7 +559,10 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
 
         if (active) {
             if (voiceAmpTrem_q8 > 0) {
-                int32_t glotSample;
+                // glotSample stays float: truncating it to int here quantized the
+                // glottal pulse to ~voiceGain levels, so low VoicingGain produced a
+                // coarse staircase = audible formant-colored noise. Matches float variant.
+                float glotSample;
 
                 if (_fryStallSamples > 0) _fryStallSamples--;
                 int32_t prevPhase = _glotPhase;
@@ -594,15 +597,15 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                     float   frac = _sgPhase - (float)idx;
                     int32_t idx1 = idx + 1 < _sgBufSize ? idx + 1 : 0;
                     float s = _sgBuf[idx] + frac * (_sgBuf[idx1] - _sgBuf[idx]);
-                    glotSample = (int32_t)(s * _voiceGain_f);
+                    glotSample = s * _voiceGain_f;
                 } else
 #endif
                 {
                     int32_t phi = (int32_t)_glotPhase;
                     float tau = (float)phi * effInvNe;
                     glotSample = (phi < effNe)
-                        ? (int32_t)(tau * (0.33333333f - tau * 0.5f) * _voiceGain_f)
-                        : 0;
+                        ? (tau * (0.33333333f - tau * 0.5f) * _voiceGain_f)
+                        : 0.0f;
                 }
 #ifdef SHARPVOX_SAMPLED_GLOT
                 if (VoiceChorus != 0 && !_useSampledGlot) {
@@ -612,10 +615,10 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                     _chorusPhase = (_chorusPhaseInc+_chorusPhase) & 0xFFFFFF;
                     int32_t phi2 = (int32_t)_chorusPhase;
                     float tau2 = (float)phi2 * _chorusInvNe_f;
-                    int32_t chorus = (phi2 < _chorusNe_fp)
-                        ? (int32_t)(tau2 * (0.33333333f - tau2 * 0.5f) * _voiceGain_f)
-                        : 0;
-                    glotSample = (glotSample + chorus) / 2;
+                    float chorus = (phi2 < _chorusNe_fp)
+                        ? (tau2 * (0.33333333f - tau2 * 0.5f) * _voiceGain_f)
+                        : 0.0f;
+                    glotSample = (glotSample + chorus) * 0.5f;
                 }
 
 #ifdef SHARPVOX_SAMPLED_GLOT
@@ -627,7 +630,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                     int32_t phiD = _diploPhase;
                     if (phiD < effNe) {
                         float tauD = (float)phiD * effInvNe;
-                        glotSample += (int32_t)(tauD * (0.33333333f - tauD * 0.5f) * _voiceGain_f * (Diplophonia * 0.007f));
+                        glotSample += tauD * (0.33333333f - tauD * 0.5f) * _voiceGain_f * (Diplophonia * 0.007f);
                     }
                 }
 
@@ -636,11 +639,11 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                 int32_t eTilt = _tilt_q15 + frameTiltBias_q15;
                 if (eTilt >  31130) eTilt =  31130;
                 if (eTilt <      0) eTilt =      0;
-                int32_t tiltedSample = (int32_t)(((int64_t)(32768 - eTilt) * glotSample
-                                                + (int64_t)eTilt * _tiltPrev) >> 15);
+                float d = (float)eTilt * (1.0f / 32768.0f);
+                float tiltedSample = (1.0f - d) * glotSample + d * _tiltPrev;
                 _tiltPrev = tiltedSample;
 
-                cascadeInF = (float)tiltedSample * (float)voiceAmpTrem_q8
+                cascadeInF = tiltedSample * (float)voiceAmpTrem_q8
                              * (_shimmerScale / (256.0f * 8192.0f));
 
                 // Subglottal resonance (~350 Hz chest-cavity coupling).
@@ -651,7 +654,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
 
                 // Cycle-synchronous breathiness.
                 if (BreathAmt > 0) {
-                    int32_t openness = std::max((int32_t)0, glotSample);
+                    float openness = std::max(0.0f, glotSample);
                     cascadeInF += (float)(NextNoise()-128) * openness
                                   * (voiceAmpTrem_q8/256.0f) * (BreathAmt * 0.00004f)
                                   * _noiseScale / 8192.0f;
