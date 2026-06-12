@@ -148,7 +148,7 @@ private:
     // One-over-x from reciprocal table for small x, or computed directly for large x
     int32_t OvX(int32_t x) const;
 
-    // --- Frame.cs ---
+    // Frame assembly
 
     // Inserts burst, aspiration, and voicing-murmur events at plosive boundaries.
     //
@@ -222,7 +222,7 @@ private:
     // compressed decibel-like range and the synthesizer expects linear multipliers.
     Frame SaveFrame(int16_t f0, uint8_t phonCtrl);
 
-    // --- Locus.cs ---
+    // Formant locus
 
     // Computes the formant transition target (_transLevel) and duration (_transTime)
     // for consonant-vowel or vowel-consonant boundaries using acoustic locus theory.
@@ -263,7 +263,7 @@ private:
     // bType: C_V_type (consonant precedes vowel) or V_C_type (vowel precedes consonant)
     void GetLocus(int32_t iCons, int32_t iVowel, int32_t bType);
 
-    // --- Targets.cs ---
+    // Phoneme targets
 
     // Initializes per-phoneme duration ratios used to scale transition times.
     //
@@ -311,7 +311,7 @@ private:
     // The entry parameter selects start (0) or end (1) of the trajectory.
     int32_t AdjustColored(int32_t index, int32_t entry);
 
-    // --- Transitions.cs ---
+    // Transitions
 
     // Sets up envelope ramps for all 15 control blocks at the start of a new phoneme.
     //

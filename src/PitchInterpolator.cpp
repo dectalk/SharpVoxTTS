@@ -168,9 +168,8 @@ namespace SharpVox {
         if (ratio < 0) {
             ratio = 0;
         }
-        static constexpr int32_t kLogTableLen = 512; // matches LogarithmBase2Table length in Tables.cs
-        if (ratio >= kLogTableLen) {
-            ratio = kLogTableLen - 1;
+        if (ratio >= Tables::LogarithmBase2TableLength) {
+            ratio = Tables::LogarithmBase2TableLength - 1;
         }
         return Tables::LogarithmBase2Table[ratio] + fk;
     }

@@ -9,8 +9,7 @@ namespace { template<class T> T clamp11(T v, T lo, T hi) { return v < lo ? lo : 
 
 namespace SharpVox {
 
-// SpeechRenderer.cs  constructor, RenderStreaming, Render,
-//                     SetPhonContext, GP, PF, PC, OvX, LogToLin
+// Core: constructor, RenderStreaming, Render, SetPhonContext, GP, PF, PC, OvX, LogToLin
 
 SpeechRenderer::SpeechRenderer(const VoiceData& voice)
     : _voice(voice)
@@ -145,8 +144,7 @@ int32_t SpeechRenderer::OvX(int32_t x) const {
     return Tables::LogarithmicToLinearTable[v >> 1];
 }
 
-// SpeechRenderer.Frame.cs  InsertBurst, InterpolateControls,
-//                            SaveFrame
+// Frame assembly: InsertBurst, InterpolateControls, SaveFrame
 
 // Inserts burst, aspiration, and voicing-murmur events at plosive boundaries.
 //
@@ -404,7 +402,7 @@ Frame SpeechRenderer::SaveFrame(int16_t f0, uint8_t phonCtrl) {
     return f;
 }
 
-// SpeechRenderer.Locus.cs  GetLocus
+// Formant locus: GetLocus
 
 // Computes the formant transition target (_transLevel) and duration (_transTime)
 // for consonant-vowel or vowel-consonant boundaries using acoustic locus theory.
@@ -542,9 +540,8 @@ void SpeechRenderer::GetLocus(int32_t iCons, int32_t iVowel, int32_t bType) {
     _transLevel = lFreq + (lPcnt * (v1Targ - lFreq)) / 100;
 }
 
-// SpeechRenderer.Targets.cs  FillPhonTargets, GetTargetRaw,
-//   GetFirstTarget, GetLastTarget, GetVoiceFormantValue,
-//   GetDiphthongs, ScalePrcnt, AdjustColored
+// Phoneme targets: FillPhonTargets, GetTargetRaw, GetFirstTarget, GetLastTarget,
+// GetVoiceFormantValue, GetDiphthongs, ScalePrcnt, AdjustColored
 
 // Initializes per-phoneme duration ratios used to scale transition times.
 //
@@ -817,8 +814,7 @@ int32_t SpeechRenderer::AdjustColored(int32_t index, int32_t entry) {
     return adj;
 }
 
-// SpeechRenderer.Transitions.cs  InitCtrlsForNewPhon,
-//                                  HeadRules, TailRules
+// Transitions: InitCtrlsForNewPhon, HeadRules, TailRules
 
 // Sets up envelope ramps for all 15 control blocks at the start of a new phoneme.
 //

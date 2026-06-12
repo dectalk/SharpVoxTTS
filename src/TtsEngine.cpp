@@ -60,7 +60,28 @@ namespace SharpVox {
         return result;
     }
 
-        // Returns one record per synthesis frame (5 ms each) with pitch and tilt diagnostics.
+    // Walks a plan frame by frame through PitchInterpolator and appends one diagnostic record per frame.
+    static void AppendPitchFrameRecords(const ClausePlan& plan,
+                                        std::vector<TtsEngine::PitchFrameRecord>& records) {
+        PitchInterpolator pi(plan);
+        int32_t phonIdx = 0, frameInPhon = 0;
+        int32_t totalFrames = 0;
+        for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+            totalFrames += plan.DurBuf[i];
+        }
+        for (int32_t f = 0; f < totalFrames; f++) {
+            if (frameInPhon == 0) { pi.DoNote(phonIdx); }
+            pi.Step();
+            const char* namePtr = AudioProcessor::PhonemeNamesTable[plan.PhonBuf[phonIdx]];
+            records.emplace_back(namePtr ? std::string(namePtr) : std::string("?"),
+                frameInPhon, pi.DbgF0(), pi.DbgTiltExcursion(), pi.DbgTiltSmooth(),
+                pi.DbgTiltHeld(), pi.DbgTiltPhase(), pi.DbgBaselineOffset(), pi.DbgTotalOffset());
+            frameInPhon++;
+            if (frameInPhon >= plan.DurBuf[phonIdx]) { phonIdx++; frameInPhon = 0; }
+        }
+    }
+
+    // Returns one record per synthesis frame (5 ms each) with pitch and tilt diagnostics.
     std::vector<TtsEngine::PitchFrameRecord> TtsEngine::DumpPitchFrames(const std::string& text) {
         std::vector<PitchFrameRecord> records;
         for (const auto& seg : EmbeddedCmd::ParseSegments(text, &_klattsch)) {
@@ -74,24 +95,7 @@ namespace SharpVox {
             if (seg.IsKlattsch()) {
                 tokens = _klattsch.CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
             } else if (seg.IsSinging()) {
-                auto plan = _be.ProcessSinging(seg.singing);
-                PitchInterpolator pi(plan);
-                int32_t phonIdx2 = 0, frameInPhon2 = 0;
-                int32_t totalFrames2 = 0;
-                for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
-                    totalFrames2 += plan.DurBuf[i];
-                }
-                for (int32_t f = 0; f < totalFrames2; f++) {
-                    if (frameInPhon2 == 0) { pi.DoNote(phonIdx2); }
-                    pi.Step();
-                    int16_t p2 = plan.PhonBuf[phonIdx2];
-                    const char* namePtr2 = AudioProcessor::PhonemeNamesTable[p2];
-                    records.emplace_back(namePtr2 ? std::string(namePtr2) : std::string("?"),
-                        frameInPhon2, pi.DbgF0(), pi.DbgTiltExcursion(), pi.DbgTiltSmooth(),
-                        pi.DbgTiltHeld(), pi.DbgTiltPhase(), pi.DbgBaselineOffset(), pi.DbgTotalOffset());
-                    frameInPhon2++;
-                    if (frameInPhon2 >= plan.DurBuf[phonIdx2]) { phonIdx2++; frameInPhon2 = 0; }
-                }
+                AppendPitchFrameRecords(_be.ProcessSinging(seg.singing), records);
                 continue;
             } else {
                 // Just take the first sentence for now if multi-sentence
@@ -103,35 +107,7 @@ namespace SharpVox {
                 if (tokens.empty()) { continue; }
             }
 
-            auto plan = _be.Process(tokens, endPunct);
-            PitchInterpolator pi(plan);
-
-            int32_t phonIdx = 0, frameInPhon = 0;
-            int32_t totalFrames = 0;
-            for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
-                totalFrames += plan.DurBuf[i];
-            }
-
-            for (int32_t f = 0; f < totalFrames; f++) {
-                if (frameInPhon == 0) {
-                    pi.DoNote(phonIdx);
-                }
-                pi.Step();
-                int16_t p = plan.PhonBuf[phonIdx];
-                std::string name = "?";
-                const char* namePtr = AudioProcessor::PhonemeNamesTable[p];
-                if (namePtr != nullptr) {
-                    name = namePtr;
-                }
-                records.emplace_back(name, frameInPhon, pi.DbgF0(),
-                    pi.DbgTiltExcursion(), pi.DbgTiltSmooth(), pi.DbgTiltHeld(), pi.DbgTiltPhase(),
-                    pi.DbgBaselineOffset(), pi.DbgTotalOffset());
-                frameInPhon++;
-                if (frameInPhon >= plan.DurBuf[phonIdx]) {
-                    phonIdx++;
-                    frameInPhon = 0;
-                }
-            }
+            AppendPitchFrameRecords(_be.Process(tokens, endPunct), records);
         }
         return records;
     }

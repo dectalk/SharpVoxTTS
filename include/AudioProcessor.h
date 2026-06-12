@@ -199,7 +199,7 @@ namespace SharpVox {
         int64_t  GetCtrl2(int32_t i);
         uint32_t GetPhonFlags1(int32_t i);
 
-        // Phonemes pipeline (AudioProcessor.Phonemes.cs)
+        // Phonemes pipeline
         void LoadPhonemes(const std::vector<PhonemeToken>& tokens);
         void FlagPhonBuf1();
         void MarkSyllable();
@@ -209,10 +209,10 @@ namespace SharpVox {
         static bool IfConsonantCluster(int16_t c1, int16_t c2);
         void FillPhonBuf2();
 
-        // Duration pipeline (AudioProcessor.Duration.cs)
+        // Duration pipeline
         void ModDuration();
 
-        // Pitch pipeline (AudioProcessor.Pitch.cs)
+        // Pitch pipeline
         void JapanesePitchAssign();
         void PitchRaiseAndFall();
         int32_t CountVowelsTillBoundry(int64_t boundary, int32_t curIndex);

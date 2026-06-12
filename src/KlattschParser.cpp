@@ -64,8 +64,7 @@ static bool IsStopPhoneme(const std::string& code) {
     return false;
 }
 
-// PhonemeNamesTable and KlattschToSharpVoxPhonemeTable
-// (populated from AudioProcessor constants, mirrors C# dictionaries)
+// PhonemeNamesTable and KlattschToSharpVoxPhonemeTable, keyed by phoneme ID
 
 const std::unordered_map<int16_t, std::string>& KlattschParser::GetPhonemeNamesTable() {
     static const std::unordered_map<int16_t, std::string> t = {

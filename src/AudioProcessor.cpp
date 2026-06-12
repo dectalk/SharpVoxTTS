@@ -255,50 +255,44 @@ namespace SharpVox {
     ClausePlan AudioProcessor::BuildClausePlan() {
         int32_t count = _phonBuf2InIndex + 1; // +1 for lookahead SIL slot
 
-        std::vector<int16_t>  phonBuf(count);
-        std::vector<int64_t>  controls(count);
-        std::vector<int16_t>  durBuf(count);
-        std::vector<int16_t>  userPitchBuf(count);
-        std::vector<int16_t>  userNoteBuf(count);
-        std::vector<uint8_t>  aspirationBuf(count);
-        std::vector<uint8_t>  tiltBuf(count);
-        std::vector<uint8_t>  effortBuf(count);
-        std::vector<uint8_t>  vibDepthBuf(count);
-        std::vector<uint8_t>  vibRateBuf(count);
-        std::vector<uint8_t>  tremDepthBuf(count);
-        std::vector<uint8_t>  tremRateBuf(count);
-
-        for (int32_t i = 0; i < count; i++) {
-            phonBuf[i]      = _phonBuf2[i];
-            controls[i]      = _phonCtrlBuf2[i];
-            durBuf[i]        = _durBuf[i];
-            userPitchBuf[i] = _userPitchBuf2[i];
-            userNoteBuf[i]  = _userNoteBuf2[i];
-            aspirationBuf[i] = _aspirationBuf2[i];
-            tiltBuf[i]      = _tiltBuf2[i];
-            effortBuf[i]    = _effortBuf2[i];
-            vibDepthBuf[i]  = _vibDepthBuf2[i];
-            vibRateBuf[i]   = _vibRateBuf2[i];
-            tremDepthBuf[i] = _tremDepthBuf2[i];
-            tremRateBuf[i]  = _tremRateBuf2[i];
-        }
+        // Move the working buffers out instead of copying; ClearBuffers
+        // re-assigns them at the start of the next Process() call.
+        std::vector<int16_t>  phonBuf      = std::move(_phonBuf2);
+        std::vector<int64_t>  controls     = std::move(_phonCtrlBuf2);
+        std::vector<int16_t>  durBuf       = std::move(_durBuf);
+        std::vector<int16_t>  userPitchBuf = std::move(_userPitchBuf2);
+        std::vector<int16_t>  userNoteBuf  = std::move(_userNoteBuf2);
+        std::vector<uint8_t>  aspirationBuf = std::move(_aspirationBuf2);
+        std::vector<uint8_t>  tiltBuf      = std::move(_tiltBuf2);
+        std::vector<uint8_t>  effortBuf    = std::move(_effortBuf2);
+        std::vector<uint8_t>  vibDepthBuf  = std::move(_vibDepthBuf2);
+        std::vector<uint8_t>  vibRateBuf   = std::move(_vibRateBuf2);
+        std::vector<uint8_t>  tremDepthBuf = std::move(_tremDepthBuf2);
+        std::vector<uint8_t>  tremRateBuf  = std::move(_tremRateBuf2);
+        phonBuf.resize(count);
+        controls.resize(count);
+        durBuf.resize(count);
+        userPitchBuf.resize(count);
+        userNoteBuf.resize(count);
+        aspirationBuf.resize(count);
+        tiltBuf.resize(count);
+        effortBuf.resize(count);
+        vibDepthBuf.resize(count);
+        vibRateBuf.resize(count);
+        tremDepthBuf.resize(count);
+        tremRateBuf.resize(count);
 
         int32_t pitchCount = _pitchBufInIndex + 1;
-        std::vector<int16_t> pitchFreq(pitchCount);
-        std::vector<int16_t> pitchTime(pitchCount);
-        std::vector<int16_t> pitchFlags(pitchCount);
-        std::vector<int16_t> pitchTiltX64(pitchCount);
-        std::vector<int16_t> pitchDuration(pitchCount);
-        for (int32_t i = 0; i < pitchCount; i++) {
-            pitchFreq[i]     = _pitchBufFreq[i];
-            pitchTime[i]     = _pitchBufTime[i];
-            pitchFlags[i]    = _pitchBufFlags[i];
-            pitchTiltX64[i]  = _pitchBufTiltX64[i];
-            pitchDuration[i] = _pitchBufDuration[i];
-        }
-
-        std::vector<int64_t> rampStepsCopy(kMaxRamps);
-        std::copy(_rampSteps, _rampSteps + kMaxRamps, rampStepsCopy.begin());
+        std::vector<int16_t> pitchFreq     = std::move(_pitchBufFreq);
+        std::vector<int16_t> pitchTime     = std::move(_pitchBufTime);
+        std::vector<int16_t> pitchFlags    = std::move(_pitchBufFlags);
+        std::vector<int16_t> pitchTiltX64  = std::move(_pitchBufTiltX64);
+        std::vector<int16_t> pitchDuration = std::move(_pitchBufDuration);
+        pitchFreq.resize(pitchCount);
+        pitchTime.resize(pitchCount);
+        pitchFlags.resize(pitchCount);
+        pitchTiltX64.resize(pitchCount);
+        pitchDuration.resize(pitchCount);
 
         PitchState pitch;
         pitch.NextPitchBufTime  = pitchCount > 0 ? pitchTime[0] : (int16_t)0;
@@ -331,7 +325,7 @@ namespace SharpVox {
 
         pitch.DownRampOffset     = 0;
         pitch.DownRampStep       = (kMaxRamps > 0) ? _rampSteps[0] : 0;
-        std::copy(rampStepsCopy.begin(), rampStepsCopy.end(), pitch.RampSteps.begin());
+        std::copy(_rampSteps, _rampSteps + kMaxRamps, pitch.RampSteps.begin());
         pitch.CurRamp            = _curRamp;
 
         pitch.VpIntonation       = _vpIntonation;
