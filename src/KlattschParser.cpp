@@ -17,18 +17,6 @@
 
 namespace SharpVox {
 
-// Persistent state for Klattsch mode
-float KlattschParser::_curF0       = 120.0f;
-float KlattschParser::_curRate     = 110.0f;
-float KlattschParser::_curScale    = 1.0f;
-float KlattschParser::_curVibDepth = 0.0f;
-float KlattschParser::_curVibRate  = 5.0f;
-float KlattschParser::_curTremDepth = 0.0f;
-float KlattschParser::_curTremRate  = 5.0f;
-float KlattschParser::_curAsp      = 0.0f;
-float KlattschParser::_curTilt     = 0.0f;
-float KlattschParser::_curEffort   = 0.5f;
-
 // Static table definitions
 
 static const struct { const char* tok; float ms; } kPauseTable[] = {

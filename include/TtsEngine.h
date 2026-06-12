@@ -13,6 +13,7 @@
 #include "../include/KlattSynthesizerFP.h"
 #endif
 #include "../include/TextCommands.h"
+#include "../include/KlattschParser.h"
 #include "../include/Phonemizer.h"
 #include "../include/VoiceData.h"
 #include "../include/SynthData.h"
@@ -109,6 +110,7 @@ namespace SharpVox {
     private:
         Phonemizer _fe;
         VoiceData _voice;
+        KlattschParser _klattsch;
         AudioProcessor _be;
         SpeechRenderer _renderer;
 #ifdef SHARPVOX_FIXED_POINT_SYNTH

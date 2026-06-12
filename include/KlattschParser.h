@@ -13,6 +13,7 @@ namespace SharpVox {
 struct PhonemeToken;
 
 // Parser for Klattsch notation: a compact text format for phoneme-level singing and speech control.
+// Directive state (current F0, rate, etc.) is per-instance; each TtsEngine owns one.
 class KlattschParser {
 public:
     struct Token {
@@ -43,11 +44,11 @@ public:
     // Phonemes inside ( ) groups share the beat: stops get a short burst, others split the rest.
     // Pauses and p-directives emit SIL tokens with exact millisecond durations.
     // A trailing SIL with kTerm_End is always appended so AudioProcessor sees a clean clause end.
-    static std::vector<PhonemeToken> CompileToTokens(const std::vector<Token>& tokens);
+    std::vector<PhonemeToken> CompileToTokens(const std::vector<Token>& tokens);
 
     // Reset persistent Klattsch state to defaults.
-    static void Reset();
-    static void Reset(const struct VoiceData& voice);
+    void Reset();
+    void Reset(const struct VoiceData& voice);
 
     // Mapping from SharpVox phoneme ID -> Klattsch uppercase code (e.g. _IY_ -> "IY").
     static const std::unordered_map<int16_t, std::string>& GetPhonemeNamesTable();
@@ -55,16 +56,16 @@ public:
 
 private:
     // Persistent state for Klattsch mode
-    static float _curF0;
-    static float _curRate;
-    static float _curScale;
-    static float _curVibDepth;
-    static float _curVibRate;
-    static float _curTremDepth;
-    static float _curTremRate;
-    static float _curAsp;
-    static float _curTilt;
-    static float _curEffort;
+    float _curF0       = 120.0f;
+    float _curRate     = 110.0f;
+    float _curScale    = 1.0f;
+    float _curVibDepth = 0.0f;
+    float _curVibRate  = 5.0f;
+    float _curTremDepth = 0.0f;
+    float _curTremRate  = 5.0f;
+    float _curAsp      = 0.0f;
+    float _curTilt     = 0.0f;
+    float _curEffort   = 0.5f;
 
     // Greek and Cyrillic characters that look identical to Latin letters in most fonts.
     // Notation files pasted from score editors or other systems may silently contain them.
@@ -85,14 +86,14 @@ private:
     static Token* ClassifyPart(const std::string& part, Token& out);
 
     // Emit one phoneme token into result, using current persistent state.
-    static void EmitPhoneme(const Token& t, float durationMs,
-                            bool isStartOfBeat, bool isEndOfBeat,
-                            std::vector<PhonemeToken>& result);
+    void EmitPhoneme(const Token& t, float durationMs,
+                     bool isStartOfBeat, bool isEndOfBeat,
+                     std::vector<PhonemeToken>& result);
 
     // Flush the current syllable group, distributing beat time across its phonemes.
-    static void FlushSyllable(std::vector<Token>& syllableQueue,
-                               bool& inSyllable,
-                               std::vector<PhonemeToken>& result);
+    void FlushSyllable(std::vector<Token>& syllableQueue,
+                       bool& inSyllable,
+                       std::vector<PhonemeToken>& result);
 
     static const std::unordered_map<char, int32_t>      NoteSemitonesTable;
 };

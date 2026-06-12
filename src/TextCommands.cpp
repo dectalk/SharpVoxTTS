@@ -18,9 +18,6 @@
 
 namespace SharpVox {
 
-// Global Klattsch mode flag
-bool EmbeddedCmd::KlattschMode = false;
-
 // ASCII note name (C5, A#4, Bb3) -> Hz using equal temperament (A4 = 440 Hz)
 int32_t EmbeddedCmd::NoteNameToHz(const std::string& name) {
     if (name.size() < 2) {
@@ -130,17 +127,19 @@ int16_t EmbeddedCmd::MapPhoneme(const std::string& p) {
 
 // Parse text into a list of Segments, handling [:rate N], [:pitch N],
 // [:voice NAME], [:sing], [:talk], [:klattsch on/off], and [phoneme<dur,note> ...] singing blocks.
-std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& text) {
+std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& text,
+                                                             KlattschParser* klattsch) {
     std::vector<Segment> segments;
 
     std::string plain;
+    bool klattschMode = false;
     bool inSingMode = false;
     int32_t i = 0;
     int32_t len = static_cast<int32_t>(text.size());
 
     auto FlushPlain = [&]() {
         if (!plain.empty()) {
-            if (KlattschMode) {
+            if (klattschMode) {
                 segments.push_back(Segment::Klattsch(plain));
             } else {
                 segments.push_back(Segment(plain));
@@ -188,10 +187,10 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             if (cmd == "klattsch") {
                 FlushPlain();
                 if (argStr == "on") {
-                    KlattschMode = true;
-                    KlattschParser::Reset();
+                    klattschMode = true;
+                    if (klattsch) klattsch->Reset();
                 } else if (argStr == "off") {
-                    KlattschMode = false;
+                    klattschMode = false;
                 }
             } else if (cmd == "custom") {
                 FlushPlain();
@@ -250,7 +249,7 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             continue;
         }
 
-        if (KlattschMode) {
+        if (klattschMode) {
             // In Klattsch mode, '[' is literal if not followed by ':'
             plain += text[i++];
             continue;

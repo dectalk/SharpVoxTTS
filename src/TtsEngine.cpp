@@ -63,7 +63,7 @@ namespace SharpVox {
         // Returns one record per synthesis frame (5 ms each) with pitch and tilt diagnostics.
     std::vector<TtsEngine::PitchFrameRecord> TtsEngine::DumpPitchFrames(const std::string& text) {
         std::vector<PitchFrameRecord> records;
-        for (const auto& seg : EmbeddedCmd::ParseSegments(text)) {
+        for (const auto& seg : EmbeddedCmd::ParseSegments(text, &_klattsch)) {
             if (seg.IsCommand()) {
                 continue;
             }
@@ -72,7 +72,7 @@ namespace SharpVox {
             int16_t endPunct = 0;
 
             if (seg.IsKlattsch()) {
-                tokens = KlattschParser::CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
+                tokens = _klattsch.CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
             } else if (seg.IsSinging()) {
                 auto dump = _be.ProcessSinging(seg.singing);
                 PitchInterpolator pi(dump);
@@ -142,9 +142,8 @@ namespace SharpVox {
         auto cb = [onBuffer, userdata](const int16_t* buf, int32_t len) {
             onBuffer(buf, len, userdata);
         };
-        EmbeddedCmd::KlattschMode = false;
-        KlattschParser::Reset(_voice);
-        auto segments = EmbeddedCmd::ParseSegments(text);
+        _klattsch.Reset(_voice);
+        auto segments = EmbeddedCmd::ParseSegments(text, &_klattsch);
         size_t lastContent = segments.size();
         for (size_t i = segments.size(); i-- > 0; )
             if (!segments[i].IsCommand()) { lastContent = i; break; }
@@ -155,7 +154,7 @@ namespace SharpVox {
                 continue;
             }
             if (seg.IsKlattsch()) {
-                auto tokens = KlattschParser::CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
+                auto tokens = _klattsch.CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
                 if (!tokens.empty()) {
                     ProcessSentenceStreaming(tokens, 0, cb);
                 }
@@ -222,10 +221,9 @@ namespace SharpVox {
         std::vector<PhonemeEvent> events;
         std::vector<WorkItem> workItems;
         int32_t sampleOffset = 0;
-        EmbeddedCmd::KlattschMode = false;
-        KlattschParser::Reset(_voice);
+        _klattsch.Reset(_voice);
 
-        auto segments = EmbeddedCmd::ParseSegments(text);
+        auto segments = EmbeddedCmd::ParseSegments(text, &_klattsch);
         size_t lastContent = segments.size();
         for (size_t i = segments.size(); i-- > 0; )
             if (!segments[i].IsCommand()) { lastContent = i; break; }
@@ -236,7 +234,7 @@ namespace SharpVox {
             }
 
             if (seg.IsKlattsch()) {
-                auto tokens = KlattschParser::CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
+                auto tokens = _klattsch.CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
                 if (tokens.empty()) {
                     continue;
                 }
@@ -310,13 +308,13 @@ namespace SharpVox {
             case EmbeddedCmd::VoiceCommand::Kind::Rate:
                 _voice.Rate = (int16_t)clamp11<int32_t>(cmd.Value, 40, 600);
                 _be = AudioProcessor(_voice);
-                KlattschParser::Reset(_voice);
+                _klattsch.Reset(_voice);
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Pitch:
                 _voice.PitchHz = (int16_t)clamp11<int32_t>(cmd.Value, 40, 500);
                 _be = AudioProcessor(_voice);
                 _synth.BasePitchHz = _voice.PitchHz;
-                KlattschParser::Reset(_voice);
+                _klattsch.Reset(_voice);
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Volume:
                 _voice.VGain = (int16_t)clamp11<int32_t>(cmd.Value, 0, 100);
@@ -325,7 +323,7 @@ namespace SharpVox {
             case EmbeddedCmd::VoiceCommand::Kind::Voice:
                 if (VoicePresets::TryGet(cmd.VoiceName, _voice)) {
                     RebuildPipeline();
-                    KlattschParser::Reset(_voice);
+                    _klattsch.Reset(_voice);
                 }
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Custom: {
@@ -334,7 +332,7 @@ namespace SharpVox {
                     changed |= VoicePresets::SetParam(_voice, p.first, p.second);
                 if (changed) {
                     RebuildPipeline();
-                    KlattschParser::Reset(_voice);
+                    _klattsch.Reset(_voice);
                 }
                 break;
             }

@@ -9,6 +9,7 @@ namespace SharpVox {
 
 // Forward declaration  PhonemeToken is defined in audio_processor.h / tts_engine.h.
 struct PhonemeToken;
+class KlattschParser;
 
 class EmbeddedCmd {
 public:
@@ -62,12 +63,11 @@ public:
         Segment() = default;
     };
 
-    // Global Klattsch mode flag (mirrors C# static field)
-    static bool KlattschMode;
-
     // Parse text into a list of Segments, handling [:rate N], [:pitch N],
     // [:sing], [:talk], [:klattsch on/off], and [phoneme<dur,note> ...] singing blocks.
-    static std::vector<Segment> ParseSegments(const std::string& text);
+    // If klattsch is given, [:klattsch on] resets its directive state to defaults.
+    static std::vector<Segment> ParseSegments(const std::string& text,
+                                              KlattschParser* klattsch = nullptr);
 
     // Parse text, returning plain text and optionally singing tokens.
     static std::string Parse(const std::string& text,
