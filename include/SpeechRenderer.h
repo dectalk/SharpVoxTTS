@@ -41,8 +41,8 @@ public:
     // Converts 6-bit log-domain amplitude (Klatt 1980) to a linear multiplier via lookup.
     static int16_t LogToLin(int16_t v);
 
-    void RenderStreaming(const SynthInputDump& dump, std::function<void(const Frame&)> callback);
-    std::vector<Frame> Render(const SynthInputDump& dump);
+    void RenderStreaming(const ClausePlan& plan, std::function<void(const Frame&)> callback);
+    std::vector<Frame> Render(const ClausePlan& plan);
 
 private:
     struct ControlBlock {
@@ -64,7 +64,7 @@ private:
     };
 
     VoiceData _voice;
-    const SynthInputDump* _dump = nullptr;
+    const ClausePlan* _plan = nullptr;
 
     ControlBlock _cb[15];
     int16_t _controlData[15]  = {};

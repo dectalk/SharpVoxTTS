@@ -12,7 +12,7 @@ namespace SharpVox {
     // Generates F0 values via Taylor (2000) Tilt model for speech or portamento for singing.
     class PitchInterpolator {
     public:
-        explicit PitchInterpolator(const SynthInputDump& dump);
+        explicit PitchInterpolator(const ClausePlan& plan);
 
         int16_t Step();
 
@@ -28,7 +28,7 @@ namespace SharpVox {
         int32_t DbgTotalOffset() const { return _dbgTotalOffset; }
 
     private:
-        const SynthInputDump& _dump;
+        const ClausePlan& _plan;
 
         // Pitch buffer tracking
         int16_t _nextPitchBufTime;

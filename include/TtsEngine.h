@@ -32,7 +32,7 @@ namespace SharpVox {
     //   Phonemizer (text -> PhonemeToken[]) -> AudioProcessor (phoneme processing) ->
     //   SpeechRenderer (formant targets) -> KlattSynthesizer (PCM samples).
     //
-    // The streaming async path pre-computes all SynthInputDumps upfront so latency to
+    // The streaming async path pre-computes all ClausePlans upfront so latency to
     // first audio is bounded by the front-end processing time, not the synthesis time.
     // Each sentence or clause gets its own AudioProcessor.Process() call so pitch and
     // duration resets happen at natural boundaries.
@@ -128,7 +128,7 @@ namespace SharpVox {
         void ProcessSentenceStreaming(const std::vector<PhonemeToken>& tokens, int16_t endPunct,
                                      std::function<void(const int16_t*, int32_t)> onBuffer);
 
-        void ProcessSentenceStreamingFromDump(const SynthInputDump& dump,
+        void ProcessSentenceStreamingFromPlan(const ClausePlan& plan,
                                               std::function<void(const int16_t*, int32_t)> onBuffer);
 
 

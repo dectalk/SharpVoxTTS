@@ -74,23 +74,23 @@ namespace SharpVox {
             if (seg.IsKlattsch()) {
                 tokens = _klattsch.CompileToTokens(KlattschParser::Tokenize(seg.klattschText));
             } else if (seg.IsSinging()) {
-                auto dump = _be.ProcessSinging(seg.singing);
-                PitchInterpolator pi(dump);
+                auto plan = _be.ProcessSinging(seg.singing);
+                PitchInterpolator pi(plan);
                 int32_t phonIdx2 = 0, frameInPhon2 = 0;
                 int32_t totalFrames2 = 0;
-                for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-                    totalFrames2 += dump.DurBuf[i];
+                for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+                    totalFrames2 += plan.DurBuf[i];
                 }
                 for (int32_t f = 0; f < totalFrames2; f++) {
                     if (frameInPhon2 == 0) { pi.DoNote(phonIdx2); }
                     pi.Step();
-                    int16_t p2 = dump.PhonBuf2[phonIdx2];
+                    int16_t p2 = plan.PhonBuf[phonIdx2];
                     const char* namePtr2 = AudioProcessor::PhonemeNamesTable[p2];
                     records.emplace_back(namePtr2 ? std::string(namePtr2) : std::string("?"),
                         frameInPhon2, pi.DbgF0(), pi.DbgTiltExcursion(), pi.DbgTiltSmooth(),
                         pi.DbgTiltHeld(), pi.DbgTiltPhase(), pi.DbgBaselineOffset(), pi.DbgTotalOffset());
                     frameInPhon2++;
-                    if (frameInPhon2 >= dump.DurBuf[phonIdx2]) { phonIdx2++; frameInPhon2 = 0; }
+                    if (frameInPhon2 >= plan.DurBuf[phonIdx2]) { phonIdx2++; frameInPhon2 = 0; }
                 }
                 continue;
             } else {
@@ -103,13 +103,13 @@ namespace SharpVox {
                 if (tokens.empty()) { continue; }
             }
 
-            auto dump = _be.Process(tokens, endPunct);
-            PitchInterpolator pi(dump);
+            auto plan = _be.Process(tokens, endPunct);
+            PitchInterpolator pi(plan);
 
             int32_t phonIdx = 0, frameInPhon = 0;
             int32_t totalFrames = 0;
-            for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-                totalFrames += dump.DurBuf[i];
+            for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+                totalFrames += plan.DurBuf[i];
             }
 
             for (int32_t f = 0; f < totalFrames; f++) {
@@ -117,7 +117,7 @@ namespace SharpVox {
                     pi.DoNote(phonIdx);
                 }
                 pi.Step();
-                int16_t p = dump.PhonBuf2[phonIdx];
+                int16_t p = plan.PhonBuf[phonIdx];
                 std::string name = "?";
                 const char* namePtr = AudioProcessor::PhonemeNamesTable[p];
                 if (namePtr != nullptr) {
@@ -127,7 +127,7 @@ namespace SharpVox {
                     pi.DbgTiltExcursion(), pi.DbgTiltSmooth(), pi.DbgTiltHeld(), pi.DbgTiltPhase(),
                     pi.DbgBaselineOffset(), pi.DbgTotalOffset());
                 frameInPhon++;
-                if (frameInPhon >= dump.DurBuf[phonIdx]) {
+                if (frameInPhon >= plan.DurBuf[phonIdx]) {
                     phonIdx++;
                     frameInPhon = 0;
                 }
@@ -161,8 +161,8 @@ namespace SharpVox {
                 continue;
             }
             if (seg.IsSinging()) {
-                auto dump = _be.ProcessSinging(seg.singing);
-                ProcessSentenceStreamingFromDump(dump, cb);
+                auto plan = _be.ProcessSinging(seg.singing);
+                ProcessSentenceStreamingFromPlan(plan, cb);
                 continue;
             }
             auto sentences = _fe.TextToSentenceTokens(seg.plainText);
@@ -177,17 +177,17 @@ namespace SharpVox {
 
     void TtsEngine::ProcessSentenceStreaming(const std::vector<PhonemeToken>& tokens, int16_t endPunct,
                                              std::function<void(const int16_t*, int32_t)> onBuffer) {
-        auto dump = _be.Process(tokens, endPunct);
-        ProcessSentenceStreamingFromDump(dump, onBuffer);
+        auto plan = _be.Process(tokens, endPunct);
+        ProcessSentenceStreamingFromPlan(plan, onBuffer);
     }
 
-    void TtsEngine::ProcessSentenceStreamingFromDump(const SynthInputDump& dump,
+    void TtsEngine::ProcessSentenceStreamingFromPlan(const ClausePlan& plan,
                                                      std::function<void(const int16_t*, int32_t)> onBuffer) {
         const int32_t framesPerChunk = 10;
         std::vector<int16_t> audioChunk(framesPerChunk * _synth.SampFrameLen, 0);
         int32_t frameInChunk = 0;
 
-        _renderer.RenderStreaming(dump, [&](const Frame& frame) {
+        _renderer.RenderStreaming(plan, [&](const Frame& frame) {
             _synth.SynthesizeFrame(frame, audioChunk.data(), frameInChunk * _synth.SampFrameLen);
             frameInChunk++;
 
@@ -214,7 +214,7 @@ namespace SharpVox {
         };
 
         struct WorkItem {
-            SynthInputDump dump;
+            ClausePlan plan;
             VoiceData voice;
         };
 
@@ -238,36 +238,36 @@ namespace SharpVox {
                 if (tokens.empty()) {
                     continue;
                 }
-                auto dump = _be.Process(tokens, 0);
+                auto plan = _be.Process(tokens, 0);
                 int32_t frameOff = 0;
-                for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-                    int16_t phon = dump.PhonBuf2[i];
-                    bool emitSil = phon == _SIL_ && (i == 0 || dump.PhonBuf2[i - 1] != _SIL_);
+                for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+                    int16_t phon = plan.PhonBuf[i];
+                    bool emitSil = phon == _SIL_ && (i == 0 || plan.PhonBuf[i - 1] != _SIL_);
                     if (phon != _SIL_ || emitSil) {
                         events.emplace_back(phon,
                             (float)(sampleOffset + frameOff * _synth.SampFrameLen) / SampleRate);
                     }
-                    frameOff += dump.DurBuf[i];
+                    frameOff += plan.DurBuf[i];
                 }
                 sampleOffset += frameOff * _synth.SampFrameLen;
-                workItems.push_back({std::move(dump), _voice});
+                workItems.push_back({std::move(plan), _voice});
                 continue;
             }
 
             if (seg.IsSinging()) {
-                auto dump = _be.ProcessSinging(seg.singing);
+                auto plan = _be.ProcessSinging(seg.singing);
                 int32_t frameOff = 0;
-                for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-                    int16_t phon = dump.PhonBuf2[i];
-                    bool emitSil = phon == _SIL_ && (i == 0 || dump.PhonBuf2[i - 1] != _SIL_);
+                for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+                    int16_t phon = plan.PhonBuf[i];
+                    bool emitSil = phon == _SIL_ && (i == 0 || plan.PhonBuf[i - 1] != _SIL_);
                     if (phon != _SIL_ || emitSil) {
                         events.emplace_back(phon,
                             (float)(sampleOffset + frameOff * _synth.SampFrameLen) / SampleRate);
                     }
-                    frameOff += dump.DurBuf[i];
+                    frameOff += plan.DurBuf[i];
                 }
                 sampleOffset += frameOff * _synth.SampFrameLen;
-                workItems.push_back({std::move(dump), _voice});
+                workItems.push_back({std::move(plan), _voice});
                 continue;
             }
 
@@ -277,20 +277,20 @@ namespace SharpVox {
                 int16_t endPunct = sentences[j].second;
                 if (endPunct == 0 && si == lastContent && j == sentences.size() - 1)
                     endPunct = _Period_;
-                auto dump = _be.Process(tokens, endPunct);
+                auto plan = _be.Process(tokens, endPunct);
                 int32_t frameOff = 0;
-                for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-                    int16_t phon = dump.PhonBuf2[i];
-                    bool emitSil = phon == _SIL_ && (i == 0 || dump.PhonBuf2[i - 1] != _SIL_);
+                for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+                    int16_t phon = plan.PhonBuf[i];
+                    bool emitSil = phon == _SIL_ && (i == 0 || plan.PhonBuf[i - 1] != _SIL_);
                     if (phon != _SIL_ || emitSil) {
                         events.emplace_back(phon,
                             (float)(sampleOffset + frameOff * _synth.SampFrameLen) / SampleRate,
-                            phon != _SIL_ && (dump.PhonCtrlBuf2[i] & kWord_Start) != 0);
+                            phon != _SIL_ && (plan.PhonCtrlBuf[i] & kWord_Start) != 0);
                     }
-                    frameOff += dump.DurBuf[i];
+                    frameOff += plan.DurBuf[i];
                 }
                 sampleOffset += frameOff * _synth.SampFrameLen;
-                workItems.push_back({std::move(dump), _voice});
+                workItems.push_back({std::move(plan), _voice});
             }
         }
 
@@ -299,7 +299,7 @@ namespace SharpVox {
         for (const auto& item : workItems) {
             _voice = item.voice;
             RebuildPipeline();
-            ProcessSentenceStreamingFromDump(item.dump, cb);
+            ProcessSentenceStreamingFromPlan(item.plan, cb);
         }
     }
 

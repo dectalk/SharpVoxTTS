@@ -7,10 +7,10 @@
 
 namespace SharpVox {
 
-    PitchInterpolator::PitchInterpolator(const SynthInputDump& dump)
-        : _dump(dump)
+    PitchInterpolator::PitchInterpolator(const ClausePlan& plan)
+        : _plan(plan)
     {
-        const PitchState& s = dump.Pitch;
+        const PitchState& s = plan.Pitch;
 
         _nextPitchBufTime = s.NextPitchBufTime;
         _pitchBufOutIndex = s.PitchBufOutIndex;
@@ -91,22 +91,22 @@ namespace SharpVox {
         _hzGlide = false;
         _curPhonCtrlSinging = GetPhonCtrl(phonIndex);
 
-        int64_t ctrl = (phonIndex >= 0 && phonIndex < (int32_t)_dump.PhonCtrlBuf2.size())
-                       ? _dump.PhonCtrlBuf2[phonIndex] : 0;
+        int64_t ctrl = (phonIndex >= 0 && phonIndex < (int32_t)_plan.PhonCtrlBuf.size())
+                       ? _plan.PhonCtrlBuf[phonIndex] : 0;
 
         if ((ctrl & kSingingPhon) == 0) {
             _musicalNoteActive = false;
         }
 
-        int16_t note = (phonIndex >= 0 && phonIndex < (int32_t)_dump.UserNoteBuf2.size())
-                       ? _dump.UserNoteBuf2[phonIndex] : (int16_t)0;
+        int16_t note = (phonIndex >= 0 && phonIndex < (int32_t)_plan.UserNoteBuf.size())
+                       ? _plan.UserNoteBuf[phonIndex] : (int16_t)0;
 
         if (note != 0 && (ctrl & kSilenceDuration) == 0) {
             if ((ctrl & kSingingPhon) != 0) {
                 if (note < 0) {
                     int32_t targetPitch = HzToPitch(-note);
                     int32_t curPitch = (int32_t)(_portamentoAccum >> 16);
-                    int32_t frames = (phonIndex < (int32_t)_dump.DurBuf.size()) ? _dump.DurBuf[phonIndex] : 1;
+                    int32_t frames = (phonIndex < (int32_t)_plan.DurBuf.size()) ? _plan.DurBuf[phonIndex] : 1;
                     if (frames < 1) {
                         frames = 1;
                     }
@@ -176,15 +176,15 @@ namespace SharpVox {
     }
 
     int16_t PitchInterpolator::GetPhon(int32_t index) const {
-        if (index >= 0 && index < _dump.PhonBuf2InIndex) {
-            return _dump.PhonBuf2[index];
+        if (index >= 0 && index < _plan.PhonBufInIndex) {
+            return _plan.PhonBuf[index];
         }
         return _SIL_;
     }
 
     int64_t PitchInterpolator::GetPhonCtrl(int32_t index) const {
-        if (index >= 0 && index < _dump.PhonBuf2InIndex) {
-            return _dump.PhonCtrlBuf2[index];
+        if (index >= 0 && index < _plan.PhonBufInIndex) {
+            return _plan.PhonCtrlBuf[index];
         }
         return 0;
     }
@@ -193,7 +193,7 @@ namespace SharpVox {
         if (_timeIntoPhonCp >= _curPhonDurCp) {
             _timeIntoPhonCp -= _curPhonDurCp;
             _phonIndexCp++;
-            _curPhonDurCp = (_phonIndexCp < (int32_t)_dump.DurBuf.size()) ? _dump.DurBuf[_phonIndexCp] : 0;
+            _curPhonDurCp = (_phonIndexCp < (int32_t)_plan.DurBuf.size()) ? _plan.DurBuf[_phonIndexCp] : 0;
 
             int32_t curPhon = GetPhon(_phonIndexCp);
             uint32_t curFlags = Tables::GetFeatureFlags(curPhon);
@@ -396,15 +396,15 @@ namespace SharpVox {
         bool collect = true;
         do {
             if (_curPitchBufTime >= _nextPitchBufTime
-                && _pitchBufOutIndex < (int32_t)_dump.PitchBufInIndex) {
-                int32_t evAmp = _dump.PitchBufFreq[_pitchBufOutIndex];
-                int32_t evFlags = _dump.PitchBufFlags[_pitchBufOutIndex];
-                int32_t evTiltX64 = _dump.PitchBufTiltX64[_pitchBufOutIndex];
-                int32_t evDuration = _dump.PitchBufDuration[_pitchBufOutIndex];
+                && _pitchBufOutIndex < (int32_t)_plan.PitchBufInIndex) {
+                int32_t evAmp = _plan.PitchBufFreq[_pitchBufOutIndex];
+                int32_t evFlags = _plan.PitchBufFlags[_pitchBufOutIndex];
+                int32_t evTiltX64 = _plan.PitchBufTiltX64[_pitchBufOutIndex];
+                int32_t evDuration = _plan.PitchBufDuration[_pitchBufOutIndex];
 
                 _curPitchBufTime -= _nextPitchBufTime;
                 _pitchBufOutIndex++;
-                _nextPitchBufTime = _dump.PitchBufTime[_pitchBufOutIndex];
+                _nextPitchBufTime = _plan.PitchBufTime[_pitchBufOutIndex];
 
                 if ((evFlags & kResetDecline) != 0) {
                     _downRampOffset = 0;
@@ -434,8 +434,8 @@ namespace SharpVox {
 
         if (!_singing) {
             // Baseline declination ramp
-            int32_t userPitch = (_phonIndexTarg >= 0 && _phonIndexTarg < (int32_t)_dump.UserPitchBuf2.size())
-                                ? _dump.UserPitchBuf2[_phonIndexTarg] : 0;
+            int32_t userPitch = (_phonIndexTarg >= 0 && _phonIndexTarg < (int32_t)_plan.UserPitchBuf.size())
+                                ? _plan.UserPitchBuf[_phonIndexTarg] : 0;
             int32_t baseLineOffset = _baselineStartOffset - (int32_t)(_downRampOffset >> 16) + userPitch;
             if (baseLineOffset > _baselineEndOffset) {
                 _downRampOffset += _downRampStep;
@@ -451,10 +451,10 @@ namespace SharpVox {
 
             // Phoneme target advance (lookahead for phoneme pitch offsets)
             if (_timeIntoPhonTarg > _curPhonDurCc + _phonDurDelay
-                && _phonIndexTarg < _dump.PhonBuf2InIndex) {
+                && _phonIndexTarg < _plan.PhonBufInIndex) {
                 _timeIntoPhonTarg -= _curPhonDurCc;
                 _phonIndexTarg++;
-                _curPhonDurCc = (_phonIndexTarg < (int32_t)_dump.DurBuf.size()) ? _dump.DurBuf[_phonIndexTarg] : 0;
+                _curPhonDurCc = (_phonIndexTarg < (int32_t)_plan.DurBuf.size()) ? _plan.DurBuf[_phonIndexTarg] : 0;
                 _phonDurDelay = 0;
 
                 int32_t curPhon = GetPhon(_phonIndexTarg);

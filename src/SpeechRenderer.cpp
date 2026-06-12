@@ -45,8 +45,8 @@ SpeechRenderer::SpeechRenderer(const VoiceData& voice)
     _curKlattsch[kTremRIdx] = _voiceTremRate  << 16;
 }
 
-void SpeechRenderer::RenderStreaming(const SynthInputDump& dump, std::function<void(const Frame&)> callback) {
-    _dump = &dump;
+void SpeechRenderer::RenderStreaming(const ClausePlan& plan, std::function<void(const Frame&)> callback) {
+    _plan = &plan;
     _curPhonBufIndex = 0;
     _durDoneInPhon   = 0;
     _startingNewPhon = true;
@@ -60,14 +60,14 @@ void SpeechRenderer::RenderStreaming(const SynthInputDump& dump, std::function<v
         }
     }
 
-    PitchInterpolator pitchInterp(dump);
+    PitchInterpolator pitchInterp(plan);
     int32_t totalFrames = 0;
-    for (int32_t i = 0; i < dump.PhonBuf2InIndex; i++) {
-        totalFrames += dump.DurBuf[i];
+    for (int32_t i = 0; i < plan.PhonBufInIndex; i++) {
+        totalFrames += plan.DurBuf[i];
     }
 
     for (int32_t i = 0; i < totalFrames; i++) {
-        if (_durDoneInPhon >= _dump->DurBuf[_curPhonBufIndex]) {
+        if (_durDoneInPhon >= _plan->DurBuf[_curPhonBufIndex]) {
             _curPhonBufIndex++;
             _durDoneInPhon   = 0;
             _startingNewPhon = true;
@@ -80,15 +80,15 @@ void SpeechRenderer::RenderStreaming(const SynthInputDump& dump, std::function<v
 
         int16_t f0 = pitchInterp.Step();
         InterpolateControls();
-        callback(SaveFrame(f0, (uint8_t)_dump->PhonCtrlBuf2[_curPhonBufIndex]));
+        callback(SaveFrame(f0, (uint8_t)_plan->PhonCtrlBuf[_curPhonBufIndex]));
 
         _durDoneInPhon++;
     }
 }
 
-std::vector<Frame> SpeechRenderer::Render(const SynthInputDump& dump) {
+std::vector<Frame> SpeechRenderer::Render(const ClausePlan& plan) {
     std::vector<Frame> frames;
-    RenderStreaming(dump, [&](const Frame& f) {
+    RenderStreaming(plan, [&](const Frame& f) {
         frames.push_back(f);
     });
     return frames;
@@ -99,13 +99,13 @@ void SpeechRenderer::SetPhonContext(int32_t index) {
     _nextPhon = GP(index + 1); _nextPhonFlags = PF(_nextPhon); _nextPhonCtrl = PC(index + 1);
     _prevPhon = GP(index - 1); _prevPhonFlags = PF(_prevPhon); _prevPhonCtrl = PC(index - 1);
     _prev2Phon = GP(index - 2); _prev2PhonFlags = PF(_prev2Phon); _prev2PhonCtrl = PC(index - 2);
-    _curPhonDur = (index >= 0 && index < (int32_t)_dump->DurBuf.size()) ? _dump->DurBuf[index] : 0;
+    _curPhonDur = (index >= 0 && index < (int32_t)_plan->DurBuf.size()) ? _plan->DurBuf[index] : 0;
 }
 
 // Safe phoneme buffer access; returns SIL for out-of-range indices
 int32_t SpeechRenderer::GP(int32_t i) const {
-    if (i >= 0 && i < (int32_t)_dump->PhonBuf2.size()) {
-        return _dump->PhonBuf2[i];
+    if (i >= 0 && i < (int32_t)_plan->PhonBuf.size()) {
+        return _plan->PhonBuf[i];
     }
     return _SIL_;
 }
@@ -117,8 +117,8 @@ uint32_t SpeechRenderer::PF(int32_t p) const {
 
 // Phoneme control field; returns 0 for out-of-range indices
 int32_t SpeechRenderer::PC(int32_t i) const {
-    if (i >= 0 && i < (int32_t)_dump->PhonCtrlBuf2.size()) {
-        return (int32_t)_dump->PhonCtrlBuf2[i];
+    if (i >= 0 && i < (int32_t)_plan->PhonCtrlBuf.size()) {
+        return (int32_t)_plan->PhonCtrlBuf[i];
     }
     return 0;
 }
@@ -845,15 +845,15 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
         _klattschStep[idx] = (target - _curKlattsch[idx]) / dur;
     };
 
-    if (_curPhonBufIndex < _dump->PhonBuf2InIndex) {
-        SetKStep(kAspIdx,  _dump->AspirationBuf2[_curPhonBufIndex]);
-        SetKStep(kTiltIdx, _dump->TiltBuf2[_curPhonBufIndex]);
-        SetKStep(kEffIdx,  _dump->EffortBuf2[_curPhonBufIndex]);
-        SetKStep(kVibDIdx, _dump->VibDepthBuf2[_curPhonBufIndex]);
-        SetKStep(kVibRIdx, _dump->VibRateBuf2[_curPhonBufIndex]);
+    if (_curPhonBufIndex < _plan->PhonBufInIndex) {
+        SetKStep(kAspIdx,  _plan->AspirationBuf[_curPhonBufIndex]);
+        SetKStep(kTiltIdx, _plan->TiltBuf[_curPhonBufIndex]);
+        SetKStep(kEffIdx,  _plan->EffortBuf[_curPhonBufIndex]);
+        SetKStep(kVibDIdx, _plan->VibDepthBuf[_curPhonBufIndex]);
+        SetKStep(kVibRIdx, _plan->VibRateBuf[_curPhonBufIndex]);
         // Tremolo falls back to voice-level baseline when no explicit value is set
-        uint8_t tremD = _dump->TremDepthBuf2[_curPhonBufIndex] > 0 ? _dump->TremDepthBuf2[_curPhonBufIndex] : _voiceTremDepth;
-        uint8_t tremR = (_voiceTremDepth > 0 && _dump->TremRateBuf2[_curPhonBufIndex] == 0) ? _voiceTremRate : _dump->TremRateBuf2[_curPhonBufIndex];
+        uint8_t tremD = _plan->TremDepthBuf[_curPhonBufIndex] > 0 ? _plan->TremDepthBuf[_curPhonBufIndex] : _voiceTremDepth;
+        uint8_t tremR = (_voiceTremDepth > 0 && _plan->TremRateBuf[_curPhonBufIndex] == 0) ? _voiceTremRate : _plan->TremRateBuf[_curPhonBufIndex];
         SetKStep(kTremDIdx, tremD);
         SetKStep(kTremRIdx, tremR);
     } else {

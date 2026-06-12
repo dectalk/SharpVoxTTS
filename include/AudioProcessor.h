@@ -32,7 +32,7 @@ namespace SharpVox {
         uint8_t  TremRate   = 0;
     };
 
-    // Converts PhonemeTokens into a SynthInputDump via a multi-stage pipeline (allophones, duration, pitch).
+    // Converts PhonemeTokens into a ClausePlan via a multi-stage pipeline (allophones, duration, pitch).
     class AudioProcessor {
     public:
         // PhonemeNamesTable: maps phoneme ID to a short name string.
@@ -42,15 +42,15 @@ namespace SharpVox {
         // Constructor
         explicit AudioProcessor(const VoiceData& voice);
 
-        // Full pipeline: text phonemes  SynthInputDump.
-        SynthInputDump Process(const std::vector<PhonemeToken>& tokens,
+        // Full pipeline: text phonemes  ClausePlan.
+        ClausePlan Process(const std::vector<PhonemeToken>& tokens,
                                int16_t endPunctuation = _Period_);
 
         // Streaming path for singing segments.
-        // Bypasses all large working buffers  builds the SynthInputDump directly
+        // Bypasses all large working buffers  builds the ClausePlan directly
         // from the token list in O(n) time and O(n) memory.  All tokens are expected
         // to carry kSingingPhon; unrecognised SIL tokens are handled gracefully.
-        SynthInputDump ProcessSinging(const std::vector<PhonemeToken>& tokens);
+        ClausePlan ProcessSinging(const std::vector<PhonemeToken>& tokens);
 
     private:
         // Private implementation constants
@@ -192,7 +192,7 @@ namespace SharpVox {
         void InitRateParams();
         void InitPitchParams();
         static int16_t HzToPitch(int16_t hz);
-        SynthInputDump BuildSynthInputDump();
+        ClausePlan BuildClausePlan();
 
         // Inline helpers
         int16_t  GetPhon2(int32_t i);

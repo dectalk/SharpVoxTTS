@@ -113,9 +113,9 @@ namespace SharpVox {
     }
 
     // Public entry point.
-    // Runs the full pipeline and returns a SynthInputDump ready for SpeechRenderer.
+    // Runs the full pipeline and returns a ClausePlan ready for SpeechRenderer.
 
-    SynthInputDump AudioProcessor::Process(const std::vector<PhonemeToken>& tokens,
+    ClausePlan AudioProcessor::Process(const std::vector<PhonemeToken>& tokens,
                                            int16_t endPunctuation) {
         _endPunctuation = endPunctuation;
         _singing = false;
@@ -136,7 +136,7 @@ namespace SharpVox {
         StartNewPitchClause();
         InsertPlosiveRelease();
 
-        return BuildSynthInputDump();
+        return BuildClausePlan();
     }
 
     // Pipeline setup helpers
@@ -251,36 +251,36 @@ namespace SharpVox {
         return (int16_t)(Tables::LogarithmBase2Table[ratio] + fk);
     }
 
-    // Snapshots computed buffers and PitchState into a SynthInputDump for minimal allocation replay.
-    SynthInputDump AudioProcessor::BuildSynthInputDump() {
+    // Snapshots computed buffers and PitchState into a ClausePlan for minimal allocation replay.
+    ClausePlan AudioProcessor::BuildClausePlan() {
         int32_t count = _phonBuf2InIndex + 1; // +1 for lookahead SIL slot
 
-        std::vector<int16_t>  phonBuf2(count);
+        std::vector<int16_t>  phonBuf(count);
         std::vector<int64_t>  controls(count);
         std::vector<int16_t>  durBuf(count);
-        std::vector<int16_t>  userPitchBuf2(count);
-        std::vector<int16_t>  userNoteBuf2(count);
-        std::vector<uint8_t>  aspirationBuf2(count);
-        std::vector<uint8_t>  tiltBuf2(count);
-        std::vector<uint8_t>  effortBuf2(count);
-        std::vector<uint8_t>  vibDepthBuf2(count);
-        std::vector<uint8_t>  vibRateBuf2(count);
-        std::vector<uint8_t>  tremDepthBuf2(count);
-        std::vector<uint8_t>  tremRateBuf2(count);
+        std::vector<int16_t>  userPitchBuf(count);
+        std::vector<int16_t>  userNoteBuf(count);
+        std::vector<uint8_t>  aspirationBuf(count);
+        std::vector<uint8_t>  tiltBuf(count);
+        std::vector<uint8_t>  effortBuf(count);
+        std::vector<uint8_t>  vibDepthBuf(count);
+        std::vector<uint8_t>  vibRateBuf(count);
+        std::vector<uint8_t>  tremDepthBuf(count);
+        std::vector<uint8_t>  tremRateBuf(count);
 
         for (int32_t i = 0; i < count; i++) {
-            phonBuf2[i]      = _phonBuf2[i];
+            phonBuf[i]      = _phonBuf2[i];
             controls[i]      = _phonCtrlBuf2[i];
             durBuf[i]        = _durBuf[i];
-            userPitchBuf2[i] = _userPitchBuf2[i];
-            userNoteBuf2[i]  = _userNoteBuf2[i];
-            aspirationBuf2[i] = _aspirationBuf2[i];
-            tiltBuf2[i]      = _tiltBuf2[i];
-            effortBuf2[i]    = _effortBuf2[i];
-            vibDepthBuf2[i]  = _vibDepthBuf2[i];
-            vibRateBuf2[i]   = _vibRateBuf2[i];
-            tremDepthBuf2[i] = _tremDepthBuf2[i];
-            tremRateBuf2[i]  = _tremRateBuf2[i];
+            userPitchBuf[i] = _userPitchBuf2[i];
+            userNoteBuf[i]  = _userNoteBuf2[i];
+            aspirationBuf[i] = _aspirationBuf2[i];
+            tiltBuf[i]      = _tiltBuf2[i];
+            effortBuf[i]    = _effortBuf2[i];
+            vibDepthBuf[i]  = _vibDepthBuf2[i];
+            vibRateBuf[i]   = _vibRateBuf2[i];
+            tremDepthBuf[i] = _tremDepthBuf2[i];
+            tremRateBuf[i]  = _tremRateBuf2[i];
         }
 
         int32_t pitchCount = _pitchBufInIndex + 1;
@@ -352,20 +352,20 @@ namespace SharpVox {
         pitch.NewSentence        = 1;
         pitch.SpeechRate         = _speechRate;
 
-        return SynthInputDump::Create(
-            /*phonBuf2InIndex=*/ _phonBuf2InIndex,
-            /*phonBuf2=*/        std::move(phonBuf2),
+        return ClausePlan::Create(
+            /*phonBufInIndex=*/ _phonBuf2InIndex,
+            /*phonBuf=*/        std::move(phonBuf),
             /*controls=*/        std::move(controls),
             /*durBuf=*/          std::move(durBuf),
-            /*userPitchBuf2=*/   std::move(userPitchBuf2),
-            /*userNoteBuf2=*/    std::move(userNoteBuf2),
-            /*aspirationBuf2=*/  std::move(aspirationBuf2),
-            /*tiltBuf2=*/        std::move(tiltBuf2),
-            /*effortBuf2=*/      std::move(effortBuf2),
-            /*vibDepthBuf2=*/    std::move(vibDepthBuf2),
-            /*vibRateBuf2=*/     std::move(vibRateBuf2),
-            /*tremDepthBuf2=*/   std::move(tremDepthBuf2),
-            /*tremRateBuf2=*/    std::move(tremRateBuf2),
+            /*userPitchBuf=*/   std::move(userPitchBuf),
+            /*userNoteBuf=*/    std::move(userNoteBuf),
+            /*aspirationBuf=*/  std::move(aspirationBuf),
+            /*tiltBuf=*/        std::move(tiltBuf),
+            /*effortBuf=*/      std::move(effortBuf),
+            /*vibDepthBuf=*/    std::move(vibDepthBuf),
+            /*vibRateBuf=*/     std::move(vibRateBuf),
+            /*tremDepthBuf=*/   std::move(tremDepthBuf),
+            /*tremRateBuf=*/    std::move(tremRateBuf),
             /*pitchBufInIndex=*/ (uint32_t)_pitchBufInIndex,
             /*pitchBufFreq=*/    std::move(pitchFreq),
             /*pitchBufTime=*/    std::move(pitchTime),
@@ -380,7 +380,7 @@ namespace SharpVox {
     //
     // All tokens in a singing segment carry explicit timing (UserDur for the
     // note vowel) and pitch (UserNote), so the entire allophone, duration, and
-    // pitch-contour pipeline can be bypassed.  The dump is built directly from
+    // pitch-contour pipeline can be bypassed.  The plan is built directly from
     // the token list, using the same slot layout as the full Process() path:
     //   slot 0          : initial SIL (1 frame, from ClearBuffers / LoadPhonemes)
     //   slots 1..n      : one entry per input token
@@ -389,23 +389,23 @@ namespace SharpVox {
     // Duration mirrors ModDuration's kSingingPhon branch exactly.
     // The pitch buffer is left empty; PitchInterpolator's singing branch uses
     // only _portamentoAccum and UserNote, never the Tilt event queue.
-    SynthInputDump AudioProcessor::ProcessSinging(const std::vector<PhonemeToken>& tokens) {
+    ClausePlan AudioProcessor::ProcessSinging(const std::vector<PhonemeToken>& tokens) {
         const int32_t n       = (int32_t)tokens.size();
         const int32_t count   = n + 1;        // real slots (slot 0 = initial SIL)
         const int32_t vecSize = count + 1;    // +1 lookahead SIL sentinel
 
-        std::vector<int16_t>  phonBuf2(vecSize,     _SIL_);
+        std::vector<int16_t>  phonBuf(vecSize,     _SIL_);
         std::vector<int64_t>  controls(vecSize,     0);
         std::vector<int16_t>  durBuf(vecSize,        0);
-        std::vector<int16_t>  userPitchBuf2(vecSize, 0);
-        std::vector<int16_t>  userNoteBuf2(vecSize,  0);
-        std::vector<uint8_t>  aspirationBuf2(vecSize, 0);
-        std::vector<uint8_t>  tiltBuf2(vecSize,       0);
-        std::vector<uint8_t>  effortBuf2(vecSize,     0);
-        std::vector<uint8_t>  vibDepthBuf2(vecSize,   0);
-        std::vector<uint8_t>  vibRateBuf2(vecSize,    0);
-        std::vector<uint8_t>  tremDepthBuf2(vecSize,  0);
-        std::vector<uint8_t>  tremRateBuf2(vecSize,   0);
+        std::vector<int16_t>  userPitchBuf(vecSize, 0);
+        std::vector<int16_t>  userNoteBuf(vecSize,  0);
+        std::vector<uint8_t>  aspirationBuf(vecSize, 0);
+        std::vector<uint8_t>  tiltBuf(vecSize,       0);
+        std::vector<uint8_t>  effortBuf(vecSize,     0);
+        std::vector<uint8_t>  vibDepthBuf(vecSize,   0);
+        std::vector<uint8_t>  vibRateBuf(vecSize,    0);
+        std::vector<uint8_t>  tremDepthBuf(vecSize,  0);
+        std::vector<uint8_t>  tremRateBuf(vecSize,   0);
 
         // Slot 0: initial SIL, always 1 frame (matches ModDuration line: _durBuf[0] = 1).
         durBuf[0] = 1;
@@ -414,17 +414,17 @@ namespace SharpVox {
             const PhonemeToken& tok = tokens[i];
             const int32_t slot      = i + 1;
 
-            phonBuf2[slot]       = tok.Phon;
+            phonBuf[slot]       = tok.Phon;
             controls[slot]       = tok.Ctrl;
-            userPitchBuf2[slot]  = tok.UserPitch;
-            userNoteBuf2[slot]   = tok.UserNote;
-            aspirationBuf2[slot] = tok.Aspiration;
-            tiltBuf2[slot]       = tok.Tilt;
-            effortBuf2[slot]     = tok.Effort;
-            vibDepthBuf2[slot]   = tok.VibDepth;
-            vibRateBuf2[slot]    = tok.VibRate;
-            tremDepthBuf2[slot]  = tok.TremDepth;
-            tremRateBuf2[slot]   = tok.TremRate;
+            userPitchBuf[slot]  = tok.UserPitch;
+            userNoteBuf[slot]   = tok.UserNote;
+            aspirationBuf[slot] = tok.Aspiration;
+            tiltBuf[slot]       = tok.Tilt;
+            effortBuf[slot]     = tok.Effort;
+            vibDepthBuf[slot]   = tok.VibDepth;
+            vibRateBuf[slot]    = tok.VibRate;
+            tremDepthBuf[slot]  = tok.TremDepth;
+            tremRateBuf[slot]   = tok.TremRate;
 
             // Duration mirrors ModDuration's kSingingPhon branch.
             // LoadPhonemes normalises UserDur=0 to kDur_One before passing to
@@ -493,20 +493,20 @@ namespace SharpVox {
         // erroneously non-zero.
         std::vector<int16_t> pitchSentinel(1, 0);
 
-        return SynthInputDump::Create(
-            /*phonBuf2InIndex=*/ count,
-            /*phonBuf2=*/        std::move(phonBuf2),
+        return ClausePlan::Create(
+            /*phonBufInIndex=*/ count,
+            /*phonBuf=*/        std::move(phonBuf),
             /*controls=*/        std::move(controls),
             /*durBuf=*/          std::move(durBuf),
-            /*userPitchBuf2=*/   std::move(userPitchBuf2),
-            /*userNoteBuf2=*/    std::move(userNoteBuf2),
-            /*aspirationBuf2=*/  std::move(aspirationBuf2),
-            /*tiltBuf2=*/        std::move(tiltBuf2),
-            /*effortBuf2=*/      std::move(effortBuf2),
-            /*vibDepthBuf2=*/    std::move(vibDepthBuf2),
-            /*vibRateBuf2=*/     std::move(vibRateBuf2),
-            /*tremDepthBuf2=*/   std::move(tremDepthBuf2),
-            /*tremRateBuf2=*/    std::move(tremRateBuf2),
+            /*userPitchBuf=*/   std::move(userPitchBuf),
+            /*userNoteBuf=*/    std::move(userNoteBuf),
+            /*aspirationBuf=*/  std::move(aspirationBuf),
+            /*tiltBuf=*/        std::move(tiltBuf),
+            /*effortBuf=*/      std::move(effortBuf),
+            /*vibDepthBuf=*/    std::move(vibDepthBuf),
+            /*vibRateBuf=*/     std::move(vibRateBuf),
+            /*tremDepthBuf=*/   std::move(tremDepthBuf),
+            /*tremRateBuf=*/    std::move(tremRateBuf),
             /*pitchBufInIndex=*/ 0,
             /*pitchBufFreq=*/    pitchSentinel,
             /*pitchBufTime=*/    pitchSentinel,
@@ -812,7 +812,7 @@ namespace SharpVox {
     }
 
     // Applies allophone substitution rules to convert the canonical phoneme stream (PhonBuf1)
-    // into the allophone stream (PhonBuf2) used for synthesis. This is where context-sensitive
+    // into the allophone stream (PhonBuf) used for synthesis. This is where context-sensitive
     // phonological rules are applied: syllabic consonant collapsing, flapping, glide insertion,
     // vowel assimilation, DH vowel harmony, and glottal stop insertion.
     //

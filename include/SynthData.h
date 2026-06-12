@@ -60,20 +60,20 @@ namespace SharpVox {
         int16_t SpeechRate;
     };
 
-    struct SynthInputDump {
-        int32_t PhonBuf2InIndex;
-        std::vector<int16_t> PhonBuf2;
-        std::vector<int64_t> PhonCtrlBuf2;
+    struct ClausePlan {
+        int32_t PhonBufInIndex;
+        std::vector<int16_t> PhonBuf;
+        std::vector<int64_t> PhonCtrlBuf;
         std::vector<int16_t> DurBuf;
-        std::vector<int16_t> UserPitchBuf2;
-        std::vector<int16_t> UserNoteBuf2;
-        std::vector<uint8_t> AspirationBuf2;
-        std::vector<uint8_t> TiltBuf2;
-        std::vector<uint8_t> EffortBuf2;
-        std::vector<uint8_t> VibDepthBuf2;
-        std::vector<uint8_t> VibRateBuf2;
-        std::vector<uint8_t> TremDepthBuf2;
-        std::vector<uint8_t> TremRateBuf2;
+        std::vector<int16_t> UserPitchBuf;
+        std::vector<int16_t> UserNoteBuf;
+        std::vector<uint8_t> AspirationBuf;
+        std::vector<uint8_t> TiltBuf;
+        std::vector<uint8_t> EffortBuf;
+        std::vector<uint8_t> VibDepthBuf;
+        std::vector<uint8_t> VibRateBuf;
+        std::vector<uint8_t> TremDepthBuf;
+        std::vector<uint8_t> TremRateBuf;
 
         uint32_t PitchBufInIndex;
         std::vector<int16_t> PitchBufFreq;
@@ -84,20 +84,20 @@ namespace SharpVox {
 
         PitchState Pitch;
 
-        static SynthInputDump Create(
-            int32_t phonBuf2InIndex,
-            std::vector<int16_t> phonBuf2,
+        static ClausePlan Create(
+            int32_t phonBufInIndex,
+            std::vector<int16_t> phonBuf,
             std::vector<int64_t> controls,
             std::vector<int16_t> durBuf,
-            std::vector<int16_t> userPitchBuf2,
-            std::vector<int16_t> userNoteBuf2,
-            std::vector<uint8_t> aspirationBuf2,
-            std::vector<uint8_t> tiltBuf2,
-            std::vector<uint8_t> effortBuf2,
-            std::vector<uint8_t> vibDepthBuf2,
-            std::vector<uint8_t> vibRateBuf2,
-            std::vector<uint8_t> tremDepthBuf2,
-            std::vector<uint8_t> tremRateBuf2,
+            std::vector<int16_t> userPitchBuf,
+            std::vector<int16_t> userNoteBuf,
+            std::vector<uint8_t> aspirationBuf,
+            std::vector<uint8_t> tiltBuf,
+            std::vector<uint8_t> effortBuf,
+            std::vector<uint8_t> vibDepthBuf,
+            std::vector<uint8_t> vibRateBuf,
+            std::vector<uint8_t> tremDepthBuf,
+            std::vector<uint8_t> tremRateBuf,
             uint32_t pitchBufInIndex,
             std::vector<int16_t> pitchBufFreq,
             std::vector<int16_t> pitchBufTime,
@@ -105,20 +105,20 @@ namespace SharpVox {
             std::vector<int16_t> pitchBufTiltX64,
             std::vector<int16_t> pitchBufDuration,
             PitchState pitch) {
-            SynthInputDump d;
-            d.PhonBuf2InIndex = phonBuf2InIndex;
-            d.PhonBuf2 = std::move(phonBuf2);
-            d.PhonCtrlBuf2 = std::move(controls);
+            ClausePlan d;
+            d.PhonBufInIndex = phonBufInIndex;
+            d.PhonBuf = std::move(phonBuf);
+            d.PhonCtrlBuf = std::move(controls);
             d.DurBuf = std::move(durBuf);
-            d.UserPitchBuf2 = std::move(userPitchBuf2);
-            d.UserNoteBuf2 = std::move(userNoteBuf2);
-            d.AspirationBuf2 = std::move(aspirationBuf2);
-            d.TiltBuf2 = std::move(tiltBuf2);
-            d.EffortBuf2 = std::move(effortBuf2);
-            d.VibDepthBuf2 = std::move(vibDepthBuf2);
-            d.VibRateBuf2 = std::move(vibRateBuf2);
-            d.TremDepthBuf2 = std::move(tremDepthBuf2);
-            d.TremRateBuf2 = std::move(tremRateBuf2);
+            d.UserPitchBuf = std::move(userPitchBuf);
+            d.UserNoteBuf = std::move(userNoteBuf);
+            d.AspirationBuf = std::move(aspirationBuf);
+            d.TiltBuf = std::move(tiltBuf);
+            d.EffortBuf = std::move(effortBuf);
+            d.VibDepthBuf = std::move(vibDepthBuf);
+            d.VibRateBuf = std::move(vibRateBuf);
+            d.TremDepthBuf = std::move(tremDepthBuf);
+            d.TremRateBuf = std::move(tremRateBuf);
             d.PitchBufInIndex = pitchBufInIndex;
             d.PitchBufFreq = std::move(pitchBufFreq);
             d.PitchBufTime = std::move(pitchBufTime);
