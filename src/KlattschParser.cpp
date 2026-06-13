@@ -748,6 +748,8 @@ std::vector<PhonemeToken> KlattschParser::CompileToTokens(const std::vector<Toke
     PhonemeToken termSil{};
     termSil.Phon    = _SIL_;
     termSil.Ctrl    = kSingingPhon | kSingingDuration | kTerm_End | kWord_End;
+    // Long enough for the final note's TAIL ramp to settle fully into silence
+    // (a gentle release toward this SIL's low AV target) plus a little trailing silence.
     termSil.UserDur  = 150;
     termSil.UserNote = static_cast<int16_t>(-_curF0);
     result.push_back(termSil);

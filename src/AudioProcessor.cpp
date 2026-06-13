@@ -385,7 +385,7 @@ namespace SharpVox {
     // only _portamentoAccum and UserNote, never the Tilt event queue.
     ClausePlan AudioProcessor::ProcessSinging(const std::vector<PhonemeToken>& tokens) {
         const int32_t n       = (int32_t)tokens.size();
-        const int32_t count   = n + 1;        // real slots (slot 0 = initial SIL)
+        const int32_t count   = n + 2;        // slot 0 = initial SIL, n tokens, terminal SIL
         const int32_t vecSize = count + 1;    // +1 lookahead SIL sentinel
 
         std::vector<int16_t>  phonBuf(vecSize,     _SIL_);
@@ -456,6 +456,20 @@ namespace SharpVox {
             }
             durBuf[slot] = (int16_t)dd;
         }
+        // Terminal SIL so the final note's amplitude can ramp fully down to
+        // silence (a gentle release) instead of being cut off at the note
+        // boundary, plus a little trailing silence. kTerm_End makes
+        // SpeechRenderer treat it as a clean clause end.
+        {
+            const int32_t kTailMs  = 150;
+            const int32_t termSlot = n + 1;
+            int32_t td = kTailMs / kFrameTime;
+            if (td < 1) { td = 1; }
+            phonBuf[termSlot]  = _SIL_;
+            controls[termSlot] = kSingingPhon | kSingingDuration | kTerm_End | kWord_End;
+            durBuf[termSlot]   = (int16_t)td;
+        }
+
         // Slots [count] and beyond stay SIL / 0 (already initialised).
 
         // PitchState for singing: portamento seeded at the voice's natural pitch.
