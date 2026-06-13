@@ -130,6 +130,18 @@ namespace SharpVox {
                     }
                 }
             }
+        } else if ((ctrl & kSilenceDuration) == 0
+                   && (ctrl & kSingingPhon) != 0
+                   && (ctrl & kSingingDuration) != 0
+                   && GetPhon(phonIndex) != _SIL_) {
+            // Sung note with no explicit pitch: hold the voice's natural speaking
+            // pitch (the seeded baseline, same scale normal speech renders at).
+            // Guarded against SIL so the terminal release SIL (also carrying
+            // kSingingPhon|kSingingDuration with note 0) doesn't reset portamento.
+            _vpBaselinePitch = _voiceNaturalPitch;
+            _portamentoStep = 0;
+            _newPortaTarget = true;
+            _musicalNoteActive = true;
         }
     }
 

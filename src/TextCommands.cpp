@@ -133,7 +133,6 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
 
     std::string plain;
     bool klattschMode = false;
-    bool inSingMode = false;
     int32_t i = 0;
     int32_t len = static_cast<int32_t>(text.size());
 
@@ -216,10 +215,9 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             } else if (cmd == "voice") {
                 FlushPlain();
                 segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, argStr)));
-            } else if (cmd == "sing") {
-                inSingMode = true;
-            } else if (cmd == "talk" || cmd == "stop") {
-                inSingMode = false;
+            } else if (cmd == "sing" || cmd == "talk" || cmd == "stop") {
+                // Recognised for backward compatibility but no longer needed:
+                // note-less phoneme groups inside [...] always sing now.
             } else {
                 // Try numeric argument (rate, pitch, volume)
                 bool isNum = !argStr.empty();
@@ -388,15 +386,22 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                     }
                 }
 
-                if (!hasNote && !inSingMode && blockSing.empty()) {
+                if (group.empty()) {
                     continue;
                 }
 
-                int16_t pitch = hasNote
-                    ? (noteIsNamed ? static_cast<int16_t>(note) : static_cast<int16_t>(-note))
-                    : lastPitch;
-                if (hasNote) {
+                // Pitch and duration are both optional. An explicit numeric/named
+                // note sets the pitch and becomes the inherited value for trailing
+                // groups; otherwise inherit the last note, or 0 which the synth
+                // resolves to the voice's natural PitchHz.
+                bool pitchSpecified = hasNote && note != 0;
+                bool durSpecified   = hasNote && dur > 0;
+                int16_t pitch;
+                if (pitchSpecified) {
+                    pitch = noteIsNamed ? static_cast<int16_t>(note) : static_cast<int16_t>(-note);
                     lastPitch = pitch;
+                } else {
+                    pitch = lastPitch;
                 }
 
                 int32_t durIdx = static_cast<int32_t>(group.size()) - 1;
@@ -417,11 +422,8 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                 int32_t adjustedDur = std::max((int32_t)5, (int32_t)(dur - overhead));
 
                 for (int32_t gi = 0; gi < static_cast<int32_t>(group.size()); gi++) {
-                    int64_t ctrl = kWord_Start | kContent_Word;
-                    if (pitch != 0) {
-                        ctrl |= kSingingPhon;
-                    }
-                    if (hasNote && gi == durIdx) {
+                    int64_t ctrl = kWord_Start | kContent_Word | kSingingPhon;
+                    if (gi == durIdx) {
                         ctrl |= kSingingDuration;
                     }
                     if (firstPhon) {
@@ -432,8 +434,8 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                     PhonemeToken tok{};
                     tok.Phon    = group[gi];
                     tok.Ctrl    = ctrl;
-                    tok.UserDur  = (hasNote && gi == durIdx) ? static_cast<int16_t>(adjustedDur) : static_cast<int16_t>(0);
-                    tok.UserNote = (hasNote && gi == durIdx) ? pitch : static_cast<int16_t>(0);
+                    tok.UserDur  = (gi == durIdx && durSpecified) ? static_cast<int16_t>(adjustedDur) : static_cast<int16_t>(0);
+                    tok.UserNote = (gi == durIdx) ? pitch : static_cast<int16_t>(0);
                     blockSing.push_back(tok);
                 }
             } else {
