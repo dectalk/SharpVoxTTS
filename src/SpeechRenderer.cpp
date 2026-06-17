@@ -877,14 +877,40 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
             cb.curTarget_TIME  = _curPhonDur;
 
             if (bt == kFreqType) {
-                // Coarticulatory undershoot: blend the target toward the midpoint of
-                // adjacent targets. Stressed phonemes undershoot less because they
-                // receive more precise articulation.
-                int32_t artic = k1pct * 10;
-                if ((_curPhonCtrl & kStressField) != 0) {
-                    artic = (_curBlockIndex == kF2) ? k1pct * 25 : k1pct * 15;
+                // Duration-dependent formant undershoot (Lindblom 1963; the durational
+                // dependence is confirmed for connected speech by Stalhammar, Karlsson &
+                // Fant 1973). The tract approaches a formant target as a first-order system,
+                // so the value reached at mid-vowel falls short of the canonical target by
+                // an exponential factor of segment duration: short (hence unstressed) vowels
+                // undershoot more because the articulators have less time to reach target.
+                int32_t locusMid = (cb.prevP_END_Targ + cb.nextP_START_Targ) >> 1;
+
+                if ((_curPhonFlags & kVowelF) != 0) {
+                    // u = uMax * exp(-D/tau): Lindblom undershoot fraction in 16.16.
+                    constexpr float kUndershootMax   = 0.5f;   // ceiling on undershoot
+                    constexpr float kUndershootTauMs = 90.0f;  // articulatory time constant
+                    constexpr float kStressedScale   = 0.75f;  // stressed vowels hyperarticulate
+                    constexpr float kCentralFrac     = 0.5f;   // weight of neutral-vowel pull
+                    float durMs = (float)_curPhonDur * kFrameTime;
+                    float u = kUndershootMax * expf(-durMs / kUndershootTauMs);
+                    if ((_curPhonCtrl & kStressField) != 0) {
+                        u *= kStressedScale;
+                    }
+                    int32_t uq = (int32_t)(u * 65536.0f);
+                    // Coarticulatory undershoot toward the adjacent-segment locus.
+                    cb.curP_START_Targ += (int16_t)((locusMid - cb.curP_START_Targ) * uq >> 16);
+                    // Centralization toward the neutral vowel (F1=500 Hz, F2=1350 Hz,
+                    // Stalhammar et al. 1973), in the target reference domain; per-voice
+                    // tract scaling is applied downstream in SaveFrame.
+                    int32_t neutral = (_curBlockIndex == kF1) ? 500 : (_curBlockIndex == kF2) ? 1350 : -1;
+                    if (neutral >= 0) {
+                        int32_t uc = (int32_t)(u * kCentralFrac * 65536.0f);
+                        cb.curP_START_Targ += (int16_t)((neutral - cb.curP_START_Targ) * uc >> 16);
+                    }
+                } else {
+                    // Non-vowel frequency blocks keep the original fixed coarticulatory blend.
+                    cb.curP_START_Targ += (int16_t)((locusMid - cb.curP_START_Targ) * (k1pct * 10) >> 16);
                 }
-                cb.curP_START_Targ += (int16_t)((((cb.prevP_END_Targ + cb.nextP_START_Targ) >> 1) - cb.curP_START_Targ) * artic >> 16);
             }
             cb.curP_END_Targ = cb.curP_START_Targ;
         }
