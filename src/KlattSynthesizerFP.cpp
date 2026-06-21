@@ -74,16 +74,22 @@ static inline float fp_iir_ff(float A, float B, float C,
     return y;
 }
 
-//  Rate presets (identical to float version) 
+// KLGLOTT88 flow tau^2*(1-tau) blended with the legacy pulse; kGlotTilt sets
+// brightness (0 = full bass/-6 dB/oct, higher lifts presence).
+static constexpr float kGlotTilt = 0.10f;
+static inline float GlotPulse(float tau) {
+    return (1.0f - kGlotTilt) * (tau * tau * (1.0f - tau))
+         + kGlotTilt * (tau * (0.33333333f - tau * 0.5f));
+}
 
 struct SampleRatePresetFP { float NoiseScale; float OutputGain; };
 static const std::map<int32_t, SampleRatePresetFP> _ratePresetsFP = {
-    { 8000,  { 0.67f, 1.50f  } },
-    { 11025, { 0.22f, 2.35f  } },
+    { 8000,  { 0.57f, 1.76f  } },
+    { 11025, { 0.20f, 2.57f  } },
     { 22050, { 1.00f, 5.00f  } },
-    { 44100, { 1.40f, 9.20f  } },
-    { 48000, { 1.47f, 10.00f } },
-    { 96000, { 2.39f, 15.00f } },
+    { 44100, { 1.51f, 8.53f  } },
+    { 48000, { 1.65f, 8.93f  } },
+    { 96000, { 3.09f, 11.59f } },
 };
 
 std::vector<int32_t> KlattSynthesizerFP::SupportedSampleRates() {
@@ -266,7 +272,7 @@ void KlattSynthesizerFP::ComputeGlotWave(int16_t vGain) {
     _chorusNe_fp = std::max((int32_t)655360,  std::min((int32_t)16056320, (int32_t)roundf(chorusOq * 16777216.0f)));
     _glotInvNe_f   = 1.0f / (float)_Ne_fp;
     _chorusInvNe_f = 1.0f / (float)_chorusNe_fp;
-    _voiceGain_f   = (vGain > 0) ? (vGain * 288.0f) : 0.0f;
+    _voiceGain_f   = (vGain > 0) ? (vGain * 1140.0f) : 0.0f;
 }
 
 #ifdef SHARPVOX_SAMPLED_GLOT
@@ -603,9 +609,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                 {
                     int32_t phi = (int32_t)_glotPhase;
                     float tau = (float)phi * effInvNe;
-                    glotSample = (phi < effNe)
-                        ? (tau * (0.33333333f - tau * 0.5f) * _voiceGain_f)
-                        : 0.0f;
+                    glotSample = (phi < effNe) ? (GlotPulse(tau) * _voiceGain_f) : 0.0f;
                 }
 #ifdef SHARPVOX_SAMPLED_GLOT
                 if (VoiceChorus != 0 && !_useSampledGlot) {
@@ -616,7 +620,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                     int32_t phi2 = (int32_t)_chorusPhase;
                     float tau2 = (float)phi2 * _chorusInvNe_f;
                     float chorus = (phi2 < _chorusNe_fp)
-                        ? (tau2 * (0.33333333f - tau2 * 0.5f) * _voiceGain_f)
+                        ? (GlotPulse(tau2) * _voiceGain_f)
                         : 0.0f;
                     glotSample = (glotSample + chorus) * 0.5f;
                 }
@@ -630,7 +634,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                     int32_t phiD = _diploPhase;
                     if (phiD < effNe) {
                         float tauD = (float)phiD * effInvNe;
-                        glotSample += tauD * (0.33333333f - tauD * 0.5f) * _voiceGain_f * (Diplophonia * 0.007f);
+                        glotSample += GlotPulse(tauD) * _voiceGain_f * (Diplophonia * 0.007f);
                     }
                 }
 
