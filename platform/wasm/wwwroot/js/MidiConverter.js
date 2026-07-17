@@ -573,18 +573,19 @@
     };
   }
 
-  // Token text download: one self-contained voice per line from t=0, shaped
-  // so a future [:layer] directive can take the lines as-is.
+  // Token text download: one self-contained voice per line from t=0
   function tokensFileText(job, fileName) {
     const lines = [
-      `# klattsch tokens for ${fileName || 'midi'}`,
-      `# samplerate=${job.sampleRate}`,
-      '# Each line is one whole voice from t=0; pauses carry all timing.',
+      `# polyphony klattsch tokens for ${fileName || 'midi'}`,
       '',
     ];
+
+    var voice = 0;
     for (const v of job.voices) {
-      lines.push(`# ${v.name} [${v.phoneme}] notes=${v.notes.length}`, v.text, '');
+      lines.push(`# ${v.name} [${v.phoneme}] notes=${v.notes.length}`, `[voice=${voice}]`,v.text.replace("[:klattsch on]",""), '');
+      voice = voice + 1;
     }
+
     return lines.join('\n');
   }
 
