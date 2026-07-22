@@ -144,7 +144,8 @@ void SharpVoxSpeaker::SetPreset(VoicePreset value) {
     _aspirationCycle = v.ACycle;
     _tremoloDepth = v.TremoloDepth;
     _tremoloRate = v.TremoloRate;
-    _vibratoDepth = v.VibratoDepth1Raw;
+    _vibratoDepth1 = v.VibratoDepth1Raw;
+    _vibratoDepth2 = v.VibratoDepth2Raw;
     _vibratoRate = v.VibratoFreqRaw;
     _jitter = v.Jitter;
     _shimmer = v.Shimmer;
@@ -213,8 +214,8 @@ VoiceData SharpVoxSpeaker::BuildVoice() {
             v.ACycle = static_cast<int16_t>(GetAspirationCycle());
             v.TremoloDepth = static_cast<int16_t>(GetTremoloDepth());
             v.TremoloRate = static_cast<int16_t>(GetTremoloRate());
-            v.VibratoDepth1Raw = static_cast<int16_t>(GetVibratoDepth());
-            v.VibratoDepth2Raw = static_cast<int16_t>(GetVibratoDepth());
+            v.VibratoDepth1Raw = static_cast<int16_t>(GetVibratoDepth1());
+            v.VibratoDepth2Raw = static_cast<int16_t>(GetVibratoDepth2());
             v.VibratoFreqRaw = static_cast<int16_t>(GetVibratoRate());
             v.Jitter = static_cast<int16_t>(GetJitter());
             v.Shimmer = static_cast<int16_t>(GetShimmer());

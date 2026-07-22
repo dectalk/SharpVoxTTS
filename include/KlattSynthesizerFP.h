@@ -104,7 +104,9 @@ namespace SharpVox {
                                             int16_t pitch, int16_t bandWidth,
                                             int32_t voiceMinBW = 50);
 
-        static std::vector<int32_t> SupportedSampleRates();
+        // Continuous accepted range; all rate compensation is analytic.
+        static const int32_t KMinSampleRate = 8000;
+        static const int32_t KMaxSampleRate = 192000;
 
     private:
         int32_t _sampleRate;

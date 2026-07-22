@@ -93,20 +93,13 @@ static inline float GlotPulse(float tau) {
          + kGlotTilt * (tau * (0.33333333f - tau * 0.5f));
 }
 
-static const int32_t kSupportedRatesFP[] = { 8000, 11025, 22050, 44100, 48000, 96000 };
-
-std::vector<int32_t> KlattSynthesizerFP::SupportedSampleRates() {
-    return std::vector<int32_t>(std::begin(kSupportedRatesFP), std::end(kSupportedRatesFP));
-}
-
 //  Constructor
 
 KlattSynthesizerFP::KlattSynthesizerFP(int32_t sampleRate) {
-    bool supported = false;
-    for (int32_t r : kSupportedRatesFP) supported = supported || (r == sampleRate);
-    if (!supported) {
+    if (sampleRate < KMinSampleRate || sampleRate > KMaxSampleRate) {
         throw std::invalid_argument(
-            "Unsupported sample rate " + std::to_string(sampleRate) + " Hz.");
+            "Sample rate " + std::to_string(sampleRate) + " Hz outside supported range "
+            + std::to_string(KMinSampleRate) + "-" + std::to_string(KMaxSampleRate) + " Hz.");
     }
 
     InitSinLut();

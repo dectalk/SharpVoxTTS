@@ -32,7 +32,7 @@ static void PrintHelp() {
     printf("  -o, --output <file>    Output WAV file, '-' for stdout (plays via ALSA if omitted on Linux)\n");
     printf("  -i, --input <file>     Input text file (if text not provided as argument)\n");
     printf("  -r, --rate <value>     Speech rate (default: 160)\n");
-    printf("  -s, --samplerate <hz>  Output sample rate (default: 48000)\n");
+    printf("  -s, --samplerate <hz>  Output sample rate, 8000-192000 (default: 48000)\n");
     printf("  -v, --voice <name>     Voice preset name \xe2\x80\x94 loads voices/<name>.json, fallback to baseline/whisper builtins\n");
     printf("  -h, --help             Show this help message\n");
     printf("\n");

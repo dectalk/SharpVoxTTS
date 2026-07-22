@@ -217,6 +217,8 @@ public:
             else if (name == "TremoloDepth")   { _speaker.SetTremoloDepth(iv); }
             else if (name == "TremoloRate")    { _speaker.SetTremoloRate(iv); }
             else if (name == "VibratoDepth")   { _speaker.SetVibratoDepth(iv); }
+            else if (name == "VibratoDepth1")  { _speaker.SetVibratoDepth1(iv); }
+            else if (name == "VibratoDepth2")  { _speaker.SetVibratoDepth2(iv); }
             else if (name == "VibratoRate")    { _speaker.SetVibratoRate(iv); }
             else if (name == "Jitter")         { _speaker.SetJitter(iv); }
             else if (name == "Shimmer")        { _speaker.SetShimmer(iv); }
@@ -512,7 +514,8 @@ public:
         KS("AspirationCycle",_speaker.GetAspirationCycle());
         KS("TremoloDepth",   _speaker.GetTremoloDepth());
         KS("TremoloRate",    _speaker.GetTremoloRate());
-        KS("VibratoDepth",   _speaker.GetVibratoDepth());
+        KS("VibratoDepth",   _speaker.GetVibratoDepth1());
+        KS("VibratoDepth2",  _speaker.GetVibratoDepth2());
         KS("VibratoRate",    _speaker.GetVibratoRate());
         KS("Jitter",         _speaker.GetJitter());
         KS("Shimmer",        _speaker.GetShimmer());
@@ -574,8 +577,8 @@ public:
         addI("acycle",          _speaker.GetAspirationCycle(),      (int32_t)def.ACycle);
         addI("tremolodepth",    _speaker.GetTremoloDepth(),         (int32_t)def.TremoloDepth);
         addI("tremolorate",     _speaker.GetTremoloRate(),          (int32_t)def.TremoloRate);
-        addI("vibratodepth1",   _speaker.GetVibratoDepth(),         (int32_t)def.VibratoDepth1Raw);
-        addI("vibratodepth2",   _speaker.GetVibratoDepth(),         (int32_t)def.VibratoDepth2Raw);
+        addI("vibratodepth1",   _speaker.GetVibratoDepth1(),        (int32_t)def.VibratoDepth1Raw);
+        addI("vibratodepth2",   _speaker.GetVibratoDepth2(),        (int32_t)def.VibratoDepth2Raw);
         addI("vibratofreq",     _speaker.GetVibratoRate(),          (int32_t)def.VibratoFreqRaw);
         addI("jitter",          _speaker.GetJitter(),               (int32_t)def.Jitter);
         addI("shimmer",         _speaker.GetShimmer(),              (int32_t)def.Shimmer);
@@ -670,6 +673,7 @@ public:
             _speaker.SetTremoloDepth(getInt("TremoloDepth", 0));
             _speaker.SetTremoloRate(getInt("TremoloRate", 0));
             _speaker.SetVibratoDepth(getInt("VibratoDepth", 14));
+            _speaker.SetVibratoDepth2(getInt("VibratoDepth2", _speaker.GetVibratoDepth2()));
             _speaker.SetVibratoRate(getInt("VibratoRate", 65));
             _speaker.SetJitter(getInt("Jitter", 0));
             _speaker.SetShimmer(getInt("Shimmer", 0));
@@ -792,7 +796,8 @@ private:
         KS("ACycle", _speaker.GetAspirationCycle());
         KS("TremoloDepth", _speaker.GetTremoloDepth());
         KS("TremoloRate",  _speaker.GetTremoloRate());
-        KS("VibratoDepth", _speaker.GetVibratoDepth());
+        KS("VibratoDepth", _speaker.GetVibratoDepth1());
+        KS("VibratoDepth2",_speaker.GetVibratoDepth2());
         KS("VibratoRate",  _speaker.GetVibratoRate());
         KS("Jitter",       _speaker.GetJitter());
         KS("Shimmer",      _speaker.GetShimmer());
