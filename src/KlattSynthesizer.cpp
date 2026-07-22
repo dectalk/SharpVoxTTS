@@ -7,46 +7,24 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
-#include <map>
 
 namespace SharpVox {
 
-    // NoiseScale and OutputGain were tuned empirically: lower sample rates need louder
-    // noise and higher output gain to compensate for the narrower spectral bandwidth.
-    struct SampleRatePreset {
-        float NoiseScale;
-        float OutputGain;
-    };
-
-    static const std::map<int32_t, SampleRatePreset> _ratePresets = {
-        { 8000,  { 0.67f, 1.50f  } },
-        { 11025, { 0.22f, 2.35f  } },
-        { 22050, { 1.00f, 5.00f  } },
-        { 44100, { 1.40f, 9.20f  } },
-        { 48000, { 1.47f, 10.00f } },
-        { 96000, { 2.39f, 15.00f } },
-    };
-
-    std::vector<int32_t> KlattSynthesizer::SupportedSampleRates() {
-        std::vector<int32_t> keys;
-        keys.reserve(_ratePresets.size());
-        for (auto& kv : _ratePresets) {
-            keys.push_back(kv.first);
-        }
-        return keys;
-    }
-
     KlattSynthesizer::KlattSynthesizer(int32_t sampleRate) {
-        auto it = _ratePresets.find(sampleRate);
-        if (it == _ratePresets.end()) {
+        if (sampleRate < KMinSampleRate || sampleRate > KMaxSampleRate) {
             throw std::invalid_argument(
-                "Unsupported sample rate " + std::to_string(sampleRate) + " Hz.");
+                "Sample rate " + std::to_string(sampleRate) + " Hz outside supported range "
+                + std::to_string(KMinSampleRate) + "-" + std::to_string(KMaxSampleRate) + " Hz.");
         }
 
         _sampleRate = sampleRate;
         _internalRate = sampleRate;
-        _noiseScale = it->second.NoiseScale;
-        _outputGain = it->second.OutputGain;
+        // White noise PSD in-band falls as 1/fs, so amplitude must rise as
+        // sqrt(fs) to keep noise loudness rate-invariant through fixed-Hz filters.
+        _noiseScale = std::sqrt((float)sampleRate / 22050.0f);
+        // Rate-invariant since the preemph stage scales by fs/22050; anchored so
+        // 22050 output is bit-identical to the old per-rate table value.
+        _outputGain = 5.00f;
 
         double rawLen = _sampleRate * (KDefaultSampFrameLen / (double)KDefaultSampleRate);
         int32_t len = (int32_t)std::floor(rawLen + 0.5);
@@ -119,6 +97,9 @@ namespace SharpVox {
         // Rate-compensated pre-emphasis zero: keeps the corner at ~107 Hz at any
         // rate. A fixed 0.97 sits at a fixed fraction of Nyquist instead.
         _preemphA = std::pow(0.97f, 22050.0f / (float)sampleRate);
+        // The differentiator's passband gain falls as 1/fs with the corner fixed
+        // in Hz; scaling by fs/22050 makes the output level rate-invariant.
+        _preemphScale = (float)sampleRate / 22050.0f;
 
         _noiseAmp = 0.0f;
         _breathGain = 0.0f;
@@ -667,7 +648,7 @@ namespace SharpVox {
                     // for the 6 dB/octave roll-off of the radiation load at the lips.
                     float preemphOut = sample - _preemphA * _preemphPrev;
                     _preemphPrev = sample;
-                    sample = preemphOut;
+                    sample = preemphOut * _preemphScale;
                 }
 
                 sample = std::max(-8191.0f, std::min(8191.0f, sample * _outputGain));

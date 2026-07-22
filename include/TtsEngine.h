@@ -39,7 +39,6 @@ namespace SharpVox {
     class TtsEngine {
     public:
         static const int32_t DefaultSampleRate = 22050;
-        static const std::vector<int32_t>& SupportedSampleRates();
         int32_t SampleRate;
 
         TtsEngine(const uint8_t* dictData, size_t dictSize,

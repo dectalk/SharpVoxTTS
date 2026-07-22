@@ -18,11 +18,6 @@ namespace { template<class T> T clamp11(T v, T lo, T hi) { return v < lo ? lo : 
 
 namespace SharpVox {
 
-    const std::vector<int32_t>& TtsEngine::SupportedSampleRates() {
-        static std::vector<int32_t> rates = KlattSynthesizer::SupportedSampleRates();
-        return rates;
-    }
-
     TtsEngine::TtsEngine(const uint8_t* dictData, size_t dictSize,
                          std::function<const uint8_t*(const std::string&, size_t&)> symbolsTable,
                          int32_t sampleRate)

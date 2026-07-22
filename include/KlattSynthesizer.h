@@ -52,6 +52,8 @@ namespace SharpVox {
         static constexpr int32_t KNoiseGain = 2500;
         static constexpr int32_t KDefaultSampleRate = 22050;
         static constexpr int32_t KDefaultSampFrameLen = 112;
+        static constexpr int32_t KMinSampleRate = 8000;
+        static constexpr int32_t KMaxSampleRate = 48000;
 
         int32_t SampleRate() const { return _sampleRate; }
         int32_t SampFrameLen;
@@ -121,8 +123,6 @@ namespace SharpVox {
                                             float& Bcoeff, float& Ccoeff,
                                             int16_t pitch, int16_t bandWidth,
                                             int32_t voiceMinBW = 50);
-
-        static std::vector<int32_t> SupportedSampleRates();
 
     private:
         int32_t _sampleRate;
@@ -216,6 +216,7 @@ namespace SharpVox {
         // Pre-emphasis filter delay (first-difference).
         float _preemphPrev;
         float _preemphA;   // pre-emphasis zero, rate-compensated at construction
+        float _preemphScale;   // fs/22050 passband gain restore for the differentiator
 
         // NZ/NP gain normalization factor, interpolated each frame.
         float _nasalNorm = 1.0f;
