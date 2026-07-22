@@ -205,8 +205,6 @@ public:
             else if (name == "TractScale")     { _speaker.SetTractScale(fv); return; }
             else if (name == "klBaseF0")       { _speaker.KlBaseF0 = fv; return; }
             else if (name == "klRate")         { _speaker.KlRate = fv; return; }
-            else if (name == "klVibrato")      { _speaker.KlVibrato = fv; return; }
-            else if (name == "klVibRate")      { _speaker.KlVibRate = fv; return; }
             else if (name == "klAsp")          { _speaker.KlAsp = fv; return; }
             else if (name == "klTilt")         { _speaker.KlTilt = fv; return; }
             else if (name == "klEffort")       { _speaker.KlEffort = fv; return; }
@@ -218,6 +216,8 @@ public:
             else if (name == "ACycle")         { _speaker.SetAspirationCycle(iv); }
             else if (name == "TremoloDepth")   { _speaker.SetTremoloDepth(iv); }
             else if (name == "TremoloRate")    { _speaker.SetTremoloRate(iv); }
+            else if (name == "VibratoDepth")   { _speaker.SetVibratoDepth(iv); }
+            else if (name == "VibratoRate")    { _speaker.SetVibratoRate(iv); }
             else if (name == "Jitter")         { _speaker.SetJitter(iv); }
             else if (name == "Shimmer")        { _speaker.SetShimmer(iv); }
             else if (name == "Diplophonia")    { _speaker.SetDiplophonia(iv); }
@@ -512,6 +512,8 @@ public:
         KS("AspirationCycle",_speaker.GetAspirationCycle());
         KS("TremoloDepth",   _speaker.GetTremoloDepth());
         KS("TremoloRate",    _speaker.GetTremoloRate());
+        KS("VibratoDepth",   _speaker.GetVibratoDepth());
+        KS("VibratoRate",    _speaker.GetVibratoRate());
         KS("Jitter",         _speaker.GetJitter());
         KS("Shimmer",        _speaker.GetShimmer());
         KS("Diplophonia",    _speaker.GetDiplophonia());
@@ -572,6 +574,9 @@ public:
         addI("acycle",          _speaker.GetAspirationCycle(),      (int32_t)def.ACycle);
         addI("tremolodepth",    _speaker.GetTremoloDepth(),         (int32_t)def.TremoloDepth);
         addI("tremolorate",     _speaker.GetTremoloRate(),          (int32_t)def.TremoloRate);
+        addI("vibratodepth1",   _speaker.GetVibratoDepth(),         (int32_t)def.VibratoDepth1Raw);
+        addI("vibratodepth2",   _speaker.GetVibratoDepth(),         (int32_t)def.VibratoDepth2Raw);
+        addI("vibratofreq",     _speaker.GetVibratoRate(),          (int32_t)def.VibratoFreqRaw);
         addI("jitter",          _speaker.GetJitter(),               (int32_t)def.Jitter);
         addI("shimmer",         _speaker.GetShimmer(),              (int32_t)def.Shimmer);
         addI("diplophonia",     _speaker.GetDiplophonia(),          (int32_t)def.Diplophonia);
@@ -664,6 +669,8 @@ public:
             _speaker.SetAspirationCycle(getInt("AspirationCycle", _speaker.GetAspirationCycle()));
             _speaker.SetTremoloDepth(getInt("TremoloDepth", 0));
             _speaker.SetTremoloRate(getInt("TremoloRate", 0));
+            _speaker.SetVibratoDepth(getInt("VibratoDepth", 14));
+            _speaker.SetVibratoRate(getInt("VibratoRate", 65));
             _speaker.SetJitter(getInt("Jitter", 0));
             _speaker.SetShimmer(getInt("Shimmer", 0));
             _speaker.SetDiplophonia(getInt("Diplophonia", 0));
@@ -729,7 +736,7 @@ private:
         char buf[256];
         std::snprintf(buf, sizeof(buf), "b%.0f r%.0f v%.1f w%.1f h%.2f t%.2f g%.2f",
             (double)_speaker.KlBaseF0, (double)_speaker.KlRate,
-            (double)_speaker.KlVibrato, (double)_speaker.KlVibRate,
+            (double)_speaker.GetVibratoDepth(), (double)_speaker.GetVibratoRate() / 10.0,
             (double)_speaker.KlAsp, (double)_speaker.KlTilt, (double)_speaker.KlEffort);
         return std::string("[:klattsch on] ") + buf + " " + text + " [:klattsch off]";
     }
@@ -785,6 +792,8 @@ private:
         KS("ACycle", _speaker.GetAspirationCycle());
         KS("TremoloDepth", _speaker.GetTremoloDepth());
         KS("TremoloRate",  _speaker.GetTremoloRate());
+        KS("VibratoDepth", _speaker.GetVibratoDepth());
+        KS("VibratoRate",  _speaker.GetVibratoRate());
         KS("Jitter",       _speaker.GetJitter());
         KS("Shimmer",      _speaker.GetShimmer());
         KS("Diplophonia",  _speaker.GetDiplophonia());
@@ -815,8 +824,6 @@ private:
         KS("BaselineFall",  _speaker.GetBaselineFall());
         KF("klBaseF0",  _speaker.KlBaseF0);
         KF("klRate",    _speaker.KlRate);
-        KF("klVibrato", _speaker.KlVibrato);
-        KF("klVibRate", _speaker.KlVibRate);
         KF("klAsp",     _speaker.KlAsp);
         KF("klTilt",    _speaker.KlTilt);
         KF("klEffort",  _speaker.KlEffort);

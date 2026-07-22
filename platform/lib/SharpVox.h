@@ -56,8 +56,6 @@ public:
     bool KlattschMode = false;
     float KlBaseF0 = 120.0f;
     float KlRate = 110.0f;
-    float KlVibrato = 0.0f;
-    float KlVibRate = 5.0f;
     float KlAsp = 0.0f;
     float KlTilt = 0.0f;
     float KlEffort = 0.5f;
@@ -86,6 +84,13 @@ public:
 
     int32_t GetTremoloRate() const { return _tremoloRate; }
     void SetTremoloRate(int32_t v) { _tremoloRate = v; MarkCustom(); }
+
+    // Voice vibrato default; seeds both core and klattsch synth vibrato per speak
+    int32_t GetVibratoDepth() const { return _vibratoDepth; }
+    void SetVibratoDepth(int32_t v) { _vibratoDepth = v; MarkCustom(); }
+
+    int32_t GetVibratoRate() const { return _vibratoRate; }
+    void SetVibratoRate(int32_t v) { _vibratoRate = v; MarkCustom(); }
 
     // Glottal source
     int32_t GetJitter() const { return _jitter; }
@@ -245,6 +250,8 @@ private:
     int32_t _aspirationCycle = 192;
     int32_t _tremoloDepth = 0;
     int32_t _tremoloRate = 0;
+    int32_t _vibratoDepth = 14;
+    int32_t _vibratoRate = 65;
 
     // Glottal source
     int32_t _jitter = 0;

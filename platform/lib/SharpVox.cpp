@@ -27,7 +27,8 @@ std::string SharpVoxSpeaker::PrepareText(const std::string& text) {
     char buf[256];
     std::snprintf(buf, sizeof(buf),
         "b%.0f r%.0f v%.1f w%.1f h%.2f t%.2f g%.2f",
-        (double)KlBaseF0, (double)KlRate, (double)KlVibrato, (double)KlVibRate,
+        (double)KlBaseF0, (double)KlRate,
+        (double)GetVibratoDepth(), (double)GetVibratoRate() / 10.0,
         (double)KlAsp, (double)KlTilt, (double)KlEffort);
     KlattschMode = false;
     return std::string("[:klattsch on] ") + buf + " " + text + " [:klattsch off]";
@@ -143,6 +144,8 @@ void SharpVoxSpeaker::SetPreset(VoicePreset value) {
     _aspirationCycle = v.ACycle;
     _tremoloDepth = v.TremoloDepth;
     _tremoloRate = v.TremoloRate;
+    _vibratoDepth = v.VibratoDepth1Raw;
+    _vibratoRate = v.VibratoFreqRaw;
     _jitter = v.Jitter;
     _shimmer = v.Shimmer;
     _diplophonia = v.Diplophonia;
@@ -210,6 +213,9 @@ VoiceData SharpVoxSpeaker::BuildVoice() {
             v.ACycle = static_cast<int16_t>(GetAspirationCycle());
             v.TremoloDepth = static_cast<int16_t>(GetTremoloDepth());
             v.TremoloRate = static_cast<int16_t>(GetTremoloRate());
+            v.VibratoDepth1Raw = static_cast<int16_t>(GetVibratoDepth());
+            v.VibratoDepth2Raw = static_cast<int16_t>(GetVibratoDepth());
+            v.VibratoFreqRaw = static_cast<int16_t>(GetVibratoRate());
             v.Jitter = static_cast<int16_t>(GetJitter());
             v.Shimmer = static_cast<int16_t>(GetShimmer());
             v.Diplophonia = static_cast<int16_t>(GetDiplophonia());

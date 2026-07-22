@@ -13,6 +13,7 @@ window.ui = {
             'Rate':'Rate','PitchHz':'PitchHz','PitchOffsetHz':'PitchOffsetHz',
             'VGain':'VoicingGain','AGain':'AspirationGain','ACycle':'AspirationCycle',
             'TremoloDepth':'TremoloDepth','TremoloRate':'TremoloRate',
+            'VibratoDepth':'VibratoDepth','VibratoRate':'VibratoRate',
             'Jitter':'Jitter','Shimmer':'Shimmer','Diplophonia':'Diplophonia',
             'FryAmount':'FryAmount','SubglottalAmt':'SubglottalAmt','BreathAmt':'BreathAmt','OpenQuotient':'OpenQuotient','OQStressLink':'OQStressLink','OQF0Link':'OQF0Link','OnsetHardness':'OnsetHardness',
             'LarynxOffset':'LarynxOffset','PharyngealAmt':'PharyngealAmt','LipRounding':'LipRounding',

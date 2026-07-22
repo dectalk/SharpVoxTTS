@@ -417,16 +417,6 @@
                     <input type="range" min="60" max="500" value="110" id="v-klRate" oninput="ui.onParamInput('klRate', this.value)">
                     <span id="v-klRate-val">110</span>
                 </div>
-                <div class="slider-group" onmouseover="ui.updateDesc('Vibrato (Hz)', 'Vibrato depth: peak deviation in Hz (0 = off)')">
-                    <label>Vibrato (Hz)</label>
-                    <input type="range" min="0" max="15" step="0.5" value="0" id="v-klVibrato" oninput="ui.onParamInput('klVibrato', this.value, true)">
-                    <span id="v-klVibrato-val">0</span>
-                </div>
-                <div class="slider-group" onmouseover="ui.updateDesc('Vib Rate (Hz)', 'Vibrato LFO rate in Hz (default 5)')">
-                    <label>Vib Rate (Hz)</label>
-                    <input type="range" min="2" max="10" step="0.1" value="5" id="v-klVibRate" oninput="ui.onParamInput('klVibRate', this.value, true)">
-                    <span id="v-klVibRate-val">5</span>
-                </div>
                 <div class="slider-group" onmouseover="ui.updateDesc('Breathiness', 'Aspiration/breath mix, 0–1')">
                     <label>Breathiness</label>
                     <input type="range" min="0" max="1" step="0.01" value="0" id="v-klAsp" oninput="ui.onParamInput('klAsp', this.value, true)">
@@ -564,6 +554,16 @@
                     <label>TremoloRate</label>
                     <input type="range" min="0" max="200" value="0" id="v-TremoloRate" oninput="ui.onParamInput('TremoloRate', this.value)">
                     <span id="v-TremoloRate-val">0</span>
+                </div>
+                <div class="slider-group" onmouseover="ui.updateDesc('VibratoDepth', 'Voice vibrato depth — seeds core and klattsch synth vibrato at speak start')">
+                    <label>VibratoDepth</label>
+                    <input type="range" min="0" max="100" value="14" id="v-VibratoDepth" oninput="ui.onParamInput('VibratoDepth', this.value)">
+                    <span id="v-VibratoDepth-val">14</span>
+                </div>
+                <div class="slider-group" onmouseover="ui.updateDesc('VibratoRate', 'Voice vibrato rate (×0.1 Hz) — e.g. 65 = 6.5 Hz')">
+                    <label>VibratoRate</label>
+                    <input type="range" min="0" max="100" value="65" id="v-VibratoRate" oninput="ui.onParamInput('VibratoRate', this.value)">
+                    <span id="v-VibratoRate-val">65</span>
                 </div>
                 <div class="slider-group" onmouseover="ui.updateDesc('NGain', 'Nasal resonator gain')">
                     <label>NGain</label>
