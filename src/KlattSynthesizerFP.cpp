@@ -788,7 +788,9 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                 cascadeOutF = fp_iir_zff(_f4b0, _f4b1, _f4B, _f4C, cascadeOutF, _f4X1, _f4D1, _f4D2);
                 cascadeOutF = fp_iir_zff(_f5cb0, _f5cb1, _f5cB, _f5cC, cascadeOutF, _f5cX1, _f5cD1, _f5cD2);
             }
-            cascadeOut = (int32_t)cascadeOutF;
+            // Q6 conversion: truncating to Q0 here left a ~36 LSB output step
+            // (OutputGain*4) heard as broadband hiss behind voiced speech.
+            cascadeOut = (int32_t)(cascadeOutF * 64.0f);
 
             // Parallel bank noise. pink_fp / pink_float  32768 = 2^15 (from Q15 filter states),
             // so >>15 yields Q0 (float-scale), matching cascadeOut above.
@@ -825,7 +827,7 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                 samp6 = fp_iir(32768, _f6pB, _f6pC, in6, _f6pD1, _f6pD2);
             }
 
-            int32_t sample = cascadeOut + (sampAB - samp3 + samp4 - samp5 + samp6 - samp2);
+            int32_t sample = cascadeOut + ((sampAB - samp3 + samp4 - samp5 + samp6 - samp2) << 6);
 
             // Pre-emphasis: y = x - a*x[n-1], a in Q15 (rate-compensated, see ctor)
             if (_hfEmph) {
@@ -834,12 +836,9 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
                 sample = pe;
             }
 
-            // Output gain (Q15), clip 8191, 4 to reach int16_t range.
-            // sample is Q0 (cascade >>8 + parallel Q0); _outputGain_q15 = OutputGain*32768; >>15 = Q0 out.
-            int32_t out = (int32_t)(((int64_t)sample * _outputGain_q15) >> 15);
-            if (out >  8191) out =  8191;
-            if (out < -8191) out = -8191;
-            out *= 4;
+            // Output gain on Q6 sample: product is Q21, rounded >>19 lands at
+            // the old x4 output scale but with 1 LSB steps instead of 4.
+            int32_t out = (int32_t)(((int64_t)sample * _outputGain_q15 + (1 << 18)) >> 19);
             if (out >  INT16_MAX) out =  INT16_MAX;
             if (out < -INT16_MAX) out = -INT16_MAX;
             outputBuffer[offset++] = (int16_t)out;
