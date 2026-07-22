@@ -86,6 +86,11 @@ private:
     int32_t _transTime     = 0;
     int32_t _curBlockIndex = 0;
 
+    // EXPERIMENT: Q16 scale for fixed-length events (formant transition ramps and
+    // stop bursts) so they shrink toward the linear tempo at high rates instead of
+    // holding their textbook length. 1.0 (65536) below the linearization threshold.
+    int32_t _transRateScaleQ16 = 65536;
+
     int32_t _durDoneInPhon  = 0;
     int32_t _curPhonBufIndex = 0;
     bool _startingNewPhon    = true;
@@ -112,6 +117,7 @@ private:
     static constexpr int32_t kStepSizeRes = 3;
     static constexpr int32_t k1pct        = 655;
     static constexpr int32_t kFrameTime   = 5;
+    static constexpr int32_t kMinTransFrames = 3;  // 15ms ramp floor to avoid click
     static constexpr int32_t ReciprocalTableSize = 100;
     static constexpr int32_t kOneHalf     = 0x8000;
 
@@ -298,6 +304,11 @@ private:
     // Scales a duration percentage by the ratio of actual-to-canonical phoneme duration.
     // Produces a frame count proportional to how long this phoneme actually lasts.
     int32_t ScalePrcnt(int32_t pct);
+
+    // EXPERIMENT: shrinks a fixed transition length by _transRateScaleQ16 so onset
+    // and offset ramps track the tempo at high rates. Full-duration holds and
+    // zero-length transitions pass through unchanged; result is clamped to [1, dur].
+    int32_t LinearizeTransTime(int32_t t);
 
     // Applies vowel-context coloring adjustments to diphthong endpoint formants.
     //

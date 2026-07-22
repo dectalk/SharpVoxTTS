@@ -46,6 +46,7 @@ SpeechRenderer::SpeechRenderer(const VoiceData& voice)
 
 void SpeechRenderer::RenderStreaming(const ClausePlan& plan, std::function<void(const Frame&)> callback) {
     _plan = &plan;
+    _transRateScaleQ16 = RateLin::EventScaleQ16(_plan->Pitch.SpeechRate);
     _curPhonBufIndex = 0;
     _durDoneInPhon   = 0;
     _startingNewPhon = true;
@@ -190,6 +191,11 @@ int32_t SpeechRenderer::OvX(int32_t x) const {
 void SpeechRenderer::InsertBurst() {
     if ((_curPhonFlags & kPlosiveF) != 0) {
         int32_t burstDur = Tables::BurstDurationTable[_curPhon] / kFrameTime;
+        // EXPERIMENT: shrink the fixed burst toward the linear tempo at high rates.
+        if (_transRateScaleQ16 != 65536) {
+            burstDur = (int32_t)(((int64_t)burstDur * _transRateScaleQ16) >> 16);
+            if (burstDur < 1) burstDur = 1;
+        }
         if ((_curPhonFlags & kStopF) != 0 && (_curPhonFlags & kVoicedF) == 0) {
             if ((_nextPhonFlags & (kStopF | kNasalF)) != 0) {
                 burstDur = (_nextPhonCtrl & kPrimOrEmphStress) != 0 ? 0 : burstDur >> 1;
@@ -248,6 +254,12 @@ void SpeechRenderer::InsertBurst() {
             }
         } else if ((_curPhonCtrl & kVowelF) == 0) {
             rel += 20 / kFrameTime;
+        }
+        // EXPERIMENT: shrink the fixed aspiration/VOT window toward the linear tempo
+        // at high rates, unless a full plosive release already forced rel below.
+        if (_transRateScaleQ16 != 65536 && (_curPhonCtrl & kPlosive_Release) == 0) {
+            rel = (int32_t)(((int64_t)rel * _transRateScaleQ16) >> 16);
+            if (rel < 1) rel = 1;
         }
         if (rel >= _curPhonDur) {
             rel = _curPhonDur - 1;
@@ -772,6 +784,20 @@ int32_t SpeechRenderer::ScalePrcnt(int32_t pct) {
     return t <= 0 ? 1 : (int32_t)t;
 }
 
+// EXPERIMENT: high-rate intelligibility (Janse et al. 2003). See RateLin in
+// SynthData.h. Scales a fixed transition length toward the linear tempo. Full
+// or zero-length transitions pass through so held segments are not disturbed.
+int32_t SpeechRenderer::LinearizeTransTime(int32_t t) {
+    if (t <= 0 || t >= _curPhonDur) return t;
+    int64_t s = ((int64_t)t * _transRateScaleQ16) >> 16;
+    // A ramp shorter than a few frames steps its whole delta almost instantly and
+    // clicks, so never shrink below kMinTransFrames (unless it already was shorter).
+    int32_t floor = t < kMinTransFrames ? t : kMinTransFrames;
+    if (s < floor) s = floor;
+    if (s > _curPhonDur) s = _curPhonDur;
+    return (int32_t)s;
+}
+
 // Applies vowel-context coloring adjustments to diphthong endpoint formants.
 //
 // F3 is lowered before or after a liquid consonant (/r/-colored context).
@@ -937,6 +963,7 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
         _transLevel = (cb.prevP_END_Targ + cb.curP_START_Targ) >> 1;
         _transTime  = 32 / kFrameTime;
         HeadRules(cb, bt);
+        _transTime  = LinearizeTransTime(_transTime);
 
         // Onset hardness scales the AV ramp: 0 = soft (slow ramp from deep below),
         // 50 = neutral, 100 = hard (near-instant onset at target level)
@@ -966,6 +993,7 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
         _transLevel = (cb.curP_END_Targ + cb.nextP_START_Targ) >> 1;
         _transTime  = 25 / kFrameTime;
         TailRules(cb, bt);
+        _transTime  = LinearizeTransTime(_transTime);
 
         cb.TAIL_offs = 0; cb.TAIL_step = 0;
         if (_transTime > 0) {

@@ -7,6 +7,35 @@
 
 namespace SharpVox {
 
+    // EXPERIMENT: high-rate intelligibility. Janse et al. (2003) found that at
+    // extreme speech rates uniform (linear) time-scaling is more intelligible than
+    // the natural non-linear pattern, so these helpers blend the duration model
+    // toward linear as the rate climbs. Frac is 0 at/below kStart and 1.0 (65536)
+    // at/above kFull; between, the natural incompressible timing is kept.
+    namespace RateLin {
+        static constexpr int32_t kNormalRate = 180;  // matches AudioProcessor baseline
+        static constexpr int32_t kStart      = 150;  // wpm: below this, natural timing
+        static constexpr int32_t kFull       = 350;  // wpm: at/above this, fully linear
+
+        // Q16 blend fraction in [0, 65536].
+        static inline int32_t FracQ16(int32_t rate) {
+            if (rate <= kStart) return 0;
+            if (rate >= kFull)  return 65536;
+            return (int32_t)(((int64_t)(rate - kStart) << 16) / (kFull - kStart));
+        }
+
+        // Q16 multiplier for fixed-length events (formant transition ramps, stop
+        // bursts) so they shrink toward the linear tempo ratio kNormalRate/rate at
+        // high rates instead of keeping their absolute textbook length. 1.0 when
+        // the blend is inactive.
+        static inline int32_t EventScaleQ16(int32_t rate) {
+            int32_t frac = FracQ16(rate);
+            if (frac == 0 || rate <= 0) return 65536;
+            int64_t ratioQ16 = ((int64_t)kNormalRate << 16) / rate;
+            return (int32_t)(65536 + (((ratioQ16 - 65536) * frac) >> 16));
+        }
+    }
+
     struct PitchState {
         int16_t NextPitchBufTime;
         int16_t PitchBufOutIndex;

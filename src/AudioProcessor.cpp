@@ -201,6 +201,12 @@ namespace SharpVox {
         // (phoneme intrinsic durations compress less than fixed additions at extreme speeds).
         int64_t denominator = (((_speechRate - kNormal_Speech_Rate) * (int64_t)(k1pct * 60)) >> 16) + kNormal_Speech_Rate;
         _rateRatioLowGain = ((int64_t)kNormal_Speech_Rate << 16) / denominator;
+        // EXPERIMENT: blend the compressed core ratio toward the linear ratio at
+        // high rates so segment cores stop lagging the tempo (Janse et al. 2003).
+        int32_t linFrac = RateLin::FracQ16(_speechRate);
+        if (linFrac != 0) {
+            _rateRatioLowGain += ((_rateRatio - _rateRatioLowGain) * linFrac) >> 16;
+        }
         _stressDuration = (int16_t)((_rateRatio * _stressDurTime) >> 16);
     }
 
