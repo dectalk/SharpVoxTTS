@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">SharpVox</string>
+    <string name="tts_settings_label">tts_settings</string>
+    <string name="enter_text_to_speak">Enter text to speak</string>
+    <string-array name="voice_names">
+        <item>Baseline</item>
+        <item>Whisper</item>
+    </string-array>
+</resources>
