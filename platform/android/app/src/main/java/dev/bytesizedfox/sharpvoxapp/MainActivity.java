@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             App.nativeReset();
             App.nativeInit();
             App.nativeSetRate(100 + (App.rate * 3));
-            App.nativeSetPitch(80 + App.pitch);
+            App.nativeSetPitch(App.pitch);
             App.nativeSetVoice(App.current_voice);
             samples = App.nativeSpeak(text, false);
         }

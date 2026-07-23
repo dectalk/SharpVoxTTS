@@ -66,6 +66,8 @@ Java_dev_bytesizedfox_sharpvoxapp_App_nativeReset(JNIEnv* /*env*/, jobject /*obj
     halting = 0;
 }
 
+static int pitch_slider = 50;
+
 extern "C" JNIEXPORT void JNICALL
 Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetRate(JNIEnv* /*env*/, jobject /*obj*/, jint rate) {
     if (g_speaker) g_speaker->Rate = rate;
@@ -73,7 +75,7 @@ Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetRate(JNIEnv* /*env*/, jobject /*o
 
 extern "C" JNIEXPORT void JNICALL
 Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetPitch(JNIEnv* /*env*/, jobject /*obj*/, jint pitch) {
-    if (g_speaker) g_speaker->PitchHz = pitch;
+    pitch_slider = pitch;
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -81,23 +83,32 @@ Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetVolume(JNIEnv* /*env*/, jobject /
     if (g_speaker) g_speaker->AudioVolume = volume;
 }
 
+static std::string pending_voice;
+
 extern "C" JNIEXPORT void JNICALL
 Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetVoice(JNIEnv* env, jobject /*obj*/, jstring preset) {
     const char* str = env->GetStringUTFChars(preset, nullptr);
-    std::string name(str);
+    pending_voice = str;
     env->ReleaseStringUTFChars(preset, str);
+}
 
-    if (!g_speaker) return;
+static void applyPendingVoice() {
+    if (!g_speaker || pending_voice.empty()) return;
 
     SharpVox::VoiceData voice;
-    if (SharpVox::VoicePresets::TryGet(name, voice)) {
+    if (SharpVox::VoicePresets::TryGet(pending_voice, voice)) {
         voice.Rate = g_speaker->Rate;
-        voice.PitchHz = g_speaker->PitchHz;
+        float pitchMult = 0.5f + pitch_slider / 100.0f;
+        voice.PitchHz = (int32_t)(voice.PitchHz * pitchMult);
         g_speaker->ApplyVoiceData(voice);
     } else {
-        g_speaker->SetPreset(SharpVox::VoicePreset::Baseline);
-        g_speaker->ApplyVoice();
+        voice = SharpVox::VoiceData::baseline_voice();
+        voice.Rate = g_speaker->Rate;
+        float pitchMult = 0.5f + pitch_slider / 100.0f;
+        voice.PitchHz = (int32_t)(voice.PitchHz * pitchMult);
+        g_speaker->ApplyVoiceData(voice);
     }
+    pending_voice.clear();
 }
 
 extern "C" JNIEXPORT jshortArray JNICALL
@@ -111,6 +122,7 @@ Java_dev_bytesizedfox_sharpvoxapp_App_nativeSpeak(JNIEnv* env, jobject /*obj*/, 
     total_size = 0;
     callback_enabled = enableCallback;
 
+    applyPendingVoice();
     g_speaker->Speak(text_cpp, onBuffer, nullptr);
 
     jsize length = total_size;
