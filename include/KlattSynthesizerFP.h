@@ -133,6 +133,7 @@ namespace SharpVox {
         // Cascade F4/F5: float matched coefficients, fixed at SetVoice.
         float _f4b0,  _f4b1,  _f4B,  _f4C;
         float _f5cb0, _f5cb1, _f5cB, _f5cC;
+        float _f6cb0, _f6cb1, _f6cB, _f6cC;
         int32_t _f4pA, _f4pB, _f4pC;
         int32_t _f5pA, _f5pB, _f5pC;
         int32_t _f6pA, _f6pB, _f6pC;
@@ -146,8 +147,9 @@ namespace SharpVox {
         float   _f3D1,  _f3D2;
         float   _f4D1,  _f4D2;
         float   _f5cD1, _f5cD2;
+        float   _f6cD1, _f6cD2;
         // Cascade input taps x[n-1] for the matched one-zero numerators.
-        float   _f1X1, _f2X1, _f3X1, _f4X1, _f5cX1;
+        float   _f1X1, _f2X1, _f3X1, _f4X1, _f5cX1, _f6cX1;
         float   _nzD1,  _nzD2;
         float   _npD1,  _npD2;
         float   _sgD1,  _sgD2;
@@ -236,6 +238,7 @@ namespace SharpVox {
         int16_t _nasalPoleBW;
         int16_t _f4cFreq, _f4cBW;
         int16_t _f5cFreq, _f5cBW;
+        int16_t _f6cFreq, _f6cBW;   // fixed cascade F6 (Klatt 1980 higher-pole correction)
         int16_t _f4pFreq, _f4pBW;
         int16_t _f5pFreq, _f5pBW;
         int16_t _f6pFreq, _f6pBW;
