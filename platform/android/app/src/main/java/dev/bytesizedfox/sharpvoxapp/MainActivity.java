@@ -83,6 +83,14 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     @Override
     public boolean onCreateOptionsMenu( Menu menu ) {
         getMenuInflater().inflate(R.menu.menu, menu);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.voice_names,
+                android.R.layout.simple_spinner_item
+        );
+        for (int i = 0; i < adapter.getCount(); i++) {
+            menu.findItem(R.id.voiceSettings).getSubMenu().add(adapter.getItem(i));
+        }
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -105,9 +113,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         if (id == R.id.share || id == R.id.export) {
             App.nativeReset();
             App.nativeInit();
-            App.nativeSetVoice(App.current_voice);
-
             App.nativeSetRate(100 + (App.rate * 3));
+            App.nativeSetPitch(80 + App.pitch);
+            App.nativeSetVoice(App.current_voice);
             samples = App.nativeSpeak(text, false);
         }
         if (id == R.id.share) {
@@ -169,6 +177,15 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     List<String> voiceList = Arrays.asList(
             "baseline",
+            "beth",
+            "chris",
+            "deborah",
+            "jack",
+            "jess",
+            "john",
+            "matt",
+            "pirate",
+            "tommy",
             "whisper"
     );
     View dialogView;

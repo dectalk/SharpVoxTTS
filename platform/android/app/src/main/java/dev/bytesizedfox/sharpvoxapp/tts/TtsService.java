@@ -120,9 +120,10 @@ public class TtsService extends TextToSpeechService {
 
             App.nativeReset();
             App.nativeInit();
-            App.nativeSetVoice(App.current_voice);
+            App.nativeSetVolume(App.current_volume / 100.0f);
             App.nativeSetRate(100 + (App.rate * 3));
             App.nativeSetPitch(80 + App.pitch);
+            App.nativeSetVoice(App.current_voice);
 
             App.nativeSpeak(text, true);
 

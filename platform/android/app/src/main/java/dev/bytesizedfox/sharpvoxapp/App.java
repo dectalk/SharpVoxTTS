@@ -18,7 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class App extends Application {
-    public static String current_voice = "baseline";
+    public static String current_voice = "john";
     public static float current_volume = 0.0f;
     public static int rate = 50;
     public static int pitch = 50;
@@ -48,7 +48,7 @@ public class App extends Application {
         try {
             pref = this.getSharedPreferences("settings", MODE_PRIVATE);
         } catch (Exception e) {
-            App.current_voice = "baseline";
+            App.current_voice = "john";
             App.current_volume = 90;
             App.pitch = 50;
             App.rate = 50;
@@ -58,7 +58,7 @@ public class App extends Application {
         isReady = true;
 
         try {
-            App.current_voice = pref.getString("voice", "baseline");
+            App.current_voice = pref.getString("voice", "john");
             App.current_volume = pref.getFloat("volume", 50.0f);
             App.pitch = pref.getInt("pitch", 50);
             App.rate = pref.getInt("rate", 50);
@@ -66,7 +66,7 @@ public class App extends Application {
             App.last_system_rate = pref.getInt("last_rate", 0);
         } catch (Exception e) {
             pref.edit().clear().commit();
-            App.current_voice = "baseline";
+            App.current_voice = "john";
             App.current_volume = 90;
             App.pitch = 50;
             App.rate = 50;

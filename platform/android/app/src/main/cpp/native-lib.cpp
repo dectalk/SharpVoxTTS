@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "SharpVox.h"
+#include "VoicePresets.h"
 
 #define MAX_BUFFER (10 * 60) * 22050
 static short samples[MAX_BUFFER];
@@ -88,10 +89,14 @@ Java_dev_bytesizedfox_sharpvoxapp_App_nativeSetVoice(JNIEnv* env, jobject /*obj*
 
     if (!g_speaker) return;
 
-    if (name == "whisper") {
-        g_speaker->SetPreset(SharpVox::VoicePreset::Whisper);
+    SharpVox::VoiceData voice;
+    if (SharpVox::VoicePresets::TryGet(name, voice)) {
+        voice.Rate = g_speaker->Rate;
+        voice.PitchHz = g_speaker->PitchHz;
+        g_speaker->ApplyVoiceData(voice);
     } else {
         g_speaker->SetPreset(SharpVox::VoicePreset::Baseline);
+        g_speaker->ApplyVoice();
     }
 }
 
