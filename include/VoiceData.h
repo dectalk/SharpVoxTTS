@@ -36,11 +36,11 @@ struct VoiceData {
 
     int16_t F4Freq = 3825;
     int16_t F4BW = 200;
-    int16_t F5Freq = 4500;
+    int16_t F5Freq = 6000;
     int16_t F5BW = 250;
     int16_t F4pFreq = 3825;
     int16_t F4pBW = 150;
-    int16_t F5pFreq = 4200;
+    int16_t F5pFreq = 6000;
     int16_t F5pBW = 100;
     int16_t F6pFreq = 4500;
     int16_t F6pBW = 150;
