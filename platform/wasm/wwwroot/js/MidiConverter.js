@@ -77,6 +77,12 @@
         if (metaType === 0x51 && mlen >= 3) {
           const us = (view.getUint8(pos) << 16) | (view.getUint8(pos+1) << 8) | view.getUint8(pos+2);
           events.push({ absTime, type: 'tempo', tempo: us });
+        } else if ((metaType === 0x03 || metaType === 0x04) && mlen > 0) {
+          // Track or instrument name, used as a fallback instrument hint.
+          let text = '';
+          for (let i = 0; i < mlen && pos + i < view.byteLength; i++) text += String.fromCharCode(view.getUint8(pos + i));
+          text = text.replace(/[^\x20-\x7e]/g, '').trim();
+          if (text) events.push({ absTime, type: 'name', text });
         }
         pos += mlen;
 
@@ -111,7 +117,7 @@
             events.push({ absTime, type: 'cc', ch, ctrl, val });
             break;
           }
-          case 0xC: pos++;   break; // program change
+          case 0xC: events.push({ absTime, type: 'program', ch, program: view.getUint8(pos++) }); break;
           case 0xD: pos++;   break; // channel pressure
           case 0xE: pos += 2; break; // pitch bend
           default:  pos++;   break;
@@ -163,13 +169,27 @@
     const tpb = division;
 
     const allEvents = [];
+    const chNames = new Map();
     let pos = 8 + headerLen;
     for (let t = 0; t < ntrks; t++) {
       if (pos + 8 > view.byteLength) break;
       const tm = String.fromCharCode(view.getUint8(pos), view.getUint8(pos+1), view.getUint8(pos+2), view.getUint8(pos+3));
       const tlen = view.getUint32(pos + 4);
       pos += 8;
-      if (tm === 'MTrk') allEvents.push(...parseTrack(view, pos, tlen));
+      if (tm === 'MTrk') {
+        const evs = parseTrack(view, pos, tlen);
+        // Attach this track's name metas to every channel it plays notes on.
+        const names = evs.filter(e => e.type === 'name').map(e => e.text);
+        if (names.length) {
+          for (const e of evs) {
+            if (e.type !== 'note_on') continue;
+            if (!chNames.has(e.ch)) chNames.set(e.ch, []);
+            const list = chNames.get(e.ch);
+            for (const n of names) if (!list.includes(n)) list.push(n);
+          }
+        }
+        allEvents.push(...evs);
+      }
       pos += tlen;
     }
 
@@ -182,13 +202,19 @@
     const chVolume     = new Map();
     const chExpression = new Map();
     const chEvents     = new Map();
+    const chProgram    = new Map();
+    const firstProgram = new Map();
 
     for (const ev of allEvents) {
-      if (ev.type === 'cc') {
+      if (ev.type === 'program') {
+        chProgram.set(ev.ch, ev.program);
+      } else if (ev.type === 'cc') {
         if (ev.ctrl === 1) modWheel.set(ev.ch, ev.val);
         else if (ev.ctrl === 7) chVolume.set(ev.ch, ev.val);
         else if (ev.ctrl === 11) chExpression.set(ev.ch, ev.val);
       } else if (ev.type === 'note_on') {
+        // Program in effect at the channel's first note identifies it.
+        if (!firstProgram.has(ev.ch)) firstProgram.set(ev.ch, chProgram.has(ev.ch) ? chProgram.get(ev.ch) : null);
         // Capture channel volume and expression at note start, GM defaults
         // CC7=100 and CC11=127.
         const vol  = chVolume.has(ev.ch) ? chVolume.get(ev.ch) : 100;
@@ -214,7 +240,7 @@
 
     for (const evs of chEvents.values()) evs.sort((a, b) => a.startTick - b.startTick);
 
-    return { tpb, tempoMap, chEvents };
+    return { tpb, tempoMap, chEvents, firstProgram, chNames };
   }
 
   // Voice splitting
@@ -291,12 +317,6 @@
       const n = notes[i];
       if (i > 0 && gapUnits[i] > 0) tokens.push(...leadPauseTokens(gapUnits[i]));
 
-      const r = durUnits[i] * UNIT_REQUEST_MS;
-      if (runR !== r) {
-        tokens.push(`r${r}`);
-        runR = r;
-      }
-
       const vib = n.mod > 0 ? Math.round((n.mod / 127.0) * 8.0) : 0;
       if (vib !== runV) {
         tokens.push(`v${vib}`);
@@ -308,19 +328,68 @@
         runNote = n.note;
       }
 
-      tokens.push(n.phoneme || phoneme);
+      // Each phoneme gets its own whole-unit r, since the engine renders every
+      // ungrouped phoneme at the full r and would stretch the note otherwise.
+      const seq = phonemeSeq(n.phoneme || phoneme);
+      const units = splitNoteUnits(seq, durUnits[i]);
+      for (let k = 0; k < seq.length; k++) {
+        const r = units[k] * UNIT_REQUEST_MS;
+        if (runR !== r) {
+          tokens.push(`r${r}`);
+          runR = r;
+        }
+        tokens.push(seq[k]);
+      }
     }
     return tokens;
   }
 
-  function minDurationUnits(phoneme) {
-    const ms = Math.max(MIN_DURATION_MS[phoneme] || FRAME_MS, FRAME_MS);
+  const VOWELS = new Set([
+    'IY', 'IH', 'EH', 'AE', 'AA', 'AO', 'AH', 'UH', 'UW', 'ER', 'AY', 'AW', 'EY',
+    'OW', 'OY', 'AX', 'IX', 'YU', 'RX', 'JP_A', 'JP_I', 'JP_U', 'JP_E', 'JP_O',
+  ]);
+
+  // Bare phoneme name of a token, without stress marks or pitch suffixes.
+  function phonemeBase(tok) {
+    const m = /^[A-Z_]+/.exec(tok);
+    return m ? m[0].replace(/_+$/, '') : tok;
+  }
+
+  // Split a phoneme string like "LX AA" into its tokens.
+  function phonemeSeq(phoneme) {
+    const seq = String(phoneme || '').trim().toUpperCase().split(/\s+/).filter(Boolean);
+    return seq.length ? seq : ['AA'];
+  }
+
+  function minDurationUnits(tok) {
+    const ms = Math.max(MIN_DURATION_MS[phonemeBase(tok)] || FRAME_MS, FRAME_MS);
     return Math.max(1, Math.ceil(ms / UNIT_REQUEST_MS));
+  }
+
+  // The note holds on its first vowel, else its last phoneme.
+  function nucleusIndex(seq) {
+    const v = seq.findIndex(t => VOWELS.has(phonemeBase(t)));
+    return v >= 0 ? v : seq.length - 1;
+  }
+
+  // Minimum units for a whole phoneme sequence.
+  function seqMinUnits(seq) {
+    return seq.reduce((sum, t) => sum + minDurationUnits(t), 0);
+  }
+
+  // Distribute a note's units: non-nucleus phonemes at their engine minimum,
+  // the nucleus takes the remainder. totalUnits is never below seqMinUnits.
+  function splitNoteUnits(seq, totalUnits) {
+    const units = seq.map(minDurationUnits);
+    const nuc = nucleusIndex(seq);
+    const others = units.reduce((s, u, k) => (k === nuc ? s : s + u), 0);
+    units[nuc] = Math.max(units[nuc], totalUnits - others);
+    return units;
   }
 
   // Engine minimum units for each note, honoring per-note phoneme overrides.
   function noteMinUnits(notes, phoneme) {
-    return notes.map(n => minDurationUnits(n.phoneme || phoneme));
+    return notes.map(n => seqMinUnits(phonemeSeq(n.phoneme || phoneme)));
   }
 
   // Split an inter-onset span into note duration plus optional pause units,
@@ -520,6 +589,10 @@
           id: ch,
           label: `Channel ${ch}${ch === 9 ? ' [drums]' : ''} — ${evs.length} notes, start +${(startMs/1000).toFixed(2)}s, span ~${(durMs/1000).toFixed(2)}s`,
           noteCount: evs.length,
+          defaultPhoneme: vowelForChannel(ch),
+          instrument: global.MidiInstruments
+            ? global.MidiInstruments.detect(ch, _parsed.firstProgram.get(ch), _parsed.chNames.get(ch))
+            : null,
         });
       }
       return { channels, tpb: _parsed.tpb };
@@ -529,26 +602,27 @@
     }
   }
 
-  // Plan every renderable voice for the selected channel(s). Each voice is a
-  // self-contained token stream from t=0, with exact engine onsets for the
-  // per-note gain envelope and the longest predicted length for the mix.
-  function buildVoices(channelId, phoneme, sampleRate) {
+  // Plan every renderable voice for the configured channels. channelCfg maps
+  // channel id to { enabled, phoneme, voice, volume }; channels missing from
+  // it or disabled are skipped. Each voice is a self-contained token stream
+  // from t=0 with exact engine onsets for the per-note gain envelope.
+  function buildVoices(channelCfg, sampleRate) {
     if (!_parsed) return null;
-    // Default is one vowel per channel index like klattschmidi; a typed
-    // phoneme forces that phoneme on every channel.
-    phoneme = (phoneme || '').trim().toUpperCase();
-    const forcedPhoneme = phoneme && phoneme !== 'AUTO' ? phoneme : null;
-
-    const targets = channelId !== 'all'
-      ? [parseInt(channelId, 10)]
-      : [..._parsed.chEvents.keys()].sort((a, b) => a - b);
 
     const voices = [];
-    for (const ch of targets) {
+    for (const ch of [..._parsed.chEvents.keys()].sort((a, b) => a - b)) {
+      const cfg = channelCfg.get(ch);
+      if (!cfg || !cfg.enabled) continue;
       const evs = _parsed.chEvents.get(ch);
       if (!evs || !evs.length) continue;
-      const chPhoneme = forcedPhoneme || vowelForChannel(ch);
-      const minAdvanceMs = Math.max(MIN_DURATION_MS[chPhoneme] || FRAME_MS, FRAME_MS);
+      // Empty or "auto" falls back to the per-channel default vowel.
+      const typed = (cfg.phoneme || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const chPhoneme = typed && typed !== 'AUTO' ? typed : vowelForChannel(ch);
+      const voiceName = cfg.voice || '';
+      const volume = cfg.volume === undefined ? 1 : Math.max(0, cfg.volume);
+      // No space after the command: the engine reads "] " as a clause end and adds a delay.
+      const prefix = voiceName ? `[:voice ${voiceName}]` : '';
+      const minAdvanceMs = seqMinUnits(phonemeSeq(chPhoneme)) * UNIT_REQUEST_MS;
       const notes = enrichNotes(evs, _parsed.tempoMap, _parsed.tpb);
       splitIntoVoices(notes, minAdvanceMs).forEach((voiceNotes, vi) => {
         const layout = layoutVoice(voiceNotes, chPhoneme, sampleRate);
@@ -557,9 +631,11 @@
           voice: vi,
           name: `ch${ch}-v${vi}`,
           phoneme: chPhoneme,
+          voiceName,
+          volume,
           notes: voiceNotes,
           layout,
-          text: `[:klattsch on] ${layout.tokens.join(' ')}`,
+          text: `${prefix}[:klattsch on] ${layout.tokens.join(' ')}`,
         });
       });
     }
@@ -582,7 +658,8 @@
 
     var voice = 0;
     for (const v of job.voices) {
-      lines.push(`# ${v.name} [${v.phoneme}] notes=${v.notes.length}`, `[voice=${voice}]`,v.text.replace("[:klattsch on]",""), '');
+      lines.push(`# ${v.name} [${v.phoneme}] voice=${v.voiceName || 'current'} volume=${v.volume} notes=${v.notes.length}`,
+        `[voice=${voice}]`, v.layout.tokens.join(' '), '');
       voice = voice + 1;
     }
 

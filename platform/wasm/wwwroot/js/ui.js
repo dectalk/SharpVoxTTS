@@ -185,18 +185,76 @@ window.ui = {
             return;
         }
 
-        const sel = document.getElementById('midiChannel');
-        sel.innerHTML = '<option value="all">All channels</option>';
-        for (const ch of result.channels) {
-            const opt = document.createElement('option');
-            opt.value = ch.id;
-            opt.textContent = ch.label;
-            sel.appendChild(opt);
-        }
+        window.ui._buildMidiChannelRows(result.channels);
         const summary = result.channels.map(c => `  ${c.label}`).join('\n');
         document.getElementById('toolsDiagnostics').innerText =
             `MIDI loaded — ${result.tpb} ticks/beat, ${result.channels.length} channel(s)\n${summary}`;
-        window.ui.updateStatus("midi loaded — select channel and convert");
+        window.ui.updateStatus("midi loaded — configure channels and render");
+    },
+
+    // Per-channel render settings keyed by channel id: enabled, phoneme
+    // (empty = channel default vowel), voice (empty = current UI voice), volume.
+    _midiChannelCfg: new Map(),
+    _midiVoices: ['beth', 'chris', 'deborah', 'jack', 'jess', 'john', 'matt', 'tommy', 'whisper'],
+
+    _buildMidiChannelRows: (channels) => {
+        const cfgMap = new Map();
+        window.ui._midiChannelCfg = cfgMap;
+        const box = document.getElementById('midiChannels');
+        box.innerHTML = '';
+        box.style.display = channels.length ? 'flex' : 'none';
+        const inputStyle = 'background:#262626; color:var(--fg); border:1px solid var(--line); border-radius:2px; padding:3px 6px; font:inherit; font-size:0.8rem;';
+        for (const ch of channels) {
+            // Detected instruments prefill a matching voice and phoneme.
+            const inst = ch.instrument;
+            const cfg = { enabled: true, phoneme: inst ? inst.phoneme : '', voice: inst ? inst.voice : '', volume: 1 };
+            cfgMap.set(ch.id, cfg);
+            const row = document.createElement('div');
+            row.className = 'controls-row';
+            row.style.gap = '6px';
+            row.title = inst ? `${ch.label}\ninstrument: ${inst.name} (from ${inst.source})` : ch.label;
+
+            const en = document.createElement('input');
+            en.type = 'checkbox';
+            en.checked = true;
+            en.title = 'Include this channel in the render';
+            en.onchange = () => { cfg.enabled = en.checked; row.style.opacity = en.checked ? '1' : '0.45'; };
+
+            const name = document.createElement('span');
+            name.style.cssText = 'min-width:118px; max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dim);';
+            name.textContent = `ch${ch.id} ${inst ? inst.name : (ch.id === 9 ? 'drums' : '')} (${ch.noteCount})`;
+
+            const ph = document.createElement('input');
+            ph.type = 'text';
+            ph.placeholder = ch.defaultPhoneme;
+            ph.value = cfg.phoneme;
+            ph.title = 'ARPABET phoneme for this channel, empty for the default vowel';
+            ph.style.cssText = 'width:52px;' + inputStyle;
+            ph.oninput = () => { cfg.phoneme = ph.value; };
+
+            const vo = document.createElement('select');
+            vo.title = 'Voice preset for this channel';
+            vo.innerHTML = '<option value="">current voice</option>' +
+                window.ui._midiVoices.map(v => `<option value="${v}">${v}</option>`).join('');
+            vo.value = cfg.voice;
+            vo.onchange = () => { cfg.voice = vo.value; };
+
+            const vol = document.createElement('input');
+            vol.type = 'range';
+            vol.min = '0';
+            vol.max = '200';
+            vol.step = '5';
+            vol.value = '100';
+            vol.title = 'Channel volume';
+            vol.style.cssText = 'width:90px;';
+            const volLbl = document.createElement('span');
+            volLbl.style.cssText = 'min-width:38px; color:var(--dim);';
+            volLbl.textContent = '100%';
+            vol.oninput = () => { cfg.volume = vol.value / 100; volLbl.textContent = `${vol.value}%`; };
+
+            row.append(en, name, ph, vo, vol, volLbl);
+            box.appendChild(row);
+        }
     },
 
     _midiResult: null,
@@ -245,13 +303,11 @@ window.ui = {
     // master mix plus per-channel buffers for the grid video export.
     renderMidi: async () => {
         if (window.ui._midiBusy) return;
-        const phoneme = document.getElementById('midiPhoneme').value;
-        const channel = document.getElementById('midiChannel').value;
         const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 48000;
 
-        const job = window.MidiConverter.buildVoices(channel, phoneme, sampleRate);
+        const job = window.MidiConverter.buildVoices(window.ui._midiChannelCfg, sampleRate);
         if (!job) {
-            window.ui.updateStatus("no midi file loaded");
+            window.ui.updateStatus("no midi file loaded or no channels enabled");
             return;
         }
 
@@ -281,7 +337,7 @@ window.ui = {
                     diag.push(`warning: ${v.name} rendered ${drift > 0 ? '+' : ''}${drift} samples vs prediction`);
                 }
                 window.MidiConverter.accumulateWithGain(
-                    res.samples, v.layout.onsetSamples, v.notes.map(n => n.gain),
+                    res.samples, v.layout.onsetSamples, v.notes.map(n => n.gain * v.volume),
                     sampleRate, mix, chAudio.get(v.channel));
                 const evs = chPhonemes.get(v.channel);
                 for (let k = 0; k < res.codes.length; k++) {
