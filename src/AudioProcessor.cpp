@@ -1383,7 +1383,8 @@ namespace SharpVox {
                     fixedDur = 40;
                 }
 
-                if ((nextFlags & kSonorantF) != 0) {
+                // final vowels keep their lengthening before a sonorant coda
+                if ((nextFlags & kSonorantF) != 0 && !curIsVowel) {
                     fixedDur -= 20;
                 }
 
@@ -1410,7 +1411,9 @@ namespace SharpVox {
                 }
 
                 // Polysyllabic shortening (Klatt 1976, Table II Rule 4, K=0.78).
-                if ((curCtrl & kMore_Than_One_Syllable_In_Word) != 0) {
+                // stressed word-final syllables are exempt
+                if ((curCtrl & kMore_Than_One_Syllable_In_Word) != 0 &&
+                    ((curSylType & kWord_End) == 0 || (curStress & kPrimOrEmphStress) == 0)) {
                     percent = (int32_t)((int64_t)percent * 78 * pct >> 16);
                 }
             }
@@ -1531,6 +1534,10 @@ namespace SharpVox {
                         num1 = k1pct * 150;
                     }
                     minDur -= minDur >> 2;
+                    if ((curFlags & kStopF) != 0 && (nextFlags & kStopF) != 0) {
+                        // stop-stop closures stay long
+                        num1 = k1pct * 85;
+                    }
                     if (curPhon == _S_ || curPhon == _TH_) {
                         if ((nextFlags & kStopF) != 0) {
                             num1 = k1pct * 50;
@@ -1557,6 +1564,8 @@ namespace SharpVox {
                             num1 = k1pct * 60;
                         } else if ((prevFlags & kNasalF) != 0 && curStress == 0) {
                             num1 = k1pct * 10;
+                        } else if ((prevFlags & kStopF) != 0) {
+                            num1 = k1pct * 85;
                         }
                     }
                     percent = (int32_t)((int64_t)percent * num1 >> 16);
@@ -1603,7 +1612,6 @@ namespace SharpVox {
                     durHold  = (int32_t)((durHold * _rateRatioLowGain) >> 16);
                     fixedDur = (int32_t)((fixedDur * _rateRatio) >> 16);
                 }
-                durHold += fixedDur;
                 if ((curCtrl & kJapaneseMora) == 0) {
                     double sc = DurationClassScale(curPhon, (curStress & kPrimOrEmphStress) != 0, nextPhon);
                     // Function-word reduction, EV vowels in function words run ~60% of content-word vowels
@@ -1612,6 +1620,8 @@ namespace SharpVox {
                     }
                     durHold = (int32_t)(durHold * sc + 0.5);
                 }
+                // clause-final lengthening is added after the class scale
+                durHold += fixedDur;
 
                 int32_t d = (durHold * _userDurBuf2[i]) >> kDurStepRes;
                 d /= kFrameTime;

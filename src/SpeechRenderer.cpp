@@ -198,8 +198,11 @@ void SpeechRenderer::InsertBurst() {
             if (burstDur < 1) burstDur = 1;
         }
         if ((_curPhonFlags & kStopF) != 0 && (_curPhonFlags & kVoicedF) == 0) {
-            if ((_nextPhonFlags & (kStopF | kNasalF)) != 0) {
+            if ((_nextPhonFlags & kNasalF) != 0) {
                 burstDur = (_nextPhonCtrl & kPrimOrEmphStress) != 0 ? 0 : burstDur >> 1;
+            } else if ((_nextPhonFlags & kStopF) != 0 && (_nextPhonCtrl & kPrimOrEmphStress) != 0) {
+                // half burst before a stressed stop, full burst otherwise
+                burstDur >>= 1;
             }
         }
         int32_t closureDur = _curPhonDur - burstDur;
@@ -256,6 +259,13 @@ void SpeechRenderer::InsertBurst() {
         } else if ((_curPhonCtrl & kVowelF) == 0) {
             rel += 20 / kFrameTime;
         }
+        if ((_curPhonCtrl & kBoundryTypeField) != 0) {
+            // word-final stop into the next word is unaspirated
+            rel = 10 / kFrameTime;
+        } else if ((_curPhonFlags & kVowelF) != 0 && (_curPhonCtrl & kPrimOrEmphStress) == 0) {
+            // unstressed vowels get half the VOT
+            rel >>= 1;
+        }
         // Shrink the fixed aspiration/VOT window toward the linear tempo at high
         // rates, unless a full plosive release already forced rel below.
         if (_transRateScaleQ16 != 65536 && (_curPhonCtrl & kPlosive_Release) == 0) {
@@ -265,7 +275,7 @@ void SpeechRenderer::InsertBurst() {
         if (rel >= _curPhonDur) {
             rel = _curPhonDur - 1;
         }
-        if (rel > (_curPhonDur >> 1) && (_curPhonFlags & kVowelF) != 0 && (_curPhonCtrl & kPrimOrEmphStress) != 0) {
+        if (rel > (_curPhonDur >> 1) && (_curPhonFlags & kVowelF) != 0) {
             rel = _curPhonDur >> 1;
         }
         if ((_curPhonCtrl & kPlosive_Release) != 0) {
@@ -643,6 +653,13 @@ int16_t SpeechRenderer::GetTargetRaw(int32_t index) {
             }
         }
 
+        // stop before a liquid moves F2 and F3 halfway to the liquid
+        if ((cf & kStopF) != 0 && (nf & kLiqGlideF) != 0 && (_curBlockIndex == kF2 || _curBlockIndex == kF3)) {
+            int16_t lv = GetVoiceFormantValue(_curBlockIndex, next);
+            if (lv >= 0) {
+                tv = (int16_t)((tv + lv) >> 1);
+            }
+        }
         // N/EN before non-front vowels: BW2 is wider due to nasal coupling
         if ((cur == _N_ || cur == _EN_) && _curBlockIndex == kBW2 && Tables::GetForwardRank(next) != kFrontR) {
             tv += 60;
@@ -668,6 +685,10 @@ int16_t SpeechRenderer::GetTargetRaw(int32_t index) {
             }
             if ((ctrl & kPlosive_Release) != 0) {
                 tv -= (int16_t)(((pf & kNasalF) != 0) ? 6 : 20);
+                // final stop release is unvoiced
+                if ((pf & kStopF) != 0) {
+                    tv = 0;
+                }
             }
             if ((cf & kStopF) != 0 && (pf & kVoicedF) == 0) {
                 tv = 0;
@@ -680,6 +701,10 @@ int16_t SpeechRenderer::GetTargetRaw(int32_t index) {
             tv = (int16_t)(Tables::GetForwardRank(next) == kFrontR ? 58 : 62);
             if ((ctrl & kStressField) == 0) {
                 tv -= 1;
+            }
+            // quieter HH noise after a voiced phone
+            if ((pf & kVoicedF) != 0 && (ctrl & kJapaneseMora) == 0) {
+                tv -= 8;
             }
         } else {
             tv = 0;
@@ -1092,6 +1117,10 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
             if ((_curPhonFlags & kVowelF) != 0) {
                 headLevel = last;
                 headTime = kFormantHeadMs / kFrameTime;
+                if (_prevPhon == _R_ && _curBlockIndex == kF3) {
+                    // slower F3 rise out of R
+                    headTime = 100 / kFrameTime;
+                }
                 if (headTime > _curPhonDur / 2) headTime = _curPhonDur / 2;
                 if (rawTarg >= kNoValue) {
                     tailLevel = cb.curP_END_Targ + (cb.nextP_START_Targ - cb.curP_END_Targ) * kVowelDriftPct / 100;
@@ -1207,6 +1236,10 @@ void SpeechRenderer::HeadRules(ControlBlock& cb, int32_t bt) {
                 if ((_curPhonFlags & kStopF) != 0) {
                     // Stop closure holds the tract frozen for the full duration
                     _transTime = _curPhonDur;
+                    if ((_prevPhonFlags & kSonorant1F) != 0) {
+                        // shorter closure transition after a sonorant
+                        _transTime = 30 / kFrameTime;
+                    }
                 }
             }
             if ((_curPhonFlags & kNasalF) != 0) {
@@ -1327,6 +1360,11 @@ void SpeechRenderer::HeadRules(ControlBlock& cb, int32_t bt) {
             // Plosive AV onset is brief to reach the closure voicing state quickly
             // [Lisker & Abramson 1964]
             _transTime = 10 / kFrameTime;
+            if ((_curPhonFlags & kStopF) != 0 && (_prevPhonFlags & kSonorant1F) != 0) {
+                // voicing carries into the closure after a sonorant
+                _transLevel = cb.prevP_END_Targ;
+                _transTime  = ((_curPhonFlags & kVoicedF) != 0 ? 30 : 25) / kFrameTime;
+            }
         }
         if (_curBlockIndex == kAF) {
             if (_curPhon == _SIL_ || _curPhon == _F_ || _curPhon == _TH_ || _curPhon == _S_ || _curPhon == _SH_) {
