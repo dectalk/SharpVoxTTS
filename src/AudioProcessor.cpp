@@ -1255,17 +1255,18 @@ namespace SharpVox {
     // Per-class duration balance applied on top of the Klatt/Hertz rules.
     static double DurationClassScale(int16_t phon, bool stressed, int16_t nextPhon) {
         if (phon == _IX_ || phon == _AX_ || phon == _EL_ || phon == _EN_) return 0.79;  // reduced / syllabic
-        if (phon >= _IY_ && phon <= _YU_)  return stressed ? 0.72 : 0.67;  // full vowels
-        if (phon >= _IR_ && phon <= _UR_)  return 1.0;                     // r-colored vowels
-        if (phon >= _M_ && phon <= _NG_)   return 1.17;                    // nasals
+        if (phon >= _IY_ && phon <= _YU_)  return stressed ? 0.64 : 0.58;  // full vowels
+        if (phon >= _IR_ && phon <= _UR_)  return stressed ? 0.74 : 0.68;  // r-colored vowels, carry the R
+        if (phon >= _M_ && phon <= _NG_)   return 1.40;                    // nasals
         if (phon >= _W_ && phon <= _LX_)   return 1.36;                    // liquids / glides
-        if (phon >= _F_ && phon <= _HH_)   return 1.36;                    // fricatives
+        if (phon == _V_ || phon == _DH_ || phon == _Z_ || phon == _ZH_) return 1.10;  // voiced fricatives
+        if (phon >= _F_ && phon <= _HH_)   return 1.30;                    // voiceless fricatives
         if ((phon >= _P_ && phon <= _G_) || phon == _TX_ || phon == _DD_) {          // stops
             bool stopNext = (nextPhon >= _P_ && nextPhon <= _JH_) || nextPhon == _TX_ || nextPhon == _DD_;
             return stopNext ? 1.0 : 1.25;
         }
-        if (phon == _CH_ || phon == _JH_)  return 0.75;                    // affricates
-        if (phon == _DX_)                  return 1.44;                    // flap
+        if (phon == _CH_ || phon == _JH_)  return 1.25;                    // affricates
+        if (phon == _DX_)                  return 2.4;                     // flap, table min = max = 20 ms
         return 1.0;
     }
 
@@ -1277,6 +1278,7 @@ namespace SharpVox {
         int16_t prevPhon = _SIL_;
         int64_t prevCtrl = 0;
         bool eFlag = false;
+        bool contentWord = true;
 
         for (int32_t i = 1; i < _phonBuf2InIndex; i++) {
             int16_t  curPhon    = GetPhon2(i);
@@ -1297,6 +1299,10 @@ namespace SharpVox {
             int16_t  next2Phon  = GetPhon2(i + 2);
             int64_t  next2Ctrl  = GetCtrl2(i + 2);
             uint32_t next2Flags = Tables::GetFeatureFlags(next2Phon);
+
+            if ((curCtrl & kWord_Start) != 0) {
+                contentWord = (curCtrl & kContent_Word) != 0;
+            }
 
             int32_t percent  = k100pct_Dur;
             int32_t fixedDur = 0;
@@ -1458,6 +1464,7 @@ namespace SharpVox {
             // Postvocalic context (House & Fairbanks 1953, JASA 25:105; Chen 1970, Phonetica 22:129; Hertz 1982 rules 14/15)
             {
                 bool  vocFlag   = false;
+                bool  voiceless = false;
                 int16_t theObstr = _SIL_;
                 int64_t num1    = k100percent;
 
@@ -1475,6 +1482,7 @@ namespace SharpVox {
                         if (theObstr != _SIL_) {
                             uint32_t obFlags = Tables::GetFeatureFlags(theObstr);
                             if ((obFlags & kVoicedF) == 0) {
+                                voiceless = true;
                                 fixedDur -= fixedDur >> 1;
                                 num1 = k1pct * 80;
                                 if ((obFlags & (kStopF | kAffricateF)) != 0) {
@@ -1484,7 +1492,7 @@ namespace SharpVox {
                                 // Hertz 1982 rules 14/15: pre-fricative 135%, pre-voiced stop 130%
                                 num1 = (obFlags & kFric) != 0 ? k1pct * 135 : k1pct * 130;
                                 if ((obFlags & kStopF) == 0 && theObstr != _DX_ && (curCtrl & kPrimOrEmphStress) != 0) {
-                                    fixedDur += 25;
+                                    fixedDur += curSylType < kTerm_End ? 12 : 25;
                                 }
                             } else if ((obFlags & kNasalF) != 0) {
                                 num1 = k1pct * 85;
@@ -1494,8 +1502,9 @@ namespace SharpVox {
                         }
                     }
 
+                    // Non-final contexts keep 3/4 of pre-voiceless shortening but only 1/2 of the lengthening (EV table)
                     if (curSylType < kTerm_End || vocFlag) {
-                        num1 = (num1 >> 1) + kOneHalf;
+                        num1 = voiceless ? (3 * num1 + k100percent) >> 2 : (num1 >> 1) + kOneHalf;
                     }
 
                     percent = (int32_t)((int64_t)percent * num1 >> 16);
@@ -1596,7 +1605,12 @@ namespace SharpVox {
                 }
                 durHold += fixedDur;
                 if ((curCtrl & kJapaneseMora) == 0) {
-                    durHold = (int32_t)(durHold * DurationClassScale(curPhon, (curStress & kPrimOrEmphStress) != 0, nextPhon) + 0.5);
+                    double sc = DurationClassScale(curPhon, (curStress & kPrimOrEmphStress) != 0, nextPhon);
+                    // Function-word reduction, EV vowels in function words run ~60% of content-word vowels
+                    if (!contentWord && (curCtrl & kPronounWord) == 0) {
+                        sc *= curIsVowel ? 0.8 : 0.9;
+                    }
+                    durHold = (int32_t)(durHold * sc + 0.5);
                 }
 
                 int32_t d = (durHold * _userDurBuf2[i]) >> kDurStepRes;

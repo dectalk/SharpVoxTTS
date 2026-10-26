@@ -710,6 +710,10 @@ int16_t SpeechRenderer::GetTargetRaw(int32_t index) {
                     tv = 0;
                 }
             }
+            // Affricate frication ran ~6 dB above EV's above 2 kHz
+            if ((cur == _CH_ || cur == _JH_) && tv > 0) {
+                tv = (int16_t)(tv > 10 ? tv - 10 : 0);
+            }
         }
     }
     return tv;
@@ -975,9 +979,9 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
 
                 if ((_curPhonFlags & kVowelF) != 0) {
                     // u = uMax * exp(-D/tau): Lindblom undershoot fraction in 16.16.
-                    constexpr float kUndershootMax   = 0.5f;   // ceiling on undershoot
+                    constexpr float kUndershootMax   = 0.35f;  // ceiling on undershoot, lowered with the shorter vowels
                     constexpr float kUndershootTauMs = 90.0f;  // articulatory time constant
-                    constexpr float kStressedScale   = 0.75f;  // stressed vowels hyperarticulate
+                    constexpr float kStressedScale   = 0.5f;   // stressed vowels hyperarticulate
                     constexpr float kCentralFrac     = 0.5f;   // weight of neutral-vowel pull
                     float durMs = (float)_curPhonDur * kFrameTime;
                     float u = kUndershootMax * expf(-durMs / kUndershootTauMs);
