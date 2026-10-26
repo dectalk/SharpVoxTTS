@@ -79,7 +79,7 @@ struct VoiceData {
 
     // Fujisaki intonation model (replaces Taylor-tilt).  Command amplitudes
     // are log-F0 (neper) units; Q16 = 16.16 fixed.
-    int32_t FujisakiPhraseAmpQ16           = (int32_t)(0.19 * 65536);  // phrase command amplitude
+    int32_t FujisakiPhraseAmpQ16           = (int32_t)(0.057 * 65536); // phrase command amplitude
     int32_t FujisakiPrimaryAccentAmpQ16    = (int32_t)(0.18 * 65536);  // nuclear / primary-stress accent
     int32_t FujisakiHeadAccentAmpQ16       = (int32_t)(0.17 * 65536);  // pre-nuclear head accent (L+H*/H*)
     int32_t FujisakiSecondaryAccentAmpQ16  = (int32_t)(0.12 * 65536);  // pronoun / light stress accent
@@ -87,7 +87,7 @@ struct VoiceData {
     int16_t FujisakiPitchCurveExpPct       = 100;   // prominence shaping exponent (100 = 1.0)
     int16_t FujisakiMonoAccentDurScalePct  = 100;   // mono-syllable accent duration scale (100 = 1.0)
     int32_t FujisakiCompoundStepQ16        = 0;     // secondary-after-primary step-down (nepers)
-    int16_t FujisakiFinalDropPct           = 19;    // statement final-vowel drop (19 -> end ~0.81x)
+    int16_t FujisakiFinalDropPct           = 33;    // statement final drop (33 -> end ~0.67x)
 
     int16_t UptalkAmt = 0;        // 0-100: sentence-final rising tendency (0=natural fall, 100=strong uptalk/rise)
     int16_t StressEarly = 0;      // -50 to +50: stress peak alignment (-50=early/assertive, 0=natural, +50=late/hesitant)

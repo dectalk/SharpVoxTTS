@@ -105,6 +105,7 @@ private:
     int32_t _bwWidenQ16 = 65536;
 
     int32_t _durDoneInPhon  = 0;
+    int32_t _avOffs = 0, _avDrop = 0;
     int32_t _curPhonBufIndex = 0;
     bool _startingNewPhon    = true;
     bool _bigBang            = true;
@@ -130,6 +131,8 @@ private:
     static constexpr int32_t kStepSizeRes = 3;
     static constexpr int32_t k1pct        = 655;
     static constexpr int32_t kFrameTime   = 5;
+    static constexpr int32_t kFormantHeadMs = 30;  // vowel formant transition length
+    static constexpr int32_t kVowelDriftPct = 30;  // vowel drift toward the next segment
     // Overridable via -D at build time; defaults are the shipped values.
 #ifndef SVX_MIN_TRANS_FRAMES
 #define SVX_MIN_TRANS_FRAMES 2

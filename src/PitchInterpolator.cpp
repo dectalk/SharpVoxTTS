@@ -351,18 +351,19 @@ namespace SharpVox {
         _dbgPhraseResp = (int32_t)(_fuji.PhraseResp() * kPitchUnitsPerNeper);
         _dbgAccentResp = (int32_t)(_fuji.AccentResp() * kPitchUnitsPerNeper);
 
-        // Statement clauses blend a drop across the last vowel; question/tilde
-        // rises arrive via _punctOffset instead.
+        // statement clauses fall from the nuclear vowel and hold the drop to clause end question/tilde rises arrive via _punctOffset instead
         int32_t clauseShaping = 0;
         {
             int16_t endPunct = _plan.EndPunctuation;
             bool isStatement = (endPunct == 0 || endPunct == _Period_);
-            if (isStatement && _vpFujiFinalDropPitch != 0
-                && _clauseFrame >= _lastVowelStartFrame
-                && _clauseFrame < _lastVowelStartFrame + _lastVowelDur) {
+            if (isStatement && _vpFujiFinalDropPitch != 0 && _lastVowelDur > 0
+                && _clauseFrame >= _lastVowelStartFrame) {
                 int32_t intoVowel = _clauseFrame - _lastVowelStartFrame;
-                int32_t frac = (_lastVowelDur > 0) ? ((intoVowel << 16) / _lastVowelDur) : 0;
-                // Blend the (already negative) drop across the vowel
+                // fall completes at 80% of the span then holds
+                int32_t span = _lastVowelDur * 80 / 100;
+                if (span < 1) span = 1;
+                int32_t frac = (intoVowel << 16) / span;
+                if (frac > 65536) frac = 65536;
                 clauseShaping = (_vpFujiFinalDropPitch * frac) >> 16;
             }
         }
@@ -410,11 +411,11 @@ namespace SharpVox {
                     _wordNuclei[j] = nuclei;
                     _wordHadPrimary[j] = primarySoFar;
                     int16_t p = GetPhon(j);
-                    if ((Tables::GetFeatureFlags(p) & kVowelF) != 0) {
+                    // anchor the final fall on the last stressed nuclear vowel
+                    if ((Tables::GetFeatureFlags(p) & kVowelF) != 0
+                        && (GetPhonCtrl(j) & kPrimOrEmphStress) != 0) {
                         lastVowelIdx = j;
-                        if ((GetPhonCtrl(j) & kPrimOrEmphStress) != 0) {
-                            primarySoFar = true;
-                        }
+                        primarySoFar = true;
                     }
                 }
                 if (i < n) {
@@ -430,6 +431,13 @@ namespace SharpVox {
                 }
             }
             _lastVowelDur = _plan.DurBuf[lastVowelIdx];
+            // stretch the fall to the end of the last voiced phone
+            for (int32_t i = n - 1; i > lastVowelIdx; --i) {
+                if (GetPhon(i) != _SIL_ && (Tables::GetFeatureFlags(GetPhon(i)) & kVoicedF) != 0) {
+                    _lastVowelDur = _phonStartFrame[i + 1] - _lastVowelStartFrame;
+                    break;
+                }
+            }
         }
 
         // Replay the clause's intonation profile (no user pitch) and average it
@@ -455,7 +463,9 @@ namespace SharpVox {
                            && _phonStartFrame[(size_t)phonIdx + 1] <= f) {
                         phonIdx++;
                     }
+                    // The final fall is excluded so the mean does not cancel it
                     if (phonIdx < _plan.PhonBufInIndex
+                        && !(_lastVowelDur > 0 && f >= _lastVowelStartFrame)
                         && (Tables::GetFeatureFlags(GetPhon(phonIdx)) & kVoicedF) != 0) {
                         sum += off;
                         voicedCount++;

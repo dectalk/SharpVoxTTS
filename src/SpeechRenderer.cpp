@@ -341,6 +341,9 @@ void SpeechRenderer::InterpolateControls() {
             val += cb.TAIL_offs >> kStepSizeRes;
             cb.TAIL_offs += cb.TAIL_step;
         }
+        if (i == kAV && val > 0 && (_avOffs || _avDrop)) {
+            val += _avOffs - (_avDrop * _durDoneInPhon) / (_curPhonDur > 0 ? _curPhonDur : 1);
+        }
         _controlData[i] = (int16_t)val;
 
         // Override with burst/aspiration value during the onset window
@@ -904,6 +907,18 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
     SetPhonContext(_curPhonBufIndex);
     FillPhonTargets();
 
+    // Vowel Av staircase
+    // per-vowel base relative to the mean plus a linea decline across the vowel, larger for unstressed vowels and schwa
+    _avOffs = 0; _avDrop = 0;
+    if ((_curPhonFlags & kVowelF) != 0) {
+        static const int8_t kVowelAvBase[23] = {1,3,0,-5,0,0,0,0,-4,-2,3,5,1,-4,-2,-4,2,5,0,0,-4,-2,3};
+        bool stressed = (_curPhonCtrl & kStressField) != 0;
+        bool schwa = (_curPhon == _AX_ || _curPhon == _IX_);
+        _avOffs = schwa ? -3 : (stressed ? 0 : -3);
+        _avDrop = schwa ? 3 : (stressed ? 2 : 4);
+        if (_curPhon >= 0 && _curPhon < 23) _avOffs += kVowelAvBase[_curPhon];
+    }
+
     int32_t dur = _curPhonDur;
     if (dur < 1) {
         dur = 1;
@@ -1065,6 +1080,26 @@ void SpeechRenderer::InitCtrlsForNewPhon() {
             headLevel = cb.prevTailLevel;
         }
         cb.prevTailLevel = tailLevel;
+
+        // the transition sits at the start of each segment, from the last emitted value
+        // vowels then drift 30% toward the next segment and no segment has a tail.
+        if (bt == kFreqType) {
+            int32_t last = (_prevPhon == _SIL_) ? cb.prevP_END_Targ : _controlData[_curBlockIndex];
+            if ((_curPhonFlags & kVowelF) != 0) {
+                headLevel = last;
+                headTime = kFormantHeadMs / kFrameTime;
+                if (headTime > _curPhonDur / 2) headTime = _curPhonDur / 2;
+                if (rawTarg >= kNoValue) {
+                    tailLevel = cb.curP_END_Targ + (cb.nextP_START_Targ - cb.curP_END_Targ) * kVowelDriftPct / 100;
+                    tailTime = _curPhonDur - headTime;
+                } else {
+                    tailTime = 0;
+                }
+            } else {
+                if (headTime > 0) headLevel = last;
+                tailTime = 0;
+            }
+        }
 
         cb.HEAD_offs = 0; cb.HEAD_step = 0;
         if (headTime > 0) {

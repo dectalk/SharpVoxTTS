@@ -714,8 +714,23 @@ void KlattSynthesizerFP::SynthesizeFrame(Frame frame, int16_t* outputBuffer, int
 
         int32_t effF0Hz = (int32_t)PitchToHz(frame.F0) + PitchOffsetHz + vibratoHz;
         if (effF0Hz < 20) effF0Hz = 20;
-        // glotPhaseInc = effF0Hz * (1<<24) / sampleRate  effF0Hz * _phaseIncPerHz_q4 >> 4
-        _glotPhaseInc = (int32_t)((int64_t)effF0Hz * _phaseIncPerHz_q4 >> 4);
+
+        // glottal rate uses fractional Hz from the pitch code
+        // ramped linearly from the previous frame so integer Hz held per frame does not staircase the F0
+        if (sampCtr == SampFrameLen - 1) {
+            _f0PrevHz = _f0FrameHz;
+            _f0FrameHz = frame.F0 > 0
+                ? 25.0f * (float)(1 << ((frame.F0 & 0xF00) >> 8)) * std::pow(2.0f, (frame.F0 & 0xFF) / 256.0f)
+                : 0.0f;
+        }
+        float f0Hz = _f0FrameHz;
+        if (_f0PrevHz > 0.0f && _f0FrameHz > 0.0f) {
+            float t = (float)(SampFrameLen - sampCtr) / (float)SampFrameLen;
+            f0Hz = _f0PrevHz + (_f0FrameHz - _f0PrevHz) * t;
+        }
+        f0Hz += (float)PitchOffsetHz + (float)((int64_t)_vibDepth_q8 * sinVib) / 8388608.0f;
+        if (f0Hz < 20.0f) f0Hz = 20.0f;
+        _glotPhaseInc = (int32_t)(f0Hz * (float)(1 << 24) / (float)_sampleRate);
 
         if (VoiceChorus != 0) {
             int32_t cF0Hz = (int32_t)PitchToHz((int16_t)(frame.F0+VoiceChorus)) + PitchOffsetHz + vibratoHz;

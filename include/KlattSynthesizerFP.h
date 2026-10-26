@@ -190,6 +190,7 @@ namespace SharpVox {
         //  Glottal source (same 24-bit phase scheme as float version)
         int32_t _glotPhase;
         int32_t _glotPhaseInc;
+        float _f0PrevHz = 0.0f, _f0FrameHz = 0.0f;
         int32_t _chorusPhase;
         int32_t _chorusPhaseInc;
         // Inline polynomial parameters (replace lookup tables — eliminates staircase quantization).
