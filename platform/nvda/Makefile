@@ -15,7 +15,9 @@ LIB_SRCS := \
     $(ROOT)/src/SpeechRenderer.cpp \
     $(ROOT)/src/TtsEngine.cpp \
     $(ROOT)/src/Phonemizer.cpp \
-    $(ROOT)/src/LetterToSound.cpp \
+    $(ROOT)/src/LetterToSoundFlite.cpp \
+    $(ROOT)/src/LetterToSoundFliteModel.cpp \
+    $(ROOT)/src/LetterToSoundNRL.cpp \
     $(ROOT)/src/DictionaryReader.cpp \
     $(ROOT)/src/LibraryDataDictionary.cpp \
     $(ROOT)/src/LibraryDataSymbols.cpp \

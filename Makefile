@@ -19,7 +19,9 @@ LIB_SRCS := \
     src/SpeechRenderer.cpp \
     src/TtsEngine.cpp \
     src/Phonemizer.cpp \
-    src/LetterToSound.cpp \
+    src/LetterToSoundFlite.cpp \
+    src/LetterToSoundFliteModel.cpp \
+    src/LetterToSoundNRL.cpp \
     src/DictionaryReader.cpp \
     src/LibraryDataDictionary.cpp \
     src/LibraryDataSymbols.cpp \

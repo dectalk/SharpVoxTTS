@@ -1,6 +1,7 @@
 #include "../include/Phonemizer.h"
 #include "../include/AudioProcessor.h"
-#include "../include/LetterToSound.h"
+#include "../include/LetterToSoundNRL.h"
+#include "../include/LetterToSoundFlite.h"
 #include "../include/DictionaryReader.h"
 #include "../include/HeteronymResolver.h"
 #include "../include/LibraryData.h"
@@ -1621,17 +1622,34 @@ namespace SharpVox {
             StatDict++;
         }
 
+        // Prefer the flite LTS model over the NRL rules when available.
+        if (phons.empty() && LetterToSoundFlite::Enabled()) {
+            std::vector<uint8_t> fliteStress;
+            std::vector<uint8_t> flitePhons;
+            if (LetterToSoundFlite::Convert(upperWord, flitePhons, fliteStress)) {
+                StatLts++;
+                // Splice OP_STRESS1 before each primary vowel, like dict output.
+                phons.reserve(flitePhons.size() + 2);
+                for (size_t i = 0; i < flitePhons.size(); i++) {
+                    if (i < fliteStress.size() && fliteStress[i] == 1) {
+                        phons.push_back(OP_STRESS1);
+                    }
+                    phons.push_back(flitePhons[i]);
+                }
+            }
+        }
+
         // 2. Fall back to letter-to-sound rules
         if (phons.empty()) {
             std::vector<uint8_t> hints;
-            std::vector<uint8_t> lts = LetterToSound::Convert(upperWord, hints);
+            std::vector<uint8_t> lts = LetterToSoundNRL::Convert(upperWord, hints);
             StatLts++;
             // LTS output carries no stress marks, which leaves the word
             // deaccented (flat, and stealing the phrase nucleus). Assign lexical
             // stress via the MITalk stress rules (honoring rule hints) and splice the OP_STRESS1 /
             // OP_STRESS2 opcodes before each marked vowel so they reach the
             // tokenizer exactly like a dictionary word's stress.
-            std::vector<uint8_t> marks = LetterToSound::AssignStress(lts, hints);
+            std::vector<uint8_t> marks = LetterToSoundNRL::AssignStress(lts, hints);
             phons.reserve(lts.size() + 2);
             for (int i = 0; i < (int)lts.size(); i++) {
                 if (marks[i] == 1) {

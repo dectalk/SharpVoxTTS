@@ -1,4 +1,4 @@
-#include "LetterToSound.h"
+#include "LetterToSoundNRL.h"
 #include "../include/PhonemeDefs.h"
 
 #include <cctype>
@@ -9,9 +9,9 @@
 namespace SharpVox {
 
 // Static member definitions
-uint8_t LetterToSound::CharacterFeatureTable[128] = {};
-std::vector<LetterToSound::CompiledRule> LetterToSound::CompiledLetterToSoundRules[26];
-bool LetterToSound::s_initialized = false;
+uint8_t LetterToSoundNRL::CharacterFeatureTable[128] = {};
+std::vector<LetterToSoundNRL::CompiledRule> LetterToSoundNRL::CompiledLetterToSoundRules[26];
+bool LetterToSoundNRL::s_initialized = false;
 
 // Format: "LEFT[MATCH]RIGHT=OUTPUT"
 // Special symbols in LEFT / RIGHT (not between brackets):
@@ -717,7 +717,7 @@ static uint8_t LookupPhoneme(const std::string& tok) {
     return (uint8_t)_AX_;
 }
 
-std::vector<uint8_t> LetterToSound::ParseOutput(const std::string& s, std::vector<uint8_t>& hints) {
+std::vector<uint8_t> LetterToSoundNRL::ParseOutput(const std::string& s, std::vector<uint8_t>& hints) {
     // Split on ' '; a trailing stress digit on a token becomes its hint. An
     // output holding a stressless (0) or pre-stressing (3) vowel is affix
     // material, so all of its unmarked phonemes are hinted stressless too.
@@ -752,7 +752,7 @@ std::vector<uint8_t> LetterToSound::ParseOutput(const std::string& s, std::vecto
     return buf;
 }
 
-LetterToSound::CompiledRule LetterToSound::ParseRule(const char* s) {
+LetterToSoundNRL::CompiledRule LetterToSoundNRL::ParseRule(const char* s) {
     // Splits "LEFT[MATCH]RIGHT=OUTPUT" into its four fields.
     const char* lbr = strchr(s, '[');
     const char* rbr = strchr(s, ']');
@@ -768,7 +768,7 @@ LetterToSound::CompiledRule LetterToSound::ParseRule(const char* s) {
     return CompiledRule(std::move(left), std::move(match), std::move(right), std::move(phons), std::move(hints));
 }
 
-void LetterToSound::Initialize() {
+void LetterToSoundNRL::Initialize() {
     if (s_initialized) {
         return;
     }
@@ -803,7 +803,7 @@ void LetterToSound::Initialize() {
     }
 }
 
-bool LetterToSound::MatchMid(const std::vector<char>& inp, int pos, const std::string& match, int& end) {
+bool LetterToSoundNRL::MatchMid(const std::vector<char>& inp, int pos, const std::string& match, int& end) {
     end = pos;
     for (char m : match) {
         if (end >= (int)inp.size() || inp[end] != m) {
@@ -814,11 +814,11 @@ bool LetterToSound::MatchMid(const std::vector<char>& inp, int pos, const std::s
     return true;
 }
 
-bool LetterToSound::IsVowel(const std::vector<char>& inp, int p) {
+bool LetterToSoundNRL::IsVowel(const std::vector<char>& inp, int p) {
     return p >= 0 && p < (int)inp.size() && (CharacterFeatureTable[(unsigned char)inp[p]] & CV) != 0;
 }
 
-bool LetterToSound::IsConsonant(const std::vector<char>& inp, int p) {
+bool LetterToSoundNRL::IsConsonant(const std::vector<char>& inp, int p) {
     if (p < 0 || p >= (int)inp.size()) {
         return false;
     }
@@ -832,15 +832,15 @@ bool LetterToSound::IsConsonant(const std::vector<char>& inp, int p) {
     return false;
 }
 
-bool LetterToSound::IsVoiced(const std::vector<char>& inp, int p) {
+bool LetterToSoundNRL::IsVoiced(const std::vector<char>& inp, int p) {
     return p >= 0 && p < (int)inp.size() && (CharacterFeatureTable[(unsigned char)inp[p]] & CZ) != 0;
 }
 
-bool LetterToSound::IsUMod(const std::vector<char>& inp, int p) {
+bool LetterToSoundNRL::IsUMod(const std::vector<char>& inp, int p) {
     return p >= 0 && p < (int)inp.size() && (CharacterFeatureTable[(unsigned char)inp[p]] & CU) != 0;
 }
 
-bool LetterToSound::MatchSibilant(const std::vector<char>& inp, int& pos, int dir) {
+bool LetterToSoundNRL::MatchSibilant(const std::vector<char>& inp, int& pos, int dir) {
     if (pos < 0 || pos >= (int)inp.size()) {
         return false;
     }
@@ -860,7 +860,7 @@ bool LetterToSound::MatchSibilant(const std::vector<char>& inp, int& pos, int di
     return false;
 }
 
-bool LetterToSound::MatchSuffix(const std::vector<char>& inp, int pos, int& end) {
+bool LetterToSoundNRL::MatchSuffix(const std::vector<char>& inp, int pos, int& end) {
     end = pos;
     if (pos < 0 || pos >= (int)inp.size()) {
         return false;
@@ -899,7 +899,7 @@ bool LetterToSound::MatchSuffix(const std::vector<char>& inp, int pos, int& end)
 // Recursive context matcher with backtracking for #, *, :
 // dir=+1: left-to-right (right context), ci advances forward
 // dir=-1: right-to-left (left context), ci retreats toward -1
-bool LetterToSound::MatchCtx(const std::vector<char>& inp, int pos, const std::string& ctx, int ci, int dir) {
+bool LetterToSoundNRL::MatchCtx(const std::vector<char>& inp, int pos, const std::string& ctx, int ci, int dir) {
     int cEnd = (dir == 1) ? (int)ctx.size() : -1;
     if (ci == cEnd) {
         return true;
@@ -1017,12 +1017,12 @@ bool LetterToSound::MatchCtx(const std::vector<char>& inp, int pos, const std::s
     }
 }
 
-std::vector<uint8_t> LetterToSound::Convert(const std::string& word) {
+std::vector<uint8_t> LetterToSoundNRL::Convert(const std::string& word) {
     std::vector<uint8_t> hints;
     return Convert(word, hints, nullptr);
 }
 
-std::vector<uint8_t> LetterToSound::Convert(const std::string& word, std::vector<uint8_t>& hints,
+std::vector<uint8_t> LetterToSoundNRL::Convert(const std::string& word, std::vector<uint8_t>& hints,
                                             std::vector<RuleHit>* hits) {
     hints.clear();
     if (word.empty()) {
@@ -1088,12 +1088,12 @@ std::vector<uint8_t> LetterToSound::Convert(const std::string& word, std::vector
     return phons;
 }
 
-bool LetterToSound::IsVowelPhon(uint8_t p) {
+bool LetterToSoundNRL::IsVowelPhon(uint8_t p) {
     // _IY_.._UR_ (0..22) are vocalic nuclei; _SIL_ = 23 and up are not.
     return p <= 22;
 }
 
-bool LetterToSound::IsLongVowelPhon(uint8_t p) {
+bool LetterToSoundNRL::IsLongVowelPhon(uint8_t p) {
     // Tense/long vowels per MITalk 6.3: ey iy ay ow uw oy aw (plus yu).
     // r-colored vowels (er + ir/xr/ar/or/ur) are treated as heavy so a syllable
     // built on them never counts as "weak". Everything else (ih eh ae ix ax ah
@@ -1108,7 +1108,7 @@ bool LetterToSound::IsLongVowelPhon(uint8_t p) {
     }
 }
 
-uint8_t LetterToSound::ShortenVowel(uint8_t p) {
+uint8_t LetterToSoundNRL::ShortenVowel(uint8_t p) {
     // 6.3.5 tenseness reduction table. oy and aw are left long per MITalk.
     switch (p) {
         case _EY_: return _AE_;
@@ -1120,7 +1120,7 @@ uint8_t LetterToSound::ShortenVowel(uint8_t p) {
     }
 }
 
-uint8_t LetterToSound::ReduceVowel(uint8_t p) {
+uint8_t LetterToSoundNRL::ReduceVowel(uint8_t p) {
     // Only short vowels reduce; long/tense/r-colored and already-reduced ix/ax pass.
     if (IsLongVowelPhon(p)) {
         return p;
@@ -1132,7 +1132,7 @@ uint8_t LetterToSound::ReduceVowel(uint8_t p) {
     }
 }
 
-void LetterToSound::BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out,
+void LetterToSoundNRL::BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out,
                                     const std::vector<uint8_t>* hints) {
     // A syllable is a vowel nucleus plus the consonants that follow it up to
     // (not including) the next vowel. coda = that consonant count. With hints,
@@ -1160,7 +1160,7 @@ void LetterToSound::BuildStressSyls(const std::vector<uint8_t>& phons, std::vect
     }
 }
 
-bool LetterToSound::IsOnsetCluster(uint8_t a, uint8_t b) {
+bool LetterToSoundNRL::IsOnsetCluster(uint8_t a, uint8_t b) {
     switch (a) {
         case _P_: case _B_: case _K_: case _G_: case _F_: return b == _R_ || b == _L_;
         case _T_: case _D_: case _TH_:                    return b == _R_;
@@ -1168,7 +1168,7 @@ bool LetterToSound::IsOnsetCluster(uint8_t a, uint8_t b) {
     }
 }
 
-int LetterToSound::MainStressSyl(const std::vector<StressSyl>& syls, bool suffixed) {
+int LetterToSoundNRL::MainStressSyl(const std::vector<StressSyl>& syls, bool suffixed) {
     int n = (int)syls.size();
     if (n == 0) {
         return -1;
@@ -1201,18 +1201,18 @@ int LetterToSound::MainStressSyl(const std::vector<StressSyl>& syls, bool suffix
     return n - 1;
 }
 
-int LetterToSound::MainStressVowelIndex(const std::vector<uint8_t>& phons) {
+int LetterToSoundNRL::MainStressVowelIndex(const std::vector<uint8_t>& phons) {
     std::vector<StressSyl> syls;
     BuildStressSyls(phons, syls);
     int m = MainStressSyl(syls);
     return m < 0 ? -1 : syls[m].idx;
 }
 
-std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons) {
+std::vector<uint8_t> LetterToSoundNRL::AssignStress(std::vector<uint8_t>& phons) {
     return AssignStress(phons, std::vector<uint8_t>(phons.size(), 0));
 }
 
-std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons, const std::vector<uint8_t>& hints) {
+std::vector<uint8_t> LetterToSoundNRL::AssignStress(std::vector<uint8_t>& phons, const std::vector<uint8_t>& hints) {
     std::vector<uint8_t> marks(phons.size(), 0);
     std::vector<StressSyl> syls;
     BuildStressSyls(phons, syls, &hints);

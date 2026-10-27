@@ -1,5 +1,5 @@
-#ifndef SHARPVOX_LETTER_TO_SOUND_H
-#define SHARPVOX_LETTER_TO_SOUND_H
+#ifndef SHARPVOX_LETTER_TO_SOUND_NRL_H
+#define SHARPVOX_LETTER_TO_SOUND_NRL_H
 
 #include <cstdint>
 #include <string>
@@ -9,7 +9,7 @@ namespace SharpVox {
 
     // English letter-to-sound rules derived from NRL Report 7948
     // (Elovitz, Johnson, McHugh, Shore - "Automatic Translation of English Text to Phonetics", 1976)
-    class LetterToSound {
+    class LetterToSoundNRL {
     public:
         // Apply LTS rules to a single word and return its phoneme sequence.
         // CompiledLetterToSoundRules for each initial letter are tried in order; the first match wins.
@@ -124,4 +124,4 @@ namespace SharpVox {
 
 }  // namespace SharpVox
 
-#endif  // SHARPVOX_LETTER_TO_SOUND_H
+#endif  // SHARPVOX_LETTER_TO_SOUND_NRL_H
