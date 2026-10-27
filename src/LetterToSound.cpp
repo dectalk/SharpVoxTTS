@@ -22,6 +22,23 @@ bool LetterToSound::s_initialized = false;
 // OUTPUT: space-separated NRL phoneme names, or empty for silence.
 
 static const char* const LTS_A[] = {
+    " [A]W^=AX0",
+    " [A]BOU=AX0",
+    " [A]GAIN=AX0",
+    " [A]LONG=AX0",
+    " [A]ROUND=AX0",
+    " [A]CROSS=AX0",
+    " [A]MONG=AX0",
+    " [A]LONE=AX0",
+    " [A]BOVE=AX0",
+    " [A]LIKE=AX0",
+    " [A]LIVE=AX0",
+    " [A]HEAD=AX0",
+    "#:#:[A]TOR=EY0",
+    "#:#:[A]TED =EY0",
+    "#:#:[A]TES =EY0",
+    "#:#:[A]TING=EY0",
+    "#:#:[ATE] =EY0 T0",
     "[A] =AX",
     " [ARE]=AA R",
     " [AR]O=AX R",
@@ -37,20 +54,34 @@ static const char* const LTS_A[] = {
     "#:[AG]E=IH JH",
     "#[A]^+#=AE",
     " *[A]^+ =EY",
+    "[ARE] =EH R",
+    "[ARED] =EH R D",
+    "[ARES] =EH R Z",
+    "[AR]ING=EH R",
+    "[ARE]NT=EH R",
     "[A]^%=EY",
-    " *[ARR]=AX R",
+    " *[ARR]=EH R",
     "[ARR]=AE R",
     " *[AR] =AA R",
     "[AR] =ER",
+    "#:[AR]Y =EH2 R",
     "[AR]=AA R",
     "[AIR]=EH R",
     "[AI]=EY",
     "[AY]=EY",
+    "[AU] =OW",
     "[AU]=AO",
     "#*:[AL] =AX L",
     "#*:[ALS] =AX L Z",
     "[ALK]=AO K",
+    "[ALL] =AO L",
+    "[ALL]S =AO L",
+    "[ALL]%=AO L",
+    "[A]LL=AE",
+    "QU[AL]#=AA L",
+    "[AL]#=AE L",
     "[AL]=AO L",
+    " [ABLE]=EY B AX L",
     " *[ABLE]=EY B AX L",
     "[ABLE]=AX B AX L",
     "[ANG]+=EY N JH",
@@ -58,7 +89,9 @@ static const char* const LTS_A[] = {
     nullptr,
 };
 static const char* const LTS_B[] = {
-    " [BE]^#=B IH",
+    " [BEEN] =B IH N",
+    "[BB]=B",
+    " [BE]^#=B IH0",
     "[BEING]=B IY IH NG",
     " [BOTH] =B OW TH",
     " [BUS]#=B IH Z",
@@ -67,24 +100,63 @@ static const char* const LTS_B[] = {
     nullptr,
 };
 static const char* const LTS_C[] = {
-    " [CH]=K",
-    "^^E[CH]=K",
+    " [COMM]=K AX0 M",
+    " [CONN]=K AX0 N",
+    " [COM]P=K AX0 M",
+    " [CON]^#=K AX0 N",
+    " [CON]^^#=K AX0 N",
+    "[CIALLY]=SH AX3 L IY",
+    "[CIAL]=SH AX3 L",
+    "[CIAN]=SH AX3 N",
+    "[CIOUS]=SH AX3 S",
+    " [CITY]=S IH T IY",
+    " [CITI]=S IH T IY",
+    " [CHR]=K R",
+    "[CHR]=K R",
+    " [CHOR]=K AO R",
+    " [CHEM]=K EH M",
+    "[CH]ARACT=K",
+    "[CH]ITECT=K",
+    "TE[CH]=K",
+    "ME[CH]AN=K",
+    "PSY[CH]=K",
+    "AR[CH]I=K",
+    "E[CH]O=K",
+    "[CH]AEL=K",
+    "[CH]ESTR=K",
+    "MA[CH]IN=SH",
+    " [CH]EF=SH",
+    " [CH]IC=SH",
+    "[CH]UTE=SH",
+    "[CH]R=K",
+    "[CH]L=K",
+    "[CHA]OS=K EY",
+    "[CHE]M=K EH",
+    "[CH]OR=K",
+    "[CH]OL=K",
+    "[CH]ORE=CH",
     "[CH]=CH",
     " S[CI]#=S AY",
     "[CI]A=SH",
     "[CI]O=SH",
     "[CI]EN=SH",
+    "X[C]+=",
+    "[CC]+=K S",
+    "[CC]=K",
     "[C]+=S",
-    "[CharacterFeatureTable]=K",
+    "[CK]=K",
     ".[COM]%=K AH M",
+    "[C]QU=",
     "[C]=K",
     nullptr,
 };
 static const char* const LTS_D[] = {
+    " [DIS]^#=D IH0 S",
+    " [DIS]^^#=D IH0 S",
+    "[DD]=D",
+    "[D]G+=",
     "#*:[DED] =D IH D",
-    ".E[D]=D",
-    "#*^E[D]=T",
-    " [DE]^#=D IH",
+    " [DE]^#=D IH0",
     " [DO] =D UW",
     " [DOES]=D AH Z",
     " [DOING]=D UW IH NG",
@@ -94,49 +166,112 @@ static const char* const LTS_D[] = {
     nullptr,
 };
 static const char* const LTS_E[] = {
+    " [EX]^#=IH0 K S",
+    " [EX]^^#=IH0 K S",
+    "#:T[ED] =IH0 D",
+    "#:D[ED] =IH0 D",
+    "#:SS[ED] =T0",
+    "#:NS[ED] =T0",
+    "#:RS[ED] =T0",
+    "#:PS[ED] =T0",
+    "#:LS[ED] =T0",
+    "#:C[ED] =T0",
+    "#:X[ED] =T0",
+    "#:SH[ED] =T0",
+    "#:CH[ED] =T0",
+    "#:PH[ED] =T0",
+    "#:P[ED] =T0",
+    "#:K[ED] =T0",
+    "#:F[ED] =T0",
+    "#:UGH[ED] =T0",
+    "AS[ED] =T0",
+    "#:[ED] =D0",
+    "#:&[ES] =IH0 Z",
+    "#:P[ES] =S0",
+    "#:T[ES] =S0",
+    "#:K[ES] =S0",
+    "#:F[ES] =S0",
+    "#:[ES] =Z0",
     "#*[E] =",
     "#*^[E] =",
     " :[E] =IY",
     "#[ED] =D",
-    "#*[E]D =",
     "[EV]ER=EH V",
+    "[E]R%=IH",
+    "[E]TE =IY1",
+    "[E]ME =IY1",
+    "[E]SE =IY1",
+    "[E]TED =IY1",
+    "[E]TELY=IY1",
+    "[E]MELY=IY1",
+    "#:[E]^%=IX",
+    "[E]^ER#=EH",
+    "[E]^ES#=EH",
     "[E]^%=IY",
-    "[ERI]#=IY R IY",
+    "[ERI]#=IH R IY",
     "[ERI]=EH R IH",
     "#:[ER]#=ER",
     "[ER]#=EH R",
     "[ER]=ER",
     " [EVEN]=IY V EH N",
-    "#:[EW]=",
+    "#^[E]W#=",
+    "#:[EW]=UW",
     "@[EW]=UW",
     "[EW]=Y UW",
-    "[EO]=IY",
-    "#*&[ES] =IH Z",
-    "#*[ES] =",
+    "[EOUS]=IY AX S",
+    "[EO]N=IY AX",
+    "G[EO]^=IY AA",
+    "[EO]=IY OW",
     "#*[ELY] =L IY",
     "#*[EMENT] =M EH N T",
-    "[EFUL]=F UH L",
+    "[EFULL]=F AX0 L",
+    "[EFUL]=F AX0 L",
+    "[EER]=IH R",
     "[EE]=IY",
     "[EARN]=ER N",
+    "[EAR] =IH R",
+    "[EAR]S =IH R",
     " [EAR]^=ER",
     "[EAD]=EH D",
     "#*[EA] =IY AX",
     "[EA]SU=EH",
+    "[EA]LTH=EH",
+    "[EA]TH=EH",
+    "[EA]THER=EH",
+    "[EA]SANT=EH",
+    "[EA]VY=EH",
+    "[EA]DY=EH",
+    "[EA]ST=IY",
+    "[EAR]^=ER",
+    "[EAR]=IH R",
     "[EA]=IY",
+    "[EIGH]=EY",
+    "[EI]N=AY",
+    "[EI]^ =AY",
+    "[EIGN]=EY N",
     "[EIGH]=EY",
     "[EI]=IY",
     " [EYE]=AY",
     "[EY]=IY",
+    "[EUR]=UH R",
+    "^[EU]=UW",
     "[EU]=Y UW",
+    " [E]MA=IY",
     "[E]=EH",
     nullptr,
 };
 static const char* const LTS_F[] = {
+    " [FROM] =F R AH M",
+    "[FF]=F",
+    " [FULL]=F UH L",
+    "#:[FULL]=F AX0 L",
+    "#:[FUL]=F AX0 L",
     "[FUL]=F UH L",
     "[F]=F",
     nullptr,
 };
 static const char* const LTS_G[] = {
+    " [GH]=G",
     " [GN]=N",
     "[GIV]=G IH V",
     " [G]I=G",
@@ -160,9 +295,35 @@ static const char* const LTS_H[] = {
     nullptr,
 };
 static const char* const LTS_I[] = {
+    "#:#:[I]ZE=AY0",
+    "#:#:[I]SE =AY0",
+    "#:[ITUDE]=IX0 T UW2 D",
+    "#:[ITIS] =AY1 T IX0 S",
+    "#:[ICALLY]=IH3 K L IY",
+    "#:[ICALLY]=IH3 K AX L IY",
+    "#:[IC] =IH3 K",
+    "#:[ICS] =IH3 K S",
+    "#:[ICAL]=IH3 K AX L",
+    "#:[ICALLY]=IH3 K L IY",
+    "#:[ITY] =IH3 T IY",
+    "#:[ITIES] =IH3 T IY Z",
+    " [I]NN=IH",
     " [IN]=IH N",
     " [I] =AY",
-    "[IN]D=AY N",
+    "[IN]D =AY N",
+    "[IN]DS =AY N",
+    "[IN]DING=AY N",
+    "[IN]DER=AY N",
+    "[IN]DLY=AY N",
+    "F[IER]=AY ER",
+    "PL[IER]=AY ER",
+    "[IE]LD=IY",
+    "[IE]F=IY",
+    "[IE]CE=IY",
+    "[IE]VE=IY",
+    "FR[IE]ND=EH",
+    "#^[IE] =IY",
+    "#^[IES] =IY Z",
     "[IER]=IY ER",
     "#*R[IED] =IY D",
     "[IED] =AY D",
@@ -172,23 +333,42 @@ static const char* const LTS_I[] = {
     "[I]%=IY",
     "[I]E=IY",
     "[I]^+#=IH",
+    "[IR]I=IH R",
+    "[IR]E =AY ER",
+    "[IR]ED =AY ER",
+    "[IR]ES =AY ER",
     "[IR]#=AY R",
     "[IZ]%=AY Z",
     "[IS]%=AY Z",
     "[ID]%=AY D",
     "+^[I]+=IH",
+    "#:[I]TED =IX",
     "[I]T%=AY",
+    "[I]BE =AY",
+    "[I]LE =AY",
+    "[I]NE =AY",
+    "[I]ZE =AY",
+    "[I]DE =AY",
+    "[I]ME =AY",
     "#*:[I]^+=IH",
     "[I]^+=AY",
     "[IR]=ER",
     "[IGH]=AY",
+    "[I]LDR=IH",
     "[ILD]=AY L D",
     "[IGN] =AY N",
     "[IGN]^=AY N",
     "[IGN]%=AY N",
     "[IQUE]=IY K",
+    "LL[I]O=Y",
+    "N[I]ON=Y",
+    "LL[I]O=Y",
+    "N[I]ON=Y",
+    "L[I]A =Y",
+    "N[I]A =Y",
     "#:[I]#=IY",
     "[I]=IH",
+    "C[ION]=AX N",
     nullptr,
 };
 static const char* const LTS_J[] = {
@@ -196,24 +376,32 @@ static const char* const LTS_J[] = {
     nullptr,
 };
 static const char* const LTS_K[] = {
+    "[KK]=K",
     " [K]N=",
     "[K]=K",
     nullptr,
 };
 static const char* const LTS_L[] = {
+    "#:[LESS]=L IX0 S",
+    "#:[LY] =L IY0",
+    "[LL]=L",
     "[LO]C#=L OW",
-    "[L]L=",
-    "#^:[L]%=AX L",
+    "#^:[L]E =AX0 L",
+    "#^:[L]ES =AX0 L",
+    "#^:[L]ED =AX0 L",
     "[LEAD]=L IY D",
     "[L]=L",
     nullptr,
 };
 static const char* const LTS_M[] = {
+    "[MM]=M",
     "[MOV]=M UW V",
     "[M]=M",
     nullptr,
 };
 static const char* const LTS_N[] = {
+    "#:[NESS]=N IX0 S",
+    "[NN]=N",
     "E[NG]+=N JH",
     "[NG]R=NG G",
     "[NG]#=NG G",
@@ -225,15 +413,35 @@ static const char* const LTS_N[] = {
     nullptr,
 };
 static const char* const LTS_O[] = {
-    "[OF] =AX V",
+    "#:[OMETER]=AA1 M AX0 T ER",
+    "#:[ONOMY]=AA1 N AX0 M IY",
+    "#:[OLOGY]=AA1 L AX0 JH IY",
+    "#:[OLOGIES]=AA1 L AX0 JH IY Z",
+    "#:[OLOGIST]=AA1 L AX0 JH IX S T",
+    "#:[OLOGISTS]=AA1 L AX0 JH IX S T S",
+    "[OF] =AH V",
     "[OROUGH]=ER OW",
     "#:[OR] =ER",
     "#:[ORS] =ER Z",
+    "[O]RR=AO",
     "[OR]=AO R",
     " [ONE]=W AH N",
+    "SH[OW]=OW",
+    "T[OW]N=AW",
+    "D[OW]N=AW",
+    "BR[OW]=AW",
+    "ALL[OW]=AW",
+    "C[OW]=AW",
+    "H[OW]=AW",
+    "V[OW]=AW",
+    "P[OW]=AW",
     "[OW]=OW",
     " [OVER]=OW V ER",
+    "N[OV]=OW V",
+    "PR[OV]E=UW V",
     "[OV]=AH V",
+    "S[O]ME=AH",
+    "C[O]ME=AH",
     "[O]^%=OW",
     "[O]^EN=OW",
     "[O]^I#=OW",
@@ -243,17 +451,29 @@ static const char* const LTS_O[] = {
     " [OU]=AW",
     "H[OU]S#=AW",
     "[OUS]=AX S",
+    "M[OUR]N=AO R",
+    "[OUR]N=ER",
+    "T[OUR]=UH R",
     "[OUR]=AO R",
     "[OULD]=UH D",
     "^^[OU]L=AH",
     "[OUP]=UW P",
+    "C[OU]NTR=AH",
+    "[OU]BLE=AH",
+    "[OU]NG=AH",
     "[OU]=AW",
     "[OY]=OY",
     "[OING]=OW IH NG",
     "[OI]=OY",
     "[OOR]=AO R",
     "[OOK]=UH K",
-    "[OOD]=UH D",
+    "BL[OOD]=AH D",
+    "FL[OOD]=AH D",
+    "H[OOD]=UH D",
+    "W[OOD]=UH D",
+    "ST[OOD]=UH D",
+    "G[OOD]=UH D",
+    "[OOD]=UW D",
     "[OO]=UW",
     "[O]E=OW",
     "[O] =OW",
@@ -261,21 +481,36 @@ static const char* const LTS_O[] = {
     " [ONLY]=OW N L IY",
     " [ONCE]=W AH N S",
     "*[ON] T=OW N",
-    "C[ION]=AX N",
     "[O]NG=AO",
-    " ^:[ON]=AH N",
+    "[O]NN=AA",
+    "[O]MM=AA",
+    " M[ON]TH=AH N",
+    " FR[ON]T=AH N",
+    " S[ON] =AH N",
+    " W[ON]D=AH N",
+    " M[ON]D=AH N",
+    " M[ON]EY=AH N",
+    " T[ON] =AH N",
+    " T[ON]S =AH N",
+    " ^:[ON]=AA N",
     "#:[ON]=AX N",
     "#*[ON] =AX N",
     "#^[ON]=AX N",
     "[O]ST =OW",
+    "[OFF]=AO F",
     "[OF]^=AO F",
     "[OTHER]=AH DH ER",
     "[OSS] =AO S",
     "#*:[OM]=AH M",
+    "H[O]ST=OW",
+    "P[O]ST=OW",
+    "M[O]ST=OW",
+    "GH[O]ST=OW",
     "[O]=AA",
     nullptr,
 };
 static const char* const LTS_P[] = {
+    "[PP]=P",
     "[PH]=F",
     "[PEOP]=P IY P",
     "[POW]=P AW",
@@ -290,38 +525,66 @@ static const char* const LTS_Q[] = {
     nullptr,
 };
 static const char* const LTS_R[] = {
-    " [RE]^#=R IY",
+    "[RR]=R",
+    " [RE]^#=R IH0",
     "[R]=R",
     nullptr,
 };
 static const char* const LTS_S[] = {
+    "[SSION]=SH AX3 N",
+    " [SUB]^#=S AX0 B",
+    " [SUC]C=S AX0 K",
+    " [SUP]P=S AX0",
+    " [SUR]^#=S ER0",
     "[SH]=SH",
-    "#[SION]=ZH AX N",
+    "#[SION]=ZH AX3 N",
     "[SOME]=S AH M",
     "#[SUR]#=ZH ER",
     "[SUR]#=SH ER",
     "#[SU]#=ZH UW",
     "#[SSU]#=SH UW",
     "#[SED] =Z D",
+    "OU[S]E=S",
+    "PLEA[S]E=Z",
+    "EA[S]E=S",
+    "^A[S]E=S",
+    "CLO[S]E=S",
+    " DO[S]E=S",
+    "PO[S]E =S",
+    "CO[S]E=S",
+    "OMI[S]E=S",
+    "EMI[S]E=S",
+    " RE[S]OUR=S",
+    " RE[S]EARCH=S",
+    " RE[S]EA=S",
+    " RE[S]ET=S",
+    " RE[S]ELL=S",
+    "AU[S]E=Z",
     "#[S]#=Z",
     "[SAID]=S EH D",
-    "^^[SION]=SH AX N",
-    "[S]S=",
-    ".[S] =Z",
-    "#*.E[S] =Z",
-    "#*^##[S] =Z",
+    "^^[SION]=SH AX3 N",
+    "[SS]=S",
+    ".[S] =Z0",
+    "#*.E[S] =Z0",
+    "#*^##[S] =Z0",
     "#*^#[S] =S",
     "U[S] =S",
     " :#[S] =Z",
     " [SCH]=S K",
     "[S]C+=",
-    "#[SM]=Z M",
+    "#[SM] =Z AX0 M",
+    "#[SM]S =Z AX0 M",
     "#[SN] =Z AX N",
     "[S]=S",
     nullptr,
 };
 static const char* const LTS_T[] = {
-    " [THE] =DH AX",
+    "[TIALLY]=SH AX3 L IY",
+    "[TIAL]=SH AX3 L",
+    "[TIOUS]=SH AX3 S",
+    "[TT]=T",
+    "[T]CH=",
+    " [THE] =DH AH",
     "[TO] =T UW",
     "[THAT] =DH AE T",
     " [THIS] =DH IH S",
@@ -340,7 +603,7 @@ static const char* const LTS_T[] = {
     "[TH]=TH",
     "#:[TED] =T IH D",
     "S[TI]#N=CH",
-    "[TION]=SH AX N",
+    "[TION]=SH AX3 N",
     "[TIO]=SH",
     "[TIA]=SH",
     "[TIEN]=SH AX N",
@@ -351,6 +614,14 @@ static const char* const LTS_T[] = {
     nullptr,
 };
 static const char* const LTS_U[] = {
+    " [UNDER] =AH1 N D ER",
+    " [UNDERS] =AH1 N D ER Z",
+    " [UNDER]=AH2 N D ER0",
+    " [UN]^#=AH0 N",
+    " [UN]^^#=AH0 N",
+    " [UK] =Y UW K EY",
+    " [USA] =Y UW EH S EY",
+    " [U]NN=AH",
     " [UN]I=Y UW N",
     " [UN]=AH N",
     " [UPON]=AX P AO N",
@@ -374,13 +645,19 @@ static const char* const LTS_V[] = {
     nullptr,
 };
 static const char* const LTS_W[] = {
+    " [WOMEN]=W IH M IX N",
     " [WERE]=W ER",
+    "[WA]NT=W AA",
+    "[WA]ND=W AA",
+    "[WA]TCH=W AA",
+    "[WA]SH=W AA",
     "[WA]S=W AA",
     "[WA]T=W AA",
     "[WHERE]=WH EH R",
     "[WHOL]=HH OW L",
     "[WHO]=HH UW",
     "[WH]=WH",
+    "[WA]RR=W AO",
     "[WAR]=W AO R",
     "[WOR]^=W ER",
     "[WR]=R",
@@ -392,6 +669,8 @@ static const char* const LTS_X[] = {
     nullptr,
 };
 static const char* const LTS_Y[] = {
+    " [YOUR]=Y AO R",
+    " [Y]U=",
     "[YOUNG]=Y AH NG",
     " [YOU]=Y UW",
     " [YES]=Y EH S",
@@ -399,13 +678,14 @@ static const char* const LTS_Y[] = {
     "#^:[Y] =IY",
     "#^:[Y]I=IY",
     " :[Y] =AY",
-    " :[Y]#=Y",      // initial Y before vowel = glide (year, yellow, yet)
+    " :[Y]#=Y",  // initial Y before vowel = glide (year, yellow, yet)
     " :[Y]^+#=IH",
     " :[Y]^#=AY",
     "[Y]=IH",
     nullptr,
 };
 static const char* const LTS_Z[] = {
+    "[ZZ]=Z",
     "[Z]=Z",
     nullptr,
 };
@@ -437,25 +717,37 @@ static uint8_t LookupPhoneme(const std::string& tok) {
     return (uint8_t)_AX_;
 }
 
-std::vector<uint8_t> LetterToSound::ParseOutput(const std::string& s) {
-    if (s.empty()) {
-        return {};
-    }
-    // Trim leading/trailing spaces and split on ' '
+std::vector<uint8_t> LetterToSound::ParseOutput(const std::string& s, std::vector<uint8_t>& hints) {
+    // Split on ' '; a trailing stress digit on a token becomes its hint. An
+    // output holding a stressless (0) or pre-stressing (3) vowel is affix
+    // material, so all of its unmarked phonemes are hinted stressless too.
     std::vector<uint8_t> buf;
+    hints.clear();
+    bool affix = false;
     size_t start = 0;
-    while (start < s.size() && s[start] == ' ') {
-        start++;
-    }
     while (start < s.size()) {
         size_t end = s.find(' ', start);
         if (end == std::string::npos) {
             end = s.size();
         }
         if (end > start) {
-            buf.push_back(LookupPhoneme(s.substr(start, end - start)));
+            std::string tok = s.substr(start, end - start);
+            uint8_t h = 0;
+            char d = tok.back();
+            if (d >= '0' && d <= '3') {
+                tok.pop_back();
+                h = (d == '0') ? 3 : (d == '3') ? 4 : (uint8_t)(d - '0');
+                affix |= (d == '0' || d == '3');
+            }
+            buf.push_back(LookupPhoneme(tok));
+            hints.push_back(h);
         }
         start = end + 1;
+    }
+    if (affix) {
+        for (auto& h : hints) {
+            if (h == 0) h = 3;
+        }
     }
     return buf;
 }
@@ -471,7 +763,9 @@ LetterToSound::CompiledRule LetterToSound::ParseRule(const char* s) {
     std::string right = std::string(rbr + 1, eq - rbr - 1);
     std::string out   = std::string(eq + 1);
 
-    return CompiledRule(std::move(left), std::move(match), std::move(right), ParseOutput(out));
+    std::vector<uint8_t> hints;
+    std::vector<uint8_t> phons = ParseOutput(out, hints);
+    return CompiledRule(std::move(left), std::move(match), std::move(right), std::move(phons), std::move(hints));
 }
 
 void LetterToSound::Initialize() {
@@ -724,6 +1018,13 @@ bool LetterToSound::MatchCtx(const std::vector<char>& inp, int pos, const std::s
 }
 
 std::vector<uint8_t> LetterToSound::Convert(const std::string& word) {
+    std::vector<uint8_t> hints;
+    return Convert(word, hints, nullptr);
+}
+
+std::vector<uint8_t> LetterToSound::Convert(const std::string& word, std::vector<uint8_t>& hints,
+                                            std::vector<RuleHit>* hits) {
+    hints.clear();
     if (word.empty()) {
         return {};
     }
@@ -756,7 +1057,9 @@ std::vector<uint8_t> LetterToSound::Convert(const std::string& word) {
         }
 
         bool matched = false;
-        for (const auto& rule : CompiledLetterToSoundRules[li]) {
+        const auto& group = CompiledLetterToSoundRules[li];
+        for (int ri = 0; ri < (int)group.size(); ri++) {
+            const auto& rule = group[ri];
             int endPos = 0;
             if (!MatchMid(inp, pos, rule.Match, endPos)) {
                 continue;
@@ -768,8 +1071,10 @@ std::vector<uint8_t> LetterToSound::Convert(const std::string& word) {
                 continue;
             }
 
-            for (uint8_t ph : rule.Out) {
-                phons.push_back(ph);
+            phons.insert(phons.end(), rule.Out.begin(), rule.Out.end());
+            hints.insert(hints.end(), rule.Hint.begin(), rule.Hint.end());
+            if (hits) {
+                hits->push_back({(uint8_t)li, (uint16_t)ri, (uint8_t)(pos - 1), (uint8_t)(endPos - 1)});
             }
             pos = endPos;
             matched = true;
@@ -827,25 +1132,43 @@ uint8_t LetterToSound::ReduceVowel(uint8_t p) {
     }
 }
 
-void LetterToSound::BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out) {
+void LetterToSound::BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out,
+                                    const std::vector<uint8_t>* hints) {
     // A syllable is a vowel nucleus plus the consonants that follow it up to
-    // (not including) the next vowel. coda = that consonant count.
+    // (not including) the next vowel. coda = that consonant count. With hints,
+    // stressless affix material neither forms a syllable nor counts as coda.
+    auto affix = [&](int i) { return hints && (*hints)[i] >= 3; };
     for (int i = 0; i < (int)phons.size(); i++) {
-        if (!IsVowelPhon(phons[i])) {
+        if (!IsVowelPhon(phons[i]) || affix(i)) {
             continue;
         }
         StressSyl s;
         s.idx = i;
         s.isLong = IsLongVowelPhon(phons[i]);
         s.coda = 0;
-        for (int j = i + 1; j < (int)phons.size() && !IsVowelPhon(phons[j]); j++) {
+        int j = i + 1;
+        for (; j < (int)phons.size() && !IsVowelPhon(phons[j]) && !affix(j); j++) {
             s.coda++;
+        }
+        // A stop or f plus a liquid before the next vowel is its onset (cele-brate).
+        for (; j < (int)phons.size() && !IsVowelPhon(phons[j]); j++) {
+        }
+        if (s.coda >= 2 && j < (int)phons.size() && IsOnsetCluster(phons[i + s.coda - 1], phons[i + s.coda])) {
+            s.coda--;
         }
         out.push_back(s);
     }
 }
 
-int LetterToSound::MainStressSyl(const std::vector<StressSyl>& syls) {
+bool LetterToSound::IsOnsetCluster(uint8_t a, uint8_t b) {
+    switch (a) {
+        case _P_: case _B_: case _K_: case _G_: case _F_: return b == _R_ || b == _L_;
+        case _T_: case _D_: case _TH_:                    return b == _R_;
+        default:                                          return false;
+    }
+}
+
+int LetterToSound::MainStressSyl(const std::vector<StressSyl>& syls, bool suffixed) {
     int n = (int)syls.size();
     if (n == 0) {
         return -1;
@@ -859,6 +1182,9 @@ int LetterToSound::MainStressSyl(const std::vector<StressSyl>& syls) {
     // The ultima is "light" when it has a short vowel (any coda) or is an open
     // final syllable (a bare morph-final vowel).
     bool ultLight = !ult.isLong || ult.coda == 0;
+    if (suffixed) {
+        ultLight = ult.coda == 0 || (!ult.isLong && ult.coda <= 1);
+    }
     // The penult qualifies for antepenult stress when it is a weak syllable
     // (short vowel, at most one coda consonant) or an open syllable.
     bool penWeakOrOpen = pen.coda == 0 || (!pen.isLong && pen.coda <= 1);
@@ -883,30 +1209,68 @@ int LetterToSound::MainStressVowelIndex(const std::vector<uint8_t>& phons) {
 }
 
 std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons) {
+    return AssignStress(phons, std::vector<uint8_t>(phons.size(), 0));
+}
+
+std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons, const std::vector<uint8_t>& hints) {
     std::vector<uint8_t> marks(phons.size(), 0);
     std::vector<StressSyl> syls;
-    BuildStressSyls(phons, syls);
+    BuildStressSyls(phons, syls, &hints);
+    if (syls.empty()) {
+        // Every vowel is affix material; fall back to treating them as stem.
+        BuildStressSyls(phons, syls);
+    }
     int n = (int)syls.size();
-    int primary = MainStressSyl(syls);
+    int primary = -1;
+    for (int k = 0; k < n && primary < 0; k++) {
+        if (hints[syls[k].idx] == 1) {
+            primary = k;
+        }
+    }
+    bool forced = primary >= 0;
+    // A pre-stressing affix (-tion, -ity) puts the primary on the syllable before it.
+    for (int i = (int)phons.size() - 1; i >= 0 && !forced; i--) {
+        if (hints[i] == 4) {
+            for (int k = n - 1; k >= 0 && !forced; k--) {
+                if (syls[k].idx < i) {
+                    primary = k;
+                    forced = true;
+                }
+            }
+            break;
+        }
+    }
+    if (!forced) {
+        bool suffixed = false;
+        for (int i = n ? syls[n - 1].idx + 1 : 0; n && i < (int)phons.size(); i++) {
+            suffixed |= hints[i] >= 3 && IsVowelPhon(phons[i]);
+        }
+        primary = MainStressSyl(syls, suffixed);
+    }
     if (primary < 0) {
         return marks;
     }
     // 6.3.2 -ic (ih k) attracts primary to the penult: symBOLic, teleGRAPHic.
     // Penult is the productive SPE behavior; antepenult exceptions (catholic) are
     // lexical and out of scope for a fallback. The paper text reads "first syllable".
-    if (n >= 2) {
+    if (n >= 2 && !forced) {
         const StressSyl& last = syls[n - 1];
         if (phons[last.idx] == _IH_ && last.coda == 1 && phons[last.idx + 1] == _K_) {
             primary = n - 2;
         }
     }
     marks[syls[primary].idx] = 1;
+    for (int i = 0; i < (int)phons.size(); i++) {
+        if (hints[i] == 2 && IsVowelPhon(phons[i]) && marks[i] == 0) {
+            marks[i] = 2;
+        }
+    }
 
     // 6.3.5 Destressing Rule 1: shorten a non-first-syllable long vowel one
     // consonant before the stress (instrumental: uw -> uh). Those vowels are
     // already unmarked here, so only the shortening shows; Rule 2 is a no-op.
     for (int k = 1; k + 1 < n; k++) {
-        if (marks[syls[k].idx] != 0) {
+        if (marks[syls[k].idx] != 0 || hints[syls[k].idx] != 0) {
             continue;
         }
         if (syls[k].coda == 1 && marks[syls[k + 1].idx] != 0) {
@@ -918,7 +1282,7 @@ std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons) {
     // heavy (long vowel or coda >= 2: dielectric, circum-), or when the primary is
     // on syllable 3+ so an alternating beat fits (telegraphic, ptolemaic). A light
     // syllable right before the primary stays reduced (photography, banana).
-    if (n >= 2 && primary != 0) {
+    if (n >= 2 && primary != 0 && hints[syls[0].idx] == 0) {
         const StressSyl& first = syls[0];
         if (first.isLong || first.coda >= 2 || primary >= 2) {
             marks[first.idx] = 2;
@@ -926,10 +1290,19 @@ std::vector<uint8_t> LetterToSound::AssignStress(std::vector<uint8_t>& phons) {
     }
 
     // 6.3.9 Vowel Reduction: every remaining unstressed short vowel goes to schwa
-    // (eh/ih -> ix, else -> ax). Runs last, on the final marks.
+    // (eh/ih -> ix, else -> ax). Runs last, on the final marks. Hinted vowels keep
+    // the quality their rule wrote.
     for (int i = 0; i < (int)phons.size(); i++) {
-        if (marks[i] == 0 && IsVowelPhon(phons[i])) {
+        if (marks[i] == 0 && hints[i] == 0 && IsVowelPhon(phons[i])) {
             phons[i] = ReduceVowel(phons[i]);
+        }
+    }
+    // A schwa before r past the first phoneme merges into r-colored schwa (inform-a-tion, memory).
+    for (int i = (int)phons.size() - 2; i > 0; i--) {
+        if (marks[i] == 0 && hints[i] == 0 && (phons[i] == _AX_ || phons[i] == _IX_) && phons[i + 1] == _R_) {
+            phons[i] = _ER_;
+            phons.erase(phons.begin() + i + 1);
+            marks.erase(marks.begin() + i + 1);
         }
     }
     return marks;

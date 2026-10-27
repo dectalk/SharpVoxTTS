@@ -19,7 +19,6 @@ LIB_SRCS := \
     $(ROOT)/src/DictionaryReader.cpp \
     $(ROOT)/src/LibraryDataDictionary.cpp \
     $(ROOT)/src/LibraryDataSymbols.cpp \
-    $(ROOT)/src/Morphology.cpp \
     $(ROOT)/src/HeteronymResolver.cpp \
     $(ROOT)/src/TextCommands.cpp \
     $(ROOT)/src/KlattschParser.cpp \

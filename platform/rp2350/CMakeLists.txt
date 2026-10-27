@@ -55,7 +55,6 @@ add_executable(sharptalk_demo
     ${ROOT}/src/LibraryDataDictionary.cpp
     ${ROOT}/src/LibraryDataSymbols.cpp
     ${ROOT}/src/JapaneseParser.cpp
-    ${ROOT}/src/Morphology.cpp
     ${ROOT}/src/HeteronymResolver.cpp
     ${ROOT}/src/TextCommands.cpp
     ${ROOT}/src/KlattschParser.cpp

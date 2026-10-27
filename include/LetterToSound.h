@@ -17,6 +17,15 @@ namespace SharpVox {
         // that begin with ' ' (space) can fire at the word onset.
         static std::vector<uint8_t> Convert(const std::string& word);
 
+        // One fired rule: its letter group and index, and the input span it consumed.
+        struct RuleHit { uint8_t group; uint16_t rule; uint8_t start, end; };
+
+        // Convert that also returns a per-phoneme stress hint written in the rule
+        // outputs (0 none, 1 primary, 2 secondary, 3 stressless), and optionally
+        // the rules that fired, for tracing.
+        static std::vector<uint8_t> Convert(const std::string& word, std::vector<uint8_t>& hints,
+                                            std::vector<RuleHit>* hits = nullptr);
+
         // MITalk (Allen/Hunnicutt/Klatt 1987) sec 6.3.1 Main Stress Rule, after
         // Halle & Keyser (1971). Returns the index into an LTS phoneme sequence
         // of the vowel that should receive primary lexical stress, or -1 if the
@@ -31,9 +40,14 @@ namespace SharpVox {
         // vowel identity. Applies MITalk 6.3.1/6.3.2/6.3.5/6.3.7/6.3.9.
         static std::vector<uint8_t> AssignStress(std::vector<uint8_t>& phons);
 
+        // AssignStress honoring rule hints: a hinted primary wins, stressless
+        // vowels (affixes) are left out of the Main Stress Rule and never reduced.
+        static std::vector<uint8_t> AssignStress(std::vector<uint8_t>& phons, const std::vector<uint8_t>& hints);
+
     private:
         // Vowel classification on phoneme IDs (not letters) for the stress rule.
         static bool IsVowelPhon(uint8_t p);
+        static bool IsOnsetCluster(uint8_t a, uint8_t b);
         static bool IsLongVowelPhon(uint8_t p);
         // 6.3.5 tenseness reduction: long vowel to its short counterpart
         // (ey->ae iy->eh ay->ih ow->aa uw->uh); oy/aw and short vowels unchanged.
@@ -45,10 +59,12 @@ namespace SharpVox {
         // A syllable is a vowel nucleus plus the consonants up to the next vowel.
         struct StressSyl { int idx; bool isLong; int coda; };
         // Break a phoneme sequence into syllable nuclei with their coda counts.
-        static void BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out);
+        static void BuildStressSyls(const std::vector<uint8_t>& phons, std::vector<StressSyl>& out,
+                                    const std::vector<uint8_t>* hints = nullptr);
         // Main Stress Rule 6.3.1 cases 1-3 on a syllable list; returns the
         // syllable index (0-based) of the primary, or -1 if there are none.
-        static int MainStressSyl(const std::vector<StressSyl>& syls);
+        // suffixed: an inflection follows, so a VCC stem-final syllable is heavy.
+        static int MainStressSyl(const std::vector<StressSyl>& syls, bool suffixed = false);
 
         // Feature flag bits
         static constexpr uint8_t CV = 0x01; // vowel: A E I O U Y
@@ -63,8 +79,9 @@ namespace SharpVox {
             std::string Match;
             std::string Right;
             std::vector<uint8_t> Out;
-            CompiledRule(std::string l, std::string m, std::string r, std::vector<uint8_t> o)
-                : Left(std::move(l)), Match(std::move(m)), Right(std::move(r)), Out(std::move(o)) {}
+            std::vector<uint8_t> Hint;
+            CompiledRule(std::string l, std::string m, std::string r, std::vector<uint8_t> o, std::vector<uint8_t> h)
+                : Left(std::move(l)), Match(std::move(m)), Right(std::move(r)), Out(std::move(o)), Hint(std::move(h)) {}
         };
 
         static uint8_t CharacterFeatureTable[128];
@@ -87,7 +104,8 @@ namespace SharpVox {
         // Splits "LEFT[MATCH]RIGHT=OUTPUT" into its four fields.
         static CompiledRule ParseRule(const char* s);
 
-        static std::vector<uint8_t> ParseOutput(const std::string& s);
+        // A vowel token may end in a stress digit (EY1, AX0) that becomes its hint.
+        static std::vector<uint8_t> ParseOutput(const std::string& s, std::vector<uint8_t>& hints);
 
         static bool MatchMid(const std::vector<char>& inp, int pos, const std::string& match, int& end);
 

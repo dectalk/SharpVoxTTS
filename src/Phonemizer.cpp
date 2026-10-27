@@ -2,7 +2,6 @@
 #include "../include/AudioProcessor.h"
 #include "../include/LetterToSound.h"
 #include "../include/DictionaryReader.h"
-#include "../include/Morphology.h"
 #include "../include/HeteronymResolver.h"
 #include "../include/LibraryData.h"
 #include "../include/TextCommands.h"
@@ -1317,7 +1316,7 @@ namespace SharpVox {
 
     Phonemizer::Phonemizer(const uint8_t* dictData, size_t dictSize,
                            std::function<const uint8_t*(const std::string&, size_t&)> symbolsTable)
-        : StatDict(0), StatMorph(0), StatLts(0),
+        : StatDict(0), StatLts(0),
           LastEndPunct(_Period_),
           _dict(dictData, dictSize),
           _symbols(std::move(symbolsTable))
@@ -1622,25 +1621,17 @@ namespace SharpVox {
             StatDict++;
         }
 
-        // 2. Try morphological decomposition (suffix stripping + root lookup)
+        // 2. Fall back to letter-to-sound rules
         if (phons.empty()) {
-            auto morphResult = Morph::TryDecompose(lookupWord, _dict);
-            if (!morphResult.empty()) {
-                phons = morphResult;
-                StatMorph++;
-            }
-        }
-
-        // 3. Fall back to letter-to-sound rules
-        if (phons.empty()) {
-            std::vector<uint8_t> lts = LetterToSound::Convert(upperWord);
+            std::vector<uint8_t> hints;
+            std::vector<uint8_t> lts = LetterToSound::Convert(upperWord, hints);
             StatLts++;
             // LTS output carries no stress marks, which leaves the word
             // deaccented (flat, and stealing the phrase nucleus). Assign lexical
-            // stress via the MITalk stress rules and splice the OP_STRESS1 /
+            // stress via the MITalk stress rules (honoring rule hints) and splice the OP_STRESS1 /
             // OP_STRESS2 opcodes before each marked vowel so they reach the
             // tokenizer exactly like a dictionary word's stress.
-            std::vector<uint8_t> marks = LetterToSound::AssignStress(lts);
+            std::vector<uint8_t> marks = LetterToSound::AssignStress(lts, hints);
             phons.reserve(lts.size() + 2);
             for (int i = 0; i < (int)lts.size(); i++) {
                 if (marks[i] == 1) {

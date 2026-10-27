@@ -23,7 +23,6 @@ LIB_SRCS := \
     src/DictionaryReader.cpp \
     src/LibraryDataDictionary.cpp \
     src/LibraryDataSymbols.cpp \
-    src/Morphology.cpp \
     src/HeteronymResolver.cpp \
     src/TextCommands.cpp \
     src/KlattschParser.cpp \

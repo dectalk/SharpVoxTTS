@@ -15,10 +15,9 @@ namespace SharpVox {
     class Phonemizer {
     public:
         int32_t StatDict;
-        int32_t StatMorph;
         int32_t StatLts;
 
-        void ResetStats() { StatDict = StatMorph = StatLts = 0; }
+        void ResetStats() { StatDict = StatLts = 0; }
         DictReader& Dict() { return _dict; }
 
         Phonemizer(const uint8_t* dictData, size_t dictSize,
