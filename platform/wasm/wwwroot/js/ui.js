@@ -159,7 +159,7 @@ window.ui = {
             bank = compat ? "auto" : null;
         }
 
-        const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 48000;
+        const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 24000;
         const result = window.UstConverter.convert(text, language, offset, bank, sampleRate);
         document.getElementById('inputText').value = result.klattsch;
         document.getElementById('toolsDiagnostics').innerText = result.diagnostics;
@@ -303,7 +303,7 @@ window.ui = {
     // master mix plus per-channel buffers for the grid video export.
     renderMidi: async () => {
         if (window.ui._midiBusy) return;
-        const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 48000;
+        const sampleRate = parseInt(document.getElementById('sampleRate')?.value) || 24000;
 
         const job = window.MidiConverter.buildVoices(window.ui._midiChannelCfg, sampleRate);
         if (!job) {

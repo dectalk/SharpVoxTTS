@@ -707,7 +707,7 @@ public:
 
 private:
     SharpVoxSpeaker _speaker;
-    int   _sampleRate   = 48000;
+    int   _sampleRate   = 24000;
     float _outputVolume = 1.0f;
     bool  _klattschMode = false;
 

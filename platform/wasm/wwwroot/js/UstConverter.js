@@ -672,7 +672,7 @@
     language   = language   || "auto";
     noteOffset = noteOffset || 0;
     compatBank = compatBank || null;
-    sampleRate = sampleRate || 48000;
+    sampleRate = sampleRate || 24000;
 
     const compatAuto = compatBank === "auto";
     let { notes, tempo, notationType } = parseUst(ustText, language);

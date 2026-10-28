@@ -112,7 +112,7 @@ static void speak(SharpVoxSpeaker& speaker, std::string text) {
 	g_length = 0;
 
 	// set sample rate of tts to match miniaudio
-	speaker.SampleRate = 44100;
+	speaker.SampleRate = 24000;
 	speaker.ApplyVoiceInPlace();
 
 	// build input string with voice option
@@ -198,7 +198,7 @@ int main() {
     config = ma_device_config_init(ma_device_type_playback);
 	config.playback.format = ma_format_s16;
 	config.playback.channels = 1;
-	config.sampleRate = 44100;
+	config.sampleRate = 24000;
 	config.dataCallback = data_callback;
 
 	if(ma_device_init(NULL, &config, &device) != MA_SUCCESS || ma_device_start(&device) != MA_SUCCESS){

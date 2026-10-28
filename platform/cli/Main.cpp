@@ -35,7 +35,7 @@ static void PrintHelp() {
     printf("  -o, --output <file>    Output WAV file, '-' for stdout (plays via ALSA if omitted on Linux)\n");
     printf("  -i, --input <file>     Input text file (if text not provided as argument)\n");
     printf("  -r, --rate <value>     Speech rate (default: 160)\n");
-    printf("  -s, --samplerate <hz>  Output sample rate, 8000-48000 (default: 48000)\n");
+    printf("  -s, --samplerate <hz>  Output sample rate, 8000-48000 (default: 24000)\n");
     printf("  -v, --voice <name>     Voice preset name \xe2\x80\x94 loads voices/<name>.json, fallback to baseline/whisper builtins\n");
     printf("  -h, --help             Show this help message\n");
     printf("\n");
@@ -277,7 +277,7 @@ int main(int argc, char* argv[]) {
     bool outputExplicit = false;
     std::string inputPath;
     int32_t rate = 160;
-    int32_t sampleRate = 48000;
+    int32_t sampleRate = 24000;
     std::string voicePreset = "baseline";
 
     // handle arguments so it's a proper CLI citizen
