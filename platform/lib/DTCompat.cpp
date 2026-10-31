@@ -22,19 +22,9 @@ void TextToSpeechFree(DT_HANDLE tts){
 /* TODO: phoneme */
 static void onBuffer(SharpVox::SharpVoxSpeaker* speaker, const int16_t* buf, int32_t len, void* userdata){
 	DT_HANDLE tts = (DT_HANDLE)userdata;
-	short* newbuf;
-	int i;
 
-	newbuf = new short[len];
-
-	for(i = 0; i < len; i++){
-		newbuf[i] = buf[i];
-	}
-
-	if(tts->callback != nullptr) tts->callback(newbuf, len, 0);
-	if(tts->callback_ex != nullptr) tts->callback_ex(tts, newbuf, len, 0);
-
-	delete[] newbuf;
+	if(tts->callback != nullptr) tts->callback((short*)buf, len, 0);
+	if(tts->callback_ex != nullptr) tts->callback_ex(tts, (short*)buf, len, 0);
 }
 
 int TextToSpeechStartEx(DT_HANDLE tts, char* input, short* buffer_deprecated, int output_format){
