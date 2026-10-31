@@ -42,35 +42,26 @@ namespace SharpVox {
             return (int32_t)(65536 + (((ratioQ16 - 65536) * frac) >> 16));
         }
 
-        // Q16 cascade-bandwidth scaling by rate (TGSpeechBox reference). Above normal
-        // rate the BW widens: wider BW = shorter resonator time constant = formant
-        // identity reached sooner in short frames. Below normal rate the symmetric
-        // opposite, the BW narrows, since long frames leave time for a sharper, more
-        // defined resonance. Identity exactly at kNormalRate.
-#ifndef SVX_MAX_BW_WIDEN_PCT
-#define SVX_MAX_BW_WIDEN_PCT 30
-#endif
-        // Slow-rate narrowing: max percent, and the rate at/below which it is full.
-#ifndef SVX_MAX_BW_NARROW_PCT
-#define SVX_MAX_BW_NARROW_PCT 20
-#endif
-#ifndef SVX_BW_NARROW_FLOOR_RATE
-#define SVX_BW_NARROW_FLOOR_RATE 90
-#endif
-        static inline int32_t BwWidenQ16(int32_t rate) {
-            if (rate == kNormalRate) return 65536;
-            if (rate > kNormalRate) {
-                int32_t frac = rate >= kFull ? 65536 :
-                    (int32_t)(((int64_t)(rate - kNormalRate) << 16) / (kFull - kNormalRate));
-                int64_t maxAddQ16 = ((int64_t)SVX_MAX_BW_WIDEN_PCT << 16) / 100;
-                return (int32_t)(65536 + ((maxAddQ16 * frac) >> 16));
+        static inline uint64_t Isqrt64(uint64_t x) {
+            uint64_t res = 0;
+            uint64_t bit = (uint64_t)1 << 62;
+            while (bit > x) bit >>= 2;
+            while (bit != 0) {
+                if (x >= res + bit) {
+                    x -= res + bit;
+                    res = (res >> 1) + bit;
+                } else {
+                    res >>= 1;
+                }
+                bit >>= 2;
             }
-            // rate < kNormalRate: narrow toward (1 - maxNarrow/100) at the floor rate.
-            int32_t floorRate = SVX_BW_NARROW_FLOOR_RATE;
-            int32_t frac = rate <= floorRate ? 65536 :
-                (int32_t)(((int64_t)(kNormalRate - rate) << 16) / (kNormalRate - floorRate));
-            int64_t maxSubQ16 = ((int64_t)SVX_MAX_BW_NARROW_PCT << 16) / 100;
-            return (int32_t)(65536 - ((maxSubQ16 * frac) >> 16));
+            return res;
+        }
+
+        static inline int32_t PauseKeepQ16(int32_t rate) {
+            if (rate <= kNormalRate || rate <= 0) return 65536;
+            // sqrt(kNormalRate / rate) in Q16, via a Q32 ratio and integer sqrt.
+            return (int32_t)Isqrt64(((int64_t)kNormalRate << 32) / rate);
         }
     }
 

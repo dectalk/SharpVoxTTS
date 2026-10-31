@@ -245,6 +245,9 @@ namespace SharpVox {
         // Duration pipeline
         void ModDuration();
 
+        bool UseRateTimeline();
+        void ApplyRateTimeline();
+
         // Pitch pipeline
         void JapanesePitchAssign();
         void PitchRaiseAndFall();

@@ -1275,6 +1275,14 @@ namespace SharpVox {
     void AudioProcessor::ModDuration() {
         _durBuf[0] = 1; // initial SIL = 5ms (1 frame)
 
+        const bool timeline = UseRateTimeline();
+        const int64_t savedRateRatio = _rateRatio;
+        const int64_t savedLowGain   = _rateRatioLowGain;
+        if (timeline) {
+            _rateRatio      = 65536;
+            _rateRatioLowGain = 65536;
+        }
+
         int16_t prevPhon = _SIL_;
         int64_t prevCtrl = 0;
         bool eFlag = false;
@@ -1639,6 +1647,80 @@ namespace SharpVox {
 
         DURATION_DONE_END:;
         }
+
+        _rateRatio       = savedRateRatio;
+        _rateRatioLowGain = savedLowGain;
+        ApplyRateTimeline();
+    }
+
+    bool AudioProcessor::UseRateTimeline() {
+        if (_singing || _speechRate <= kNormal_Speech_Rate) {
+            return false;
+        }
+        for (int32_t i = 0; i < _phonBuf2InIndex; i++) {
+            if ((_phonCtrlBuf2[i] & (kSingingPhon | kJapaneseMora)) != 0) {
+                return false;
+            }
+            if (_userRateBuf2[i] != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void AudioProcessor::ApplyRateTimeline() {
+        if (!UseRateTimeline()) {
+            return;
+        }
+
+        int32_t speechFrames = 0;
+        int32_t pauseFrames  = 0;
+        int32_t pauseCount   = 0;
+        for (int32_t i = 0; i < _phonBuf2InIndex; i++) {
+            if (_phonBuf2[i] == _SIL_) {
+                pauseFrames += _durBuf[i];
+                pauseCount++;
+            } else {
+                speechFrames += _durBuf[i];
+            }
+        }
+        if (speechFrames <= 0) {
+            return;
+        }
+
+        const int64_t ratioQ16 = ((int64_t)kNormal_Speech_Rate << 16) / _speechRate;
+        // Pauses take one further rate^-0.5 squeeze, so the words gain that time.
+        const int64_t pauseKeepQ16 = (ratioQ16 * RateLin::PauseKeepQ16(_speechRate)) >> 16;
+        int32_t pauseAfter = (int32_t)(((int64_t)pauseFrames * pauseKeepQ16) >> 16);
+        if (pauseAfter < pauseCount) {
+            pauseAfter = pauseCount;  // a frame each, so clause breaks stay audible
+        }
+
+        int32_t length = (int32_t)(((int64_t)(speechFrames + pauseFrames) * ratioQ16) >> 16);
+        if (length <= pauseAfter) {
+            length = pauseAfter + 1;
+        }
+        const int32_t speechAfter = length - pauseAfter;
+
+        // Rescale each group against its running total, so integer rounding cannot
+        // drift the clause away from the pace that was asked for.
+        auto rescale = [this](bool pauses, int32_t target, int32_t source) {
+            if (source <= 0) {
+                return;
+            }
+            int32_t seen = 0, done = 0;
+            for (int32_t i = 0; i < _phonBuf2InIndex; i++) {
+                if ((_phonBuf2[i] == _SIL_) != pauses) {
+                    continue;
+                }
+                seen += _durBuf[i];
+                int32_t want = (int32_t)(((int64_t)seen * target) / source);
+                _durBuf[i] = std::max(want - done, (int32_t)1);
+                done = want;
+            }
+        };
+        rescale(true,  pauseAfter,  pauseFrames);
+        rescale(false, speechAfter, speechFrames);
     }
 
     // Taylor (2000) Tilt model synthesis.
