@@ -52,7 +52,7 @@ endif
 CLI_OBJS := $(CLI_SRCS:.cpp=.o)
 
 # Shared library sources
-SHLIB_SRCS := platform/lib/SharpVox.cpp
+SHLIB_SRCS := platform/lib/SharpVox.cpp platform/lib/DTCompat.cpp
 SHLIB_OBJS := $(SHLIB_SRCS:.cpp=.o)
 
 # Output targets
