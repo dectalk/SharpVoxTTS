@@ -14,14 +14,16 @@ class KlattschParser;
 class EmbeddedCmd {
 public:
     struct VoiceCommand {
-        enum class Kind { Rate, Pitch, Volume, Voice, Custom };
+        enum class Kind { Rate, Pitch, Volume, Voice, Custom, Tone };
         Kind Type;
         int32_t Value;
         std::string VoiceName;
         std::vector<std::pair<std::string, float>> Params; // for Custom
+        std::pair<uint32_t, uint32_t> toneArgs; // for tone
         VoiceCommand() : Type(Kind::Rate), Value(0) {}
         VoiceCommand(Kind type, int32_t value) : Type(type), Value(value) {}
         VoiceCommand(Kind type, std::string name) : Type(type), Value(0), VoiceName(std::move(name)) {}
+        VoiceCommand(Kind type, std::pair<uint32_t, uint32_t> toneArgs) : Type(type), Value(0), toneArgs(toneArgs) {}
     };
 
     // Discriminated union for a parsed text segment.

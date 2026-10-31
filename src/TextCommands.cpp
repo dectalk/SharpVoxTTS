@@ -18,6 +18,17 @@
 
 namespace SharpVox {
 
+// split helper
+static std::vector<std::string> split(const std::string& s, char delim) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(s);
+    std::string token;
+    while (std::getline(ss, token, delim)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
 std::string DECtalkNoteNames[37] = { // add 1 to index for note id
     "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
     "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
@@ -230,6 +241,52 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             } else if (cmd == "sing" || cmd == "talk" || cmd == "stop") {
                 // Recognised for backward compatibility but no longer needed:
                 // note-less phoneme groups inside [...] always sing now.
+            } else if (cmd == "tone") { // dectalk style tone command
+                bool isNum = !argStr.empty();
+                for (char c : argStr) {
+                    if (!std::isdigit(static_cast<unsigned char>(c)) && c != '-' && c !=',') {
+                        isNum = false;
+                        break;
+                    }
+                }
+                if (isNum) {
+                    std::vector<std::string> arglist = split(argStr, ',');
+                    if (arglist.size() == 2) {
+                        try {
+                            int32_t a = std::stoi(arglist[0]);
+                            int32_t b = std::stoi(arglist[1]);
+                            if (a > 0 && b > 0) {
+                                FlushPlain();
+                                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t,uint32_t>(a,b) )));
+                            }
+                        } catch (...) {} // invalid, dont crash here
+                    }
+                }
+            } else if (cmd[0] == 't') { // dectalk style tone alias
+                // Try numeric argument (rate, pitch, volume)
+                std::string args = cmd.substr(1, cmd.length()-1);
+                bool isNum = !args.empty();
+                for (char c : args) {
+                    if (!std::isdigit(static_cast<unsigned char>(c)) && c !=',') {
+                        isNum = false;
+                        break;
+                    }
+                }
+                if (isNum) {
+                    std::vector<std::string> arglist = split(args, ',');
+                    if (arglist.size() == 2) {
+                        try {
+                            int32_t a = std::stoi(arglist[0]);
+                            int32_t b = std::stoi(arglist[1]);
+                            if (a > 0 && b > 0) {
+                                FlushPlain();
+                                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t,uint32_t>(a,b) )));
+                            }
+                        } catch (...) {
+                            // out-of-range numbers are dropped rather than fatal
+                        }
+                    }
+                }
             } else {
                 // Try numeric argument (rate, pitch, volume)
                 bool isNum = !argStr.empty();

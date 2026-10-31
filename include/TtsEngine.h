@@ -139,6 +139,9 @@ namespace SharpVox {
 
         void ApplyCommand(const EmbeddedCmd::VoiceCommand& cmd);
 
+        void EmitTone(uint32_t freqHz, uint32_t durationMs,
+                      const std::function<void(const int16_t*, int32_t)>& onBuffer);
+
         // Resets renderer and synth to a fresh state for the current voice without
         // touching AudioProcessor clause-transition state.
         void ResetSynthVoice();

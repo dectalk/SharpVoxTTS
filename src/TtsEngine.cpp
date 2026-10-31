@@ -123,6 +123,9 @@ namespace SharpVox {
             const auto& seg = segments[si];
             if (seg.IsCommand()) {
                 ApplyCommand(seg.cmd);
+                if (seg.cmd.Type == EmbeddedCmd::VoiceCommand::Kind::Tone) {
+                    EmitTone(seg.cmd.toneArgs.first, seg.cmd.toneArgs.second, cb);
+                }
                 continue;
             }
             if (seg.IsKlattsch()) {
@@ -267,6 +270,21 @@ namespace SharpVox {
         for (size_t si = 0; si < segments.size(); si++) { const auto& seg = segments[si];
             if (seg.IsCommand()) {
                 ApplyCommand(seg.cmd);
+                if (seg.cmd.Type == EmbeddedCmd::VoiceCommand::Kind::Tone) {
+                    EmitTone(seg.cmd.toneArgs.first, seg.cmd.toneArgs.second,
+                             [&](const int16_t* buf, int32_t len) {
+                                 onChunk(buf, len, nullptr, 0, nullptr, 0, userdata);
+                                 sampleOffset += len;
+                             });
+                    // increment the timer so tone doesnt desync events
+                    while (true) {
+                        int32_t tickSample = (int32_t)(((int64_t)tickIndex * SampleRate + 30) / 60);
+                        if (tickSample >= sampleOffset) {
+                            break;
+                        }
+                        tickIndex++;
+                    }
+                }
                 continue;
             }
 
@@ -295,6 +313,53 @@ namespace SharpVox {
         if (rendered) { _be = AudioProcessor(_voice); }
     }
 
+    // make a tone
+    void TtsEngine::EmitTone(uint32_t freqHz, uint32_t durationMs,
+                             const std::function<void(const int16_t*, int32_t)>& onBuffer) {
+        if (freqHz == 0 || durationMs == 0) {
+            return;
+        }
+
+        int64_t freq = std::min<int64_t>((int64_t)freqHz, (int64_t)SampleRate * 9 / 20);
+        if (freq < 1) {
+            return;
+        }
+        int64_t total = ((int64_t)durationMs * SampleRate) / 1000;
+        if (total < 1) {
+            return;
+        }
+
+        const double kAmplitude = 8192.0;
+        const double kTwoPi = 6.28318530717958647692;
+
+        int64_t fade = std::min<int64_t>(total / 2, (int64_t)SampleRate / 200);
+        int64_t chunk = std::max<int64_t>(1, (int64_t)SampleRate / 50); // 20 ms
+        double phase = 0.0;
+        double phaseInc = kTwoPi * (double)freq / (double)SampleRate;
+
+        std::vector<int16_t> buf;
+        for (int64_t done = 0; done < total; ) {
+            int32_t n = (int32_t)std::min<int64_t>(chunk, total - done);
+            buf.assign((size_t)n, 0);
+            for (int32_t k = 0; k < n; k++) {
+                int64_t idx = done + k;
+                double gain = 1.0;
+                if (fade > 0) {
+                    int64_t tail = total - 1 - idx;
+                    if (idx < fade)  { gain = (double)idx / (double)fade; }
+                    if (tail < fade) { gain = std::min(gain, (double)tail / (double)fade); }
+                }
+                buf[(size_t)k] = (int16_t)std::lround(kAmplitude * gain * std::sin(phase));
+                phase += phaseInc;
+                if (phase >= kTwoPi) {
+                    phase -= kTwoPi;
+                }
+            }
+            onBuffer(buf.data(), n);
+            done += n;
+        }
+    }
+
     void TtsEngine::ApplyCommand(const EmbeddedCmd::VoiceCommand& cmd) {
         switch (cmd.Type) {
             case EmbeddedCmd::VoiceCommand::Kind::Rate:
@@ -317,6 +382,8 @@ namespace SharpVox {
                     RebuildPipeline();
                     _klattsch.Reset(_voice);
                 }
+                break;
+            case EmbeddedCmd::VoiceCommand::Kind::Tone:
                 break;
             case EmbeddedCmd::VoiceCommand::Kind::Custom: {
                 bool changed = false;
