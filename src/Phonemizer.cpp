@@ -1330,6 +1330,7 @@ namespace SharpVox {
         int16_t pendingPunct = 0;
         bool havePending = false;
         auto emit = [&](std::vector<PhonemeToken>&& tokens, int16_t endPunct) {
+            if (tokens.empty()) { return; } // nothing to say dont make clause
             if (havePending) { sink(pending, pendingPunct, false); }
             pending = std::move(tokens);
             pendingPunct = endPunct;
@@ -1389,11 +1390,12 @@ namespace SharpVox {
         }
 
         if (!havePending) {
-            auto tokens = TextToPhonemes(text);
-            emit(std::move(tokens), LastEndPunct);
+            emit(TextToPhonemes(text), LastEndPunct);
         }
 
-        sink(pending, pendingPunct, true);
+        if (havePending) {
+            sink(pending, pendingPunct, true);
+        }
     }
 
     // Process a pure-text span (no embedded commands) into phoneme tokens.
