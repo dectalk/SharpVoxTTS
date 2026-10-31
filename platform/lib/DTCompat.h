@@ -35,8 +35,8 @@ class DTHandle {
 public:
 	SharpVox::SharpVoxSpeaker speaker;
 
-	short* (*callback)(short*, long, int);
-	short* (*callback_ex)(DT_HANDLE, short*, long, int);
+	short* (*callback)(short*, long, int) = nullptr;
+	short* (*callback_ex)(DT_HANDLE, short*, long, int) = nullptr;
 };
 #else
 typedef void* DT_HANDLE;
