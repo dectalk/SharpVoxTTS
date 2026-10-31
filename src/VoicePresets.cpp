@@ -33,14 +33,6 @@ bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
         return true;
     }
 
-
-
-
-
-
-
-
-
     if (lower == "beth") {
         outVoice = VoiceData::baseline_voice();
         outVoice.Rate = 162;
