@@ -212,9 +212,14 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                 }
                 if (!vc.Params.empty())
                     segments.push_back(Segment(std::move(vc)));
-            } else if (cmd == "voice") {
+            } else if (cmd == "voice" || cmd == "name") {
                 FlushPlain();
                 segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, argStr)));
+            } else if (cmd[0] == 'n' && cmd[2] == '\x00') { // dectalk name compat
+                FlushPlain();
+                // this sucks and i love it
+                std::string name(1,cmd[1]);
+                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, name)));
             } else if (cmd == "sing" || cmd == "talk" || cmd == "stop") {
                 // Recognised for backward compatibility but no longer needed:
                 // note-less phoneme groups inside [...] always sing now.

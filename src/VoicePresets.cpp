@@ -9,6 +9,38 @@ bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c){ return std::tolower(c); });
 
+    if (lower == "p") { // dtk paul
+        outVoice = VoiceData::baseline_voice();
+        return true;
+    } else if (lower == "h") {
+        lower = "matt";
+    } else if (lower == "f") {
+        lower = "john";
+    } else if (lower == "d") {
+        lower = "jack";
+    } else if (lower == "b") {
+        lower = "beth";
+    } else if (lower == "u") {
+        lower = "deborah";
+    } else if (lower == "w") {
+        lower = "whisper";
+    } else if (lower == "r") {
+        lower = "jess";
+    } else if (lower == "k") {
+        lower = "tommy";
+    } else if (lower == "v") {
+        outVoice = VoiceData::baseline_voice();
+        return true;
+    }
+
+
+
+
+
+
+
+
+
     if (lower == "beth") {
         outVoice = VoiceData::baseline_voice();
         outVoice.Rate = 162;
@@ -320,7 +352,7 @@ bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
         outVoice.BaselineFall = 60;
         return true;
     }
-
+    printf("unknown voice: %s\n", lower.c_str());
     return false;
 }
 
