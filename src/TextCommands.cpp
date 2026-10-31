@@ -18,6 +18,13 @@
 
 namespace SharpVox {
 
+std::string DECtalkNoteNames[37] = { // add 1 to index for note id
+    "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+    "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+    "C5"
+};
+
 // ASCII note name (C5, A#4, Bb3) -> Hz using equal temperament (A4 = 440 Hz)
 int32_t EmbeddedCmd::NoteNameToHz(const std::string& name) {
     if (name.size() < 2) {
@@ -378,8 +385,17 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
                             note = NoteNameToHz(noteName);
                             noteIsNamed = true;
                         } else {
+                            int32_t value = 0;
                             while (i < len && std::isdigit(static_cast<unsigned char>(text[i]))) {
-                                note = note * 10 + (text[i++] - '0');
+                                value = value * 10 + (text[i++] - '0');
+                            }
+                            if (value >= 38) {
+                                note = value;
+                            } else { // DECtalk notename compatability
+                                noteIsNamed = true; // for vibrato like named notes
+                                if (value >= 0) {
+                                    note = NoteNameToHz(DECtalkNoteNames[value-1]);
+                                }
                             }
                         }
                     }
