@@ -241,7 +241,7 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             } else if (cmd == "sing" || cmd == "talk" || cmd == "stop") {
                 // Recognised for backward compatibility but no longer needed:
                 // note-less phoneme groups inside [...] always sing now.
-            } else if (cmd == "tone") { // dectalk style tone command
+            } else if ( (cmd == "tone" || cmd == "t") && !argStr.empty()) { // dectalk style tone command
                 bool isNum = !argStr.empty();
                 for (char c : argStr) {
                     if (!std::isdigit(static_cast<unsigned char>(c)) && c != '-' && c !=',') {
