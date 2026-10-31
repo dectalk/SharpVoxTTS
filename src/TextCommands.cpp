@@ -215,7 +215,7 @@ std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& 
             } else if (cmd == "voice" || cmd == "name") {
                 FlushPlain();
                 segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, argStr)));
-            } else if (cmd[0] == 'n' && cmd[2] == '\x00') { // dectalk name compat
+            } else if (cmd.size() == 2 && cmd[0] == 'n') { // dectalk name compat
                 FlushPlain();
                 // this sucks and i love it
                 std::string name(1,cmd[1]);
