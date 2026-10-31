@@ -9,26 +9,26 @@ bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c){ return std::tolower(c); });
 
-    if (lower == "p") { // dtk paul
+    if (lower == "p" || lower == "paul") { // dtk paul
         outVoice = VoiceData::baseline_voice();
         return true;
-    } else if (lower == "h") {
+    } else if (lower == "h" || lower == "harry") {
         lower = "matt";
-    } else if (lower == "f") {
+    } else if (lower == "f" || lower == "frank") {
         lower = "john";
-    } else if (lower == "d") {
+    } else if (lower == "d" || lower == "dennis") {
         lower = "jack";
-    } else if (lower == "b") {
+    } else if (lower == "b" || lower == "betty") {
         lower = "beth";
-    } else if (lower == "u") {
+    } else if (lower == "u" || lower == "ursula") {
         lower = "deborah";
-    } else if (lower == "w") {
+    } else if (lower == "w" || lower == "wendy") {
         lower = "whisper";
-    } else if (lower == "r") {
+    } else if (lower == "r" || lower == "rita") {
         lower = "jess";
-    } else if (lower == "k") {
+    } else if (lower == "k" || lower == "kit") {
         lower = "tommy";
-    } else if (lower == "v") {
+    } else if (lower == "v" || lower == "val") {
         outVoice = VoiceData::baseline_voice();
         return true;
     }
