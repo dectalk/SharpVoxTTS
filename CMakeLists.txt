@@ -2,10 +2,18 @@ cmake_minimum_required(VERSION 3.25)
 project(sharpvox)
 
 file(GLOB SOURCES src/*.cpp platform/lib/*.cpp)
+if(NOT HAVE_MECAB)
+	list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/MeCabReader.cpp")
+	list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/IpadicData.cpp")
+	list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/IpadicDict.cpp")
+endif()
 
 add_library(sharpvox STATIC ${SOURCES})
 target_include_directories(sharpvox PUBLIC include)
-target_compile_definitions(sharpvox PUBLIC HAVE_MECAB)
+
+if(HAVE_MECAB)
+	target_compile_definitions(sharpvox PUBLIC HAVE_MECAB)
+endif()
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_link_libraries(sharpvox PUBLIC m)
