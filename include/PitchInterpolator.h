@@ -157,7 +157,6 @@ namespace SharpVox {
 		int32_t _dbgTotalOffset;
 
 		// Constants
-		static constexpr int32_t kStepSizeRes = 3;
 		static constexpr int32_t kFrameTime   = 5;
 		static constexpr int32_t pct	      = 655;
 		static constexpr int32_t k100percent  = 0x10000;

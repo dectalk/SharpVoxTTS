@@ -266,7 +266,7 @@ namespace SharpVox {
 		// Amplitude parameters are converted from log to linear scale (LogToLin), matching
 		// the Klatt (1980) convention where amplitude parameters are specified in a
 		// compressed decibel-like range and the synthesizer expects linear multipliers.
-		Frame SaveFrame(int16_t f0, uint8_t phonCtrl);
+		Frame SaveFrame(int16_t f0);
 
 		// Formant locus
 

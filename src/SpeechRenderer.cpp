@@ -87,7 +87,7 @@ namespace SharpVox {
 
 			int16_t f0 = pitchInterp.Step();
 			InterpolateControls();
-			callback(SaveFrame(f0, (uint8_t)_plan->PhonCtrlBuf[_curPhonBufIndex]));
+			callback(SaveFrame(f0));
 
 			_durDoneInPhon++;
 		}
@@ -401,7 +401,7 @@ namespace SharpVox {
 	// Amplitude parameters are converted from log to linear scale (LogToLin), matching
 	// the Klatt (1980) convention where amplitude parameters are specified in a
 	// compressed decibel-like range and the synthesizer expects linear multipliers.
-	Frame SpeechRenderer::SaveFrame(int16_t f0, uint8_t phonCtrl) {
+	Frame SpeechRenderer::SaveFrame(int16_t f0) {
 		Frame f;
 		f.F0 = f0;
 

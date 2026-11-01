@@ -57,7 +57,6 @@ namespace SharpVox {
 		static constexpr int32_t kFrameTime	     = 5;
 		static constexpr int32_t kNormalPitch	     = 579;
 		static constexpr int32_t kMaxRamps	     = 256;
-		static constexpr int32_t kStepSizeRes	     = 3;
 		static constexpr int32_t kDur_One	     = 0x100;
 		static constexpr int32_t kDurStepRes	     = 8;
 		static constexpr int32_t kNormal_Speech_Rate = 180;
@@ -79,14 +78,12 @@ namespace SharpVox {
 		static constexpr int32_t kHZ_4	= 591 - kNormalPitch; // 12
 		static constexpr int32_t kHZ_6	= 597 - kNormalPitch; // 18
 		static constexpr int32_t kHZ_7	= 600 - kNormalPitch; // 21
-		static constexpr int32_t kHZ_8	= 603 - kNormalPitch; // 24
 		static constexpr int32_t kHZ_9	= 606 - kNormalPitch; // 27
 		static constexpr int32_t kHZ_10 = 608 - kNormalPitch; // 29
 		static constexpr int32_t kHZ_12 = 614 - kNormalPitch; // 35
 		static constexpr int32_t kHZ_14 = 620 - kNormalPitch; // 41
 		static constexpr int32_t kHZ_18 = 630 - kNormalPitch; // 51
 		static constexpr int32_t kHZ_20 = 636 - kNormalPitch; // 57
-		static constexpr int32_t kHZ_25 = 649 - kNormalPitch; // 70
 		static constexpr int32_t kHZ_28 = 656 - kNormalPitch; // 77
 
 		// accent and boundary tone placement,  Onsets are frames relative to the vowel start

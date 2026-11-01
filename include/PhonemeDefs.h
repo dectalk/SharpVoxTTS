@@ -134,12 +134,8 @@ namespace SharpVox {
 	constexpr int64_t kPitchRise1			  = 0x04000000L;
 	constexpr int64_t kPitchFall1			  = 0x08000000L;
 	constexpr int64_t kLowVibrato			  = 0x10L;
-	constexpr int64_t kNoteDur			  = 0x0F00L;
-	constexpr int32_t kNoteDurShift			  = 8;
-	constexpr int64_t kNotePitch			  = 0x00FFL;
 	constexpr int64_t kCompoundNoun			  = 0x8000L;
 	constexpr int64_t kStressedWInitial		  = kIsStressed | kWord_Initial_Consonant;
-	constexpr int64_t kSampleMarker			  = 0x02000000L;
 	constexpr int64_t kJapaneseMora			  = 0x100000000LL;
 	// content word that is usually left unaccented or weakly accented like light verbs, quantifiers, degree adverbs, set on every phoneme
 	constexpr int64_t kLightContent	   = 0x200000000LL;
