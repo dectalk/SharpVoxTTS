@@ -85,6 +85,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        # The Android build number is the commit count, so the full history is required.
+        fetch-depth: 0
+    - name: Compute version
+      id: version
+      run: |
+        echo "versionCode=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+        echo "shortSha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -111,7 +119,7 @@ jobs:
       env:
         ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     - name: Build release APK
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleRelease -PversionCode=${{ steps.version.outputs.versionCode }}
       working-directory: platform/android
       env:
         ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/keystore.jks
@@ -123,6 +131,17 @@ jobs:
         rm -rf android-release
         mkdir -p android-release
         cp platform/android/app/build/outputs/apk/release/app-release.apk android-release/SharpVoxTTS-release.apk
+        # Published next to the APK so installed apps can tell whether they are behind.
+        cat > android-release/version.json <<JSON
+        {
+          "versionCode": ${{ steps.version.outputs.versionCode }},
+          "versionName": "2.0-${{ steps.version.outputs.shortSha }}",
+          "commit": "${{ steps.version.outputs.shortSha }}",
+          "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "apk": "SharpVoxTTS-release.apk",
+          "sha256": "$(sha256sum android-release/SharpVoxTTS-release.apk | cut -d' ' -f1)"
+        }
+        JSON
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -206,7 +225,7 @@ jobs:
         mkdir -p release-assets
         cp addon-32bit/*.nvda-addon release-assets/
         cp addon-64bit/*.nvda-addon release-assets/
-        cp android-release/SharpVoxTTS-release.apk release-assets/
+        cp android-release/SharpVoxTTS-release.apk android-release/version.json release-assets/
         cp rp2350-release/SharpVoxTTS-rp2350.uf2 release-assets/
     - name: Release
       run: gh release create -t "SharpVoxTTS-latest" "latest" release-assets/* -n "Latest SharpVoxTTS NVDA addon, Android APK and RP2350 builds"
