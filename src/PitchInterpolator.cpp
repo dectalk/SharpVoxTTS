@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 
 namespace SharpVox {
 
@@ -21,10 +22,6 @@ namespace SharpVox {
         _timeIntoPhonTarg = s.TimeIntoPhonTarg;
         _curPhonDurCc = s.CurPhonDurCc;
         _phonDurDelay = s.PhonDurDelay;
-
-        _phonIndexCp = s.PhonIndexCp;
-        _timeIntoPhonCp = s.TimeIntoPhonCp;
-        _curPhonDurCp = s.CurPhonDurCp;
 
         _uvPhonPitchTarg = s.UvPhonPitchTarg;
         _phonPitchOffset1 = s.PhonPitchOffset1;
@@ -54,12 +51,7 @@ namespace SharpVox {
         _newSentence = s.NewSentence != 0;
         _speechRate = s.SpeechRate;
 
-        _pitchBoundry = s.PitchBoundry;
-        _lowGainCp = s.LowGainCp != 0;
-
         _voiceNaturalPitch = s.VpBaselinePitch;
-        _pbHold = kNeverHappens;
-        _pbLowGain = false;
 
         // Fujisaki model knobs (Q16 neper amplitudes / percent scales)
         _vpFujiPhraseAmp             = s.FujisakiPhraseAmpQ16;
@@ -229,67 +221,6 @@ namespace SharpVox {
             return _plan.PhonCtrlBuf[index];
         }
         return 0;
-    }
-
-    void PitchInterpolator::Phon_Boundry_Pitch() {
-        if (_timeIntoPhonCp >= _curPhonDurCp) {
-            _timeIntoPhonCp -= _curPhonDurCp;
-            _phonIndexCp++;
-            _curPhonDurCp = (_phonIndexCp < (int32_t)_plan.DurBuf.size()) ? _plan.DurBuf[_phonIndexCp] : 0;
-
-            int32_t curPhon = GetPhon(_phonIndexCp);
-            uint32_t curFlags = Tables::GetFeatureFlags(curPhon);
-            int64_t curCtrl = GetPhonCtrl(_phonIndexCp + 1);
-
-            int32_t nextPhon = GetPhon(_phonIndexCp + 1);
-            uint32_t nextFlags = Tables::GetFeatureFlags(nextPhon);
-            int64_t nextCtrl = GetPhonCtrl(_phonIndexCp + 1);
-
-            if (_pitchBoundry == 0) {
-                _pitchBoundry = kNeverHappens;
-            }
-            if (_pitchBoundry > 0) {
-                _pitchBoundry = 0;
-            }
-
-            _pbHold = kNeverHappens;
-            _pbLowGain = false;
-
-            if ((curFlags & kVowel1F) != 0
-                && (nextCtrl & kMid_Syllable_In_Word) == 0
-                && ((curCtrl & kSyllableTypeField) >= kWord_End)
-                && nextPhon != _YU_) {
-                if ((curFlags & kVowelF) != 0) {
-                    if (curPhon == nextPhon && (nextCtrl & kPrimOrEmphStress) != 0) {
-                        _pbHold = _curPhonDurCp;
-                    } else if ((curCtrl & kSyllableTypeField) >= kPrep_End) {
-                        _pbHold = _curPhonDurCp;
-                        _pbLowGain = true;
-                    }
-                } else {
-                    if ((curFlags & kStopF) == 0
-                        && curPhon != 53 // _DX_
-                        && (nextCtrl & kPrimOrEmphStress) != 0) {
-                        _pbHold = _curPhonDurCp;
-                    }
-                }
-            }
-
-            if ((nextFlags & kGStopF) != 0) {
-                _pbHold = _curPhonDurCp;
-            }
-            if ((curFlags & kGStopF) != 0) {
-                _pbHold = _curPhonDurCp;
-                return;
-            }
-        }
-
-        int32_t timeAt50 = 50 / kFrameTime; // 10
-        int32_t lastFrame = _curPhonDurCp - 1;
-        if (_timeIntoPhonCp == timeAt50 || _timeIntoPhonCp == lastFrame) {
-            _pitchBoundry = _pbHold;
-            _lowGainCp = _pbLowGain;
-        }
     }
 
     // Fires all pitch-buffer events due this frame (speech and singing alike)
@@ -653,8 +584,6 @@ namespace SharpVox {
                 }
             }
 
-            Phon_Boundry_Pitch();
-
             // Scale around the clause mean so PitchHz stays the average pitch;
             // phoneme micro-features are applied after range scaling to stay
             // constant regardless of the pitch range setting.
@@ -662,18 +591,6 @@ namespace SharpVox {
             totalOffset = (int16_t)totalOffset; // preserve C short-truncation behaviour
             _dbgTotalOffset = totalOffset;
             _controlF0 = (int32_t)((((int64_t)totalOffset * _vpPitchRange) >> 16) + _vpBaselinePitch);
-
-            // Phoneme boundary micro-dip, scaled by intonation so it stays proportional
-            // to the pitch range in use. Raw depth is -1 or -10 pitch units at the boundary.
-            int32_t pbIndex = _timeIntoPhonCp - _pitchBoundry;
-            if (pbIndex < 0) {
-                pbIndex = -pbIndex;
-            }
-            const int32_t kPbWindow = 45 / kFrameTime; // 9
-            if (pbIndex <= kPbWindow) {
-                int32_t dipDepth = _lowGainCp ? (pbIndex - 1) : (pbIndex - 5);
-                _controlF0 += (int32_t)((dipDepth * _vpIntonation) >> 16);
-            }
 
             // Phoneme onset spikes (range-independent, applied post-scaling)
             _controlF0 += _phonPitchOffset1;
@@ -764,7 +681,6 @@ namespace SharpVox {
 
         _curPitchBufTime++;
         _timeIntoPhonTarg++;
-        _timeIntoPhonCp++;
         _clauseFrame++;
     }
 

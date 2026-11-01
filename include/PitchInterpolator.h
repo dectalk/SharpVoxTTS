@@ -52,11 +52,6 @@ namespace SharpVox {
         int32_t _curPhonDurCc;
         int32_t _phonDurDelay;
 
-        // Phoneme advance (Cp path - phoneme boundary micro-dip)
-        int32_t _phonIndexCp;
-        int32_t _timeIntoPhonCp;
-        int32_t _curPhonDurCp;
-
         // Phoneme pitch offsets
         int32_t _uvPhonPitchTarg;
         int32_t _phonPitchOffset1;
@@ -105,12 +100,6 @@ namespace SharpVox {
         bool _newSentence;
         int32_t _speechRate;
 
-        // Phoneme boundary micro-dip state
-        int32_t _pitchBoundry;
-        bool _lowGainCp;
-        int32_t _pbHold;
-        bool _pbLowGain;
-
         // Fujisaki-Bartman filter state (phrase + accent command filters)
         FujisakiPitchModel _fuji;
         // Smoothed boundary-tone offset (one-pole IIR over _punctOffset steps)
@@ -151,7 +140,6 @@ namespace SharpVox {
 
         // Constants
         static constexpr int32_t kStepSizeRes = 3;
-        static constexpr int32_t kNeverHappens = -10000;
         static constexpr int32_t kFrameTime = 5;
         static constexpr int32_t pct = 655;
         static constexpr int32_t k100percent = 0x10000;
@@ -187,8 +175,6 @@ namespace SharpVox {
 
         int16_t GetPhon(int32_t index) const;
         int64_t GetPhonCtrl(int32_t index) const;
-
-        void Phon_Boundry_Pitch();
 
         // Fires all pitch-buffer events due this frame.  Shared by the live
         // loop and the BuildFujiProsody replay so both fire events identically.

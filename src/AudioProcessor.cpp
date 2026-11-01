@@ -258,7 +258,6 @@ namespace SharpVox {
         _baselineFallStart = (int16_t)(kHZ_7 + _vpBaselineFall + baselineBoost);
         _baselineFallEnd   = (int16_t)(kHZ_7 - _vpBaselineFall + baselineBoost);
         _pitchClauseStartTime = (int16_t)(10 / kFrameTime);
-        _pitchBoundry = kNeverHappens;
     }
 
     int16_t AudioProcessor::HzToPitch(int16_t hz) {
@@ -353,11 +352,8 @@ namespace SharpVox {
         pitch.CurPitchBufFlags  = 0;
 
         pitch.PhonIndexTarg     = -1;
-        pitch.PhonIndexCp       = -1;
         pitch.TimeIntoPhonTarg  = _pitchClauseStartTime;
-        pitch.TimeIntoPhonCp    = 0;
         pitch.CurPhonDurCc      = 0;
-        pitch.CurPhonDurCp      = 0;
         pitch.PhonDurDelay      = 0;
 
         pitch.UvPhonPitchTarg   = 0;
@@ -366,8 +362,6 @@ namespace SharpVox {
 
         pitch.BaseLineOffset     = 0;
         pitch.BasePitchOffset    = 0;
-        pitch.PitchBoundry       = (int16_t)_pitchBoundry;
-        pitch.LowGainCp          = 0;
 
         pitch.BaselineFallStart  = _baselineFallStart;
         pitch.BaselineFallEnd    = _baselineFallEnd;
@@ -540,8 +534,6 @@ namespace SharpVox {
         // branch of PitchInterpolator doesn't use them.
         PitchState pitch{};
         pitch.PhonIndexTarg      = -1;
-        pitch.PhonIndexCp        = -1;
-        pitch.PitchBoundry       = (int16_t)kNeverHappens;
         pitch.BaselineFallStart  = (int16_t)(kHZ_7 + _vpBaselineFall);
         pitch.BaselineFallEnd    = (int16_t)(kHZ_7 - _vpBaselineFall);
         pitch.BaselineStartOffset = (int16_t)(kHZ_7 + _vpBaselineFall);

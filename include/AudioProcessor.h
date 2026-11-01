@@ -58,7 +58,6 @@ namespace SharpVox {
         static constexpr int32_t kNormalPitch        = 579;
         static constexpr int32_t kMaxRamps           = 256;
         static constexpr int32_t kStepSizeRes        = 3;
-        static constexpr int32_t kNeverHappens       = -10000;
         static constexpr int32_t kDur_One            = 0x100;
         static constexpr int32_t kDurStepRes         = 8;
         static constexpr int32_t kNormal_Speech_Rate = 180;
@@ -206,7 +205,6 @@ namespace SharpVox {
         int16_t  _baselineFallStart;
         int16_t  _baselineFallEnd;
         int16_t  _pitchClauseStartTime;
-        int16_t  _pitchBoundry;
 
         // Fill_Pitch_Buf helpers
         int32_t  _pitchTimeOffset;

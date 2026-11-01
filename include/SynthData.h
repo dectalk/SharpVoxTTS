@@ -73,11 +73,8 @@ namespace SharpVox {
         int16_t CurPitchBufFlags;
 
         int16_t PhonIndexTarg;
-        int16_t PhonIndexCp;
         int16_t TimeIntoPhonTarg;
-        int16_t TimeIntoPhonCp;
         int32_t CurPhonDurCc;
-        int32_t CurPhonDurCp;
         int32_t PhonDurDelay;
 
         int16_t UvPhonPitchTarg;
@@ -86,8 +83,6 @@ namespace SharpVox {
 
         int16_t BaseLineOffset;
         int16_t BasePitchOffset;
-        int16_t PitchBoundry;
-        int16_t LowGainCp;
 
         int16_t BaselineFallStart;
         int16_t BaselineFallEnd;
