@@ -1,0 +1,25 @@
+---
+UseTab: Always
+TabWidth: 8
+AlignConsecutiveAssignments:
+  Enabled: true
+AlignConsecutiveDeclarations:
+  Enabled: true
+AccessModifierOffset: -4
+NamespaceIndentation: All
+IndentWidth: 8
+IndentCaseLabels: true
+PointerAlignment: Left
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+SpaceBeforeParens: Never
+AlignEscapedNewlines: DontAlign
+SortIncludes: false
+AllowShortEnumsOnASingleLine: false
+#IndentPPDirectives: AfterHash
