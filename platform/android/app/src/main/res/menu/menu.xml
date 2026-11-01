@@ -4,6 +4,11 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/checkUpdates"
+        android:title="Check for updates"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/activity_system_settings"
         android:title="File"
         app:showAsAction="always">

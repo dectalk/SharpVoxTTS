@@ -103,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         bottomNav.setSelectedItemId(R.id.nav_speak);
 
         initSettings();
+
+        Updater.autoCheck(this);
     }
 
     @Override
@@ -119,6 +121,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     @Override
     public boolean onOptionsItemSelected( @NonNull MenuItem item ) {
         int id = item.getItemId();
+
+        if (id == R.id.checkUpdates) {
+            Updater.check(this, true);
+            return true;
+        }
 
         EditText inputText = findViewById(R.id.inputText);
         String text = inputText.getText().toString();

@@ -7,6 +7,29 @@ def keystorePasswordEnv = System.getenv('ANDROID_KEYSTORE_PASSWORD')
 def keyAliasEnv = System.getenv('ANDROID_KEY_ALIAS')
 def keyPasswordEnv = System.getenv('ANDROID_KEY_PASSWORD')
 
+def gitOutput = { List<String> command ->
+    try {
+        def process = new ProcessBuilder(command)
+                .directory(rootProject.projectDir)
+                .redirectErrorStream(true)
+                .start()
+        def output = process.getInputStream().getText('UTF-8').trim()
+        process.waitFor()
+        return process.exitValue() == 0 ? output : ''
+    } catch (Exception ignored) {
+        return ''
+    }
+}
+
+def gitCommitCount = gitOutput(['git', 'rev-list', '--count', 'HEAD'])
+def gitShortSha = gitOutput(['git', 'rev-parse', '--short', 'HEAD'])
+def buildVersionCode = (
+        project.findProperty('versionCode')
+                ?: System.getenv('VERSION_CODE')
+                ?: (gitCommitCount ?: '1')
+).toString().toInteger()
+def buildVersionName = '2.0' + (gitShortSha ? "-${gitShortSha}" : '')
+
 android {
     namespace 'dev.bytesizedfox.sharpvoxapp'
     compileSdk 35
@@ -26,8 +49,8 @@ android {
         applicationId "dev.bytesizedfox.sharpvoxapp"
         minSdk 31
         targetSdk 35
-        versionCode 1
-        versionName "2.0"
+        versionCode buildVersionCode
+        versionName buildVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
