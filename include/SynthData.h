@@ -145,7 +145,6 @@ namespace SharpVox {
 		std::vector<int16_t> PitchBufFreq;
 		std::vector<int16_t> PitchBufTime;
 		std::vector<int16_t> PitchBufFlags;
-		std::vector<int16_t> PitchBufTiltX64;
 		std::vector<int16_t> PitchBufDuration;
 
 		// Clause-terminating punctuation (_Period_, _Quest_, ...; 0 = none)
@@ -171,7 +170,6 @@ namespace SharpVox {
 		    std::vector<int16_t> pitchBufFreq,
 		    std::vector<int16_t> pitchBufTime,
 		    std::vector<int16_t> pitchBufFlags,
-		    std::vector<int16_t> pitchBufTiltX64,
 		    std::vector<int16_t> pitchBufDuration,
 		    PitchState		 pitch,
 		    int16_t		 endPunctuation) {
@@ -193,7 +191,6 @@ namespace SharpVox {
 			d.PitchBufFreq	   = std::move(pitchBufFreq);
 			d.PitchBufTime	   = std::move(pitchBufTime);
 			d.PitchBufFlags	   = std::move(pitchBufFlags);
-			d.PitchBufTiltX64  = std::move(pitchBufTiltX64);
 			d.PitchBufDuration = std::move(pitchBufDuration);
 			d.EndPunctuation   = endPunctuation;
 			d.Pitch		   = pitch;

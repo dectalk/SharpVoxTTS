@@ -116,7 +116,6 @@ namespace SharpVox {
 	void AudioProcessor::InitFromVoice(const VoiceData& vd) {
 		_speechRate	   = vd.Rate;
 		_vpRiseAmt	   = vd.RiseAmt;
-		_vpFallAmt	   = vd.FallAmt;
 		_vpRiseAmt1	   = vd.RiseAmt1;
 		_vpFallAmt1	   = vd.FallAmt1;
 		_vpAssertiveness   = vd.Assertiveness;
@@ -131,7 +130,6 @@ namespace SharpVox {
 		_vpIntonation	   = ((int64_t)vd.Intonation << 16) / 100;
 		_voiceNaturalPitch = HzToPitch(vd.PitchHz);
 		_vpUptalkAmt	   = vd.UptalkAmt;
-		_vpStressEarly	   = vd.StressEarly;
 		_vpBreakStrength   = vd.BreakStrength;
 		_vpEmphasisBoost   = vd.EmphasisBoost;
 		_vocalConfidence   = vd.VocalConfidence;
@@ -187,7 +185,7 @@ namespace SharpVox {
 		// Size buffers to the actual clause length plus a safety margin:
 		//   buf1:   raw phoneme slots  tokens + initial SIL + trailing SIL + lookahead writes
 		//   buf2:   allophone output  2 buf1 to absorb insertions (glottal stop, plosive release)
-		//   pitch:  Tilt events  6 buf1, matching the historical kPitchBufSize ratio
+		//   pitch:  prosody events  6 buf1, matching the historical kPitchBufSize ratio
 		const int32_t buf1N  = tokenCount + 16;
 		const int32_t buf2N  = tokenCount * 2 + 16;
 		const int32_t pitchN = tokenCount * 6 + 16;
@@ -229,7 +227,6 @@ namespace SharpVox {
 		_pitchBufFreq.assign(pitchN, (int16_t)0);
 		_pitchBufTime.assign(pitchN, (int16_t)0);
 		_pitchBufFlags.assign(pitchN, (int16_t)0);
-		_pitchBufTiltX64.assign(pitchN, (int16_t)0);
 		_pitchBufDuration.assign(pitchN, (int16_t)0);
 	}
 
@@ -336,12 +333,10 @@ namespace SharpVox {
 		std::vector<int16_t> pitchFreq	   = std::move(_pitchBufFreq);
 		std::vector<int16_t> pitchTime	   = std::move(_pitchBufTime);
 		std::vector<int16_t> pitchFlags	   = std::move(_pitchBufFlags);
-		std::vector<int16_t> pitchTiltX64  = std::move(_pitchBufTiltX64);
 		std::vector<int16_t> pitchDuration = std::move(_pitchBufDuration);
 		pitchFreq.resize(pitchCount);
 		pitchTime.resize(pitchCount);
 		pitchFlags.resize(pitchCount);
-		pitchTiltX64.resize(pitchCount);
 		pitchDuration.resize(pitchCount);
 
 		PitchState pitch;
@@ -420,7 +415,6 @@ namespace SharpVox {
 		    /*pitchBufFreq=*/std::move(pitchFreq),
 		    /*pitchBufTime=*/std::move(pitchTime),
 		    /*pitchBufFlags=*/std::move(pitchFlags),
-		    /*pitchBufTiltX64=*/std::move(pitchTiltX64),
 		    /*pitchBufDuration=*/std::move(pitchDuration),
 		    /*pitch=*/std::move(pitch),
 		    /*endPunctuation=*/_endPunctuation);
@@ -438,7 +432,7 @@ namespace SharpVox {
 	//
 	// Duration mirrors ModDuration's kSingingPhon branch exactly.
 	// The pitch buffer is left empty; PitchInterpolator's singing branch uses
-	// only _portamentoAccum and UserNote, never the Tilt event queue.
+	// only _portamentoAccum and UserNote, never the pitch event queue.
 	ClausePlan AudioProcessor::ProcessSinging(const std::vector<PhonemeToken>& tokens) {
 		const int32_t n	      = (int32_t)tokens.size();
 		const int32_t count   = n + 2;	   // slot 0 = initial SIL, n tokens, terminal SIL
@@ -539,7 +533,7 @@ namespace SharpVox {
 		// Slots [count] and beyond stay SIL / 0 (already initialised).
 
 		// PitchState for singing: portamento seeded at the voice's natural pitch.
-		// The Tilt baseline fields are set for consistency even though the singing
+		// The baseline fields are set for consistency even though the singing
 		// branch of PitchInterpolator doesn't use them.
 		PitchState pitch{};
 		pitch.PhonIndexTarg	  = -1;
@@ -559,7 +553,7 @@ namespace SharpVox {
 		std::fill(pitch.RampSteps.begin(), pitch.RampSteps.end(), (int64_t)0);
 
 		// Pitch buffer: empty  PitchInterpolator's singing branch uses only
-		// UserNote / portamento state and never reads Tilt events.
+		// UserNote / portamento state and never reads pitch events.
 		// Pass a one-entry sentinel vector so the PitchBufTime[index] access
 		// inside the collect-loop remains in bounds even if PitchBufInIndex were
 		// erroneously non-zero.
@@ -583,7 +577,6 @@ namespace SharpVox {
 		    /*pitchBufFreq=*/pitchSentinel,
 		    /*pitchBufTime=*/pitchSentinel,
 		    /*pitchBufFlags=*/pitchSentinel,
-		    /*pitchBufTiltX64=*/pitchSentinel,
 		    /*pitchBufDuration=*/std::move(pitchSentinel),
 		    /*pitch=*/pitch,
 		    /*endPunctuation=*/0);
@@ -1749,15 +1742,6 @@ namespace SharpVox {
 		rescale(false, speechAfter, speechFrames);
 	}
 
-	// Taylor (2000) Tilt model synthesis.
-	// Each intonational event is described by three parameters:
-	//   amplitude  - total F0 excursion in pitch units (A_event)
-	//   tiltX64    - tilt * 64, range [-64, +64]; +64 = pure rise, -64 = pure fall
-	//   duration   - total event duration in frames
-	//
-	// These are converted to RFC components (eqs 8-11) and then to F0 via eq. 12
-	// in PitchInterpolator.TiltSynth.
-
 	// Heiban (flat) default for Japanese mora-timed clauses:
 	// mora 1 is low, mora 2 onward is high, pitch falls at the clause boundary.
 	// Clauses are silence-delimited spans where all tokens carry kJapaneseMora.
@@ -1804,14 +1788,13 @@ namespace SharpVox {
 	// The first stressed vowel in the clause starts the nuclear rise.
 	// The last stressed vowel (or final vowel if none stressed) gets the nuclear fall.
 	// Content-word vowels in the head get kPitchRise1; function words get kPitchFall1.
-	// These markers are consumed by FillPitchBuf to place Tilt events.
+	// These markers are consumed by FillPitchBuf to place accent events.
 	void AudioProcessor::PitchRaiseAndFall() {
 		const int32_t kFallen = 0, kRaised = 1, kStart = 2, kFinished = 3;
 
 		int32_t pState = kStart, lastState = kStart;
 		int32_t wdIndex = 0, firstWord = 0, lastWord = 0;
 		int64_t wdType[64];
-		int32_t stressCount  = 1;
 		int32_t savedWdIndex = 0, savedFirstWord = 0, savedLastWord = 0;
 
 		for(int32_t index = 0; index < _phonBuf2InIndex; index++) {
@@ -1824,7 +1807,6 @@ namespace SharpVox {
 				wdIndex	    = 0;
 				firstWord   = 0;
 				lastWord    = 0;
-				stressCount = 1;
 				lastState   = kStart;
 				continue;
 			}
@@ -1837,7 +1819,6 @@ namespace SharpVox {
 				if(wdIndex < 63) {
 					wdIndex++;
 				}
-				stressCount = 0;
 				lastWord    = index;
 				if(lastState == kStart && pState == kRaised) {
 					lastState = kRaised;
@@ -1870,10 +1851,6 @@ namespace SharpVox {
 						pState = kRaised;
 					}
 				} else if(pState == kRaised) {
-					if((curCtrl & kPrimOrEmphStress) != 0) {
-						stressCount++;
-					}
-
 					if(CountVowelsTillBoundry(kTerm_End, index) == 0) {
 						_phonCtrlBuf2[index] |= kPitchFall;
 						pState	       = kFallen;
@@ -2024,24 +2001,24 @@ namespace SharpVox {
 
 	// Fill_Pitch_Buf - prosody event generation.
 	//
-	// Events carry (amplitude, tiltX64, duration); PitchInterpolator maps them
+	// Events carry (amplitude, duration); PitchInterpolator maps them
 	// to Fujisaki phrase/accent/boundary commands.
 	//
 	// Nuclear accent (kPitchRise / kPitchFall):
 	//   kPitchRise marks the start of the nuclear region; no F0 event fires on this vowel.
-	//   kPitchFall carries the full nuclear accent as a single Tilt event per Taylor 2000.
-	//   English declaratives: tilt=-51 (H* shape: 80% fall, 20% rise lead-in, ~79% of natural accents).
-	//   English questions: tilt=-20 (near-level nuclear before rising boundary tone).
+	//   kPitchFall carries the full nuclear accent as a single event.
+	//   English declaratives: peak-targeting nuclear hat (H* shape).
+	//   English questions: near-level nuclear before the rising boundary tone.
 	//   Japanese: legacy split-event model retained (abrupt mora-boundary pitch accent).
 	//
 	// Pre-nuclear head (kPitchRise1 / kPitchFall1):
-	//   Smaller Tilt events on stressed vowels in the pre-nuclear region.
+	//   Smaller accent events on stressed vowels in the pre-nuclear region.
 	//
 	// Stress accent (kPrimOrEmphStress):
-	//   Upward Tilt excursion at each stressed syllable.
+	//   Upward excursion at each stressed syllable.
 	//
 	// Boundary tones (at kTerm_End):
-	//   Rising or falling boundary, implemented as a Tilt event with high |tilt|.
+	//   Rising or falling boundary, stored as a pitch offset (kPitchBoundry_Flg).
 
 	void AudioProcessor::FillPitchBuf() {
 		bool pitchIsFallen    = true;
@@ -2064,7 +2041,7 @@ namespace SharpVox {
 			// Phrase reset after silence - resets the baseline accumulator in PitchInterpolator.
 			if(((prevCtrl & kSilenceTypeField) >> kSilenceTypeShift) != 0) {
 				int16_t resetAmt = (int16_t)((0 - curBaseline) * _vpBreakStrength / 50);
-				StoreTiltEvent(resetAmt, 0, 0, 0, kPhraseReset);
+				StorePitchEvent(resetAmt, 0, 0, kPhraseReset);
 				curBaseline += resetAmt;
 				pitchIsFallen = true;
 			}
@@ -2080,32 +2057,32 @@ namespace SharpVox {
 					if((curCtrl & kJapaneseMora) != 0) {
 						int16_t riseAmt = _vpRiseAmt;
 						int16_t riseDur = (int16_t)std::min((int32_t)curDur, (int32_t)(30 / kFrameTime));
-						StoreTiltEvent(riseAmt, +64, riseDur, 0, kPitchRiseFall_Flg);
+						StorePitchEvent(riseAmt, riseDur, 0, kPitchRiseFall_Flg);
 						curBaseline += riseAmt;
 					}
 					pitchIsFallen = false;
 				}
 
 				// PRE-NUCLEAR HEAD (kPitchRise1 / kPitchFall1)
-				// kPitchRise1 (content word, L+H*-like): tilt +20 (Taylor L+H* ~ +0.3 = +19/64).
-				// kPitchFall1 (function word, H*-like): tilt -51, peak +40ms from vowel onset,
+				// kPitchRise1 (content word, L+H*-like): head accent peak.
+				// kPitchFall1 (function word, H*-like): fall accent, peak +40ms from vowel onset,
 				//   same alignment formula as the nuclear H* (Taylor 2000).
 				if((curCtrl & kPitchRise1) != 0) {
 					int16_t peak1 = _vpRiseAmt1;
 					if(_endPunctuation == _Quest_ || _endPunctuation == _Tilde_) {
 						peak1 >>= 1;
 					}
-					// Peak-targeting hat: amp 3p/2 with tilt +21 decomposes to an
-					// absolute peak of ~p and a landing plateau of ~p/2 (MITalk 2:1).
-					StoreTiltEvent((int16_t)(peak1 * 3 / 2), +21, curDur, kHeadAccentOnset, kPitchRiseFall1_Flg);
+					// Peak-targeting hat: amplitude 3p/2 lands an absolute peak of ~p
+					// and a plateau of ~p/2 (MITalk 2:1).
+					StorePitchEvent((int16_t)(peak1 * 3 / 2), curDur, kHeadAccentOnset, kPitchRiseFall1_Flg);
 				} else if((curCtrl & kPitchFall1) != 0) {
-					StoreTiltEvent(_vpFallAmt1, -51, curDur, kHeadAccentOnset, kPitchRiseFall1_Flg);
+					StorePitchEvent(_vpFallAmt1, curDur, kHeadAccentOnset, kPitchRiseFall1_Flg);
 				}
 
 				// STRESS ACCENT (emphatic only)
 				// Per Taylor 2000, all F0 movement comes from assigned accents (nuclear/head).
 				// Primary-stressed but unaccented syllables have no F0 event.
-				// Only emphatic stress (user-commanded, e.g. ALL CAPS) fires a Tilt event.
+				// Only emphatic stress (user-commanded, e.g. ALL CAPS) fires an accent event.
 				if(curStress == kEmphaticStress &&
 				   (curCtrl & (kPitchRise | kPitchFall | kPitchRise1 | kPitchFall1)) == 0) {
 					int16_t pitchT = (int16_t)(kHZ_28 + (_vpEmphasisBoost * kHZ_14 / 100));
@@ -2140,8 +2117,8 @@ namespace SharpVox {
 								 : _vpStressGain;
 					pitchT		   = (int16_t)((stressGain * pitchT) >> 16);
 
-					// Stress accent: brief rise-fall, tilt 0 (symmetric shape), amplitude pitchT
-					StoreTiltEvent(pitchT, 0, curDur, timeT, kPitchStress_Flg);
+					// Stress accent: brief rise-fall, amplitude pitchT
+					StorePitchEvent(pitchT, curDur, timeT, kPitchStress_Flg);
 					stressCounter++;
 				}
 
@@ -2178,13 +2155,12 @@ namespace SharpVox {
 					// English: peak-targeting nuclear hat. The event rises to the same
 					// absolute peak line as the head accents (RiseAmt1) and plunges to
 					// an absolute floor of fallAmt below the baseline (MITalk Tune A
-					// constant terminal value). amp and tilt encode (peak, floor) for
-					// the RFC decomposition in FireTiltEvent.
+					// constant terminal value). amp encodes 2*peak+floor.
 					if((curCtrl & kJapaneseMora) != 0) {
 						int16_t timeT = (int16_t)(curDur - (160 / kFrameTime));
 						if(timeT < 25 / kFrameTime) timeT = (int16_t)(25 / kFrameTime);
 						fallAmt = (int16_t)(((int64_t)_vpAssertiveness * fallAmt >> 16) - _vpRiseAmt);
-						StoreTiltEvent((int16_t)(-fallAmt), -64, curDur, timeT, kPitchRiseFall_Flg);
+						StorePitchEvent((int16_t)(-fallAmt), curDur, timeT, kPitchRiseFall_Flg);
 					} else {
 						int16_t nucPeak = _vpRiseAmt1;
 						if(_endPunctuation == _Quest_ || _endPunctuation == _Tilde_) {
@@ -2194,8 +2170,7 @@ namespace SharpVox {
 						if(floorDepth > 0) {
 							// aRise + aFall = amp; solve for aRise = peak, landing = -floorDepth.
 							int16_t amp	= (int16_t)(2 * nucPeak + floorDepth);
-							int16_t nucTilt = (int16_t)(0 - (64 * floorDepth) / amp);
-							StoreTiltEvent(amp, nucTilt, curDur, kNuclearAccentOnset, kPitchRiseFall_Flg);
+							StorePitchEvent(amp, curDur, kNuclearAccentOnset, kPitchRiseFall_Flg);
 						}
 						fallAmt = (int16_t)(0 - floorDepth);
 					}
@@ -2210,12 +2185,12 @@ namespace SharpVox {
 				   (curCtrl & (kPitchRise | kPitchFall | kPitchRise1 | kPitchFall1)) == 0) {
 					int16_t pronounAmt = (int16_t)(kHZ_10 * _vocalConfidence / 100);
 					if(pronounAmt > 0) {
-						StoreTiltEvent(pronounAmt, 0, curDur, (int16_t)(curDur / 2), kPitchStress_Flg);
+						StorePitchEvent(pronounAmt, curDur, (int16_t)(curDur / 2), kPitchStress_Flg);
 					}
 				}
 
 				// BOUNDARY TONES (question, tilde, comma).
-				// Stored as pitch-offset targets (kPitchBoundry_Flg), not Tilt excursions.
+				// Stored as pitch-offset targets (kPitchBoundry_Flg), not F0 excursions.
 				// PitchInterpolator accumulates them into _punctOffset and adds the offset
 				// directly to the pitch target - the same mechanism as the original IIR path.
 				// Multiple events per clause let the offset ramp across the vowel duration;
@@ -2224,15 +2199,15 @@ namespace SharpVox {
 				   (_endPunctuation == _Comma_ || _endPunctuation == _Quest_ || _endPunctuation == _Tilde_)) {
 					if(_endPunctuation == _Quest_) {
 						// low start, then the rise lands at 3/4 of the final vowel so it is heard on voicing rather than on a trailing voiceless consonant
-						StoreTiltEvent(kQuestRiseStart, 0, 0, 0, kPitchBoundry_Flg);
-						StoreTiltEvent(kQuestRiseEnd, 0, 0, (int16_t)(curDur * 3 / 4), kPitchBoundry_Flg);
+						StorePitchEvent(kQuestRiseStart, 0, 0, kPitchBoundry_Flg);
+						StorePitchEvent(kQuestRiseEnd, 0, (int16_t)(curDur * 3 / 4), kPitchBoundry_Flg);
 					} else if(_endPunctuation == _Tilde_) {
-						StoreTiltEvent(kHZ_7, 0, 0, 0, kPitchBoundry_Flg);
-						StoreTiltEvent(kHZ_18, 0, 0, (int16_t)(curDur * 2 / 5), kPitchBoundry_Flg);
-						StoreTiltEvent(kHZ_4, 0, 0, curDur, kPitchBoundry_Flg);
+						StorePitchEvent(kHZ_7, 0, 0, kPitchBoundry_Flg);
+						StorePitchEvent(kHZ_18, 0, (int16_t)(curDur * 2 / 5), kPitchBoundry_Flg);
+						StorePitchEvent(kHZ_4, 0, curDur, kPitchBoundry_Flg);
 					} else {
-						StoreTiltEvent(kContRiseStart, 0, 0, 0, kPitchBoundry_Flg);
-						StoreTiltEvent(kContRiseEnd, 0, 0, curDur, kPitchBoundry_Flg);
+						StorePitchEvent(kContRiseStart, 0, 0, kPitchBoundry_Flg);
+						StorePitchEvent(kContRiseEnd, 0, curDur, kPitchBoundry_Flg);
 					}
 				}
 			}
@@ -2241,15 +2216,13 @@ namespace SharpVox {
 		}
 	}
 
-	// Stores one Tilt event into the pitch buffer.
+	// Stores one prosody event into the pitch buffer.
 	//
 	// amplitude: A_event in pitch units (positive = excursion upward from baseline)
-	// tiltX64:   tilt parameter * 64; +64 = pure rise, -64 = pure fall, 0 = symmetric
 	// duration:  total event duration in frames
 	// time:      frame offset relative to current phoneme start (may be negative for early placement)
 	// flags:     kPitchRiseFall_Flg, kPitchStress_Flg, kPitchBoundry_Flg, kPhraseReset, etc.
-	void AudioProcessor::StoreTiltEvent(int16_t amplitude, int16_t tiltX64, int32_t duration,
-					    int16_t time, int16_t flags) {
+	void AudioProcessor::StorePitchEvent(int16_t amplitude, int32_t duration, int16_t time, int16_t flags) {
 		int32_t absTime = _pitchTimeOffset + time;
 		int32_t relTime = absTime - _lastEventTime;
 		// Clamp early events without rewinding the clock, so later events keep their timing.
@@ -2257,7 +2230,6 @@ namespace SharpVox {
 		_pitchBufTime[_pitchBufInIndex] = (int16_t)relTime;
 		_lastEventTime += relTime;
 		_pitchBufFreq[_pitchBufInIndex]	    = amplitude;
-		_pitchBufTiltX64[_pitchBufInIndex]  = tiltX64;
 		_pitchBufDuration[_pitchBufInIndex] = (int16_t)std::min(duration, (int32_t)INT16_MAX);
 		_pitchBufFlags[_pitchBufInIndex]    = flags;
 		if(_pitchBufInIndex < _pitchBufLimit) {

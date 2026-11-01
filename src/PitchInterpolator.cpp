@@ -228,7 +228,6 @@ namespace SharpVox {
 			if(_curPitchBufTime >= _nextPitchBufTime && _pitchBufOutIndex < (int32_t)_plan.PitchBufInIndex) {
 				int32_t evAmp	= _plan.PitchBufFreq[_pitchBufOutIndex];
 				int32_t evFlags = _plan.PitchBufFlags[_pitchBufOutIndex];
-				(void)_plan.PitchBufTiltX64[_pitchBufOutIndex]; // tilt field unused by the Fujisaki model
 				int32_t evDuration = _plan.PitchBufDuration[_pitchBufOutIndex];
 
 				_curPitchBufTime -= _nextPitchBufTime;
@@ -546,7 +545,6 @@ namespace SharpVox {
 				_phonDurDelay = 0;
 
 				int32_t curPhon = GetPhon(_phonIndexTarg);
-				(void)GetPhonCtrl(_phonIndexTarg);
 				uint32_t curFlags  = Tables::GetFeatureFlags(curPhon);
 				int32_t	 nextPhon  = GetPhon(_phonIndexTarg + 1);
 				uint32_t nextFlags = Tables::GetFeatureFlags(nextPhon);

@@ -139,7 +139,6 @@ namespace SharpVox {
 		std::vector<int16_t> _pitchBufFreq;
 		std::vector<int16_t> _pitchBufTime;
 		std::vector<int16_t> _pitchBufFlags;
-		std::vector<int16_t> _pitchBufTiltX64;
 		std::vector<int16_t> _pitchBufDuration;
 		int64_t		     _rampSteps[kMaxRamps];
 
@@ -154,7 +153,6 @@ namespace SharpVox {
 		int64_t _vpPitchRange; // 16.16 fixed
 		int64_t _vpStressGain; // 16.16 fixed
 		int16_t _vpRiseAmt;
-		int16_t _vpFallAmt;
 		int16_t _vpRiseAmt1;
 		int16_t _vpFallAmt1;
 		int32_t _vpAssertiveness; // 16.16 fixed
@@ -166,7 +164,6 @@ namespace SharpVox {
 		int64_t _vpIntonation;
 		int16_t _voiceNaturalPitch;
 		int16_t _vpUptalkAmt;
-		int16_t _vpStressEarly;
 		int16_t _vpBreakStrength;
 		int16_t _vpEmphasisBoost;
 		int32_t _vocalConfidence;
@@ -256,8 +253,7 @@ namespace SharpVox {
 		static uint32_t PhonemeFeatureFlagsSafe(int16_t p);
 		void		CalcRampSteps();
 		void		FillPitchBuf();
-		void		StoreTiltEvent(int16_t amplitude, int16_t tiltX64, int32_t duration,
-					       int16_t time, int16_t flags);
+		void		StorePitchEvent(int16_t amplitude, int32_t duration, int16_t time, int16_t flags);
 		void		StartNewPitchClause();
 		void		StretchLastWordForTilde();
 		void		InsertPlosiveRelease();

@@ -63,16 +63,6 @@ namespace SharpVox {
 		return y;
 	}
 
-	// All-float cascade IIR  used for F1/F2/F3 where coefficients are derived
-	// directly from (r, cos) without Q15 quantization.
-	static inline float fp_iir_ff(float A, float B, float C,
-				      float x, float& d1, float& d2) {
-		float y = A * x + B * d1 + C * d2;
-		d2	= d1;
-		d1	= y;
-		return y;
-	}
-
 	// Matched one-zero resonator step (Vicanek 2016): numerator b0 + b1*z^-1
 	// over the classic Klatt pole pair. x1 holds the previous input sample.
 	static inline float fp_iir_zff(float b0, float b1, float B, float C,
