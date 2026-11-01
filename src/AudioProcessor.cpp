@@ -343,23 +343,14 @@ namespace SharpVox {
 		pitch.NextPitchBufTime = pitchCount > 0 ? pitchTime[0] : (int16_t)0;
 		pitch.PitchBufOutIndex = 0;
 		pitch.CurPitchBufTime  = (int16_t)(_pitchClauseStartTime >> 1);
-		pitch.CurPitchBufPitch = 0;
-		pitch.CurPitchBufFlags = 0;
 
 		pitch.PhonIndexTarg    = -1;
 		pitch.TimeIntoPhonTarg = _pitchClauseStartTime;
 		pitch.CurPhonDurCc     = 0;
 		pitch.PhonDurDelay     = 0;
 
-		pitch.UvPhonPitchTarg  = 0;
-		pitch.PhonPitchOffset  = 0;
 		pitch.PhonPitchOffset1 = 0;
 
-		pitch.BaseLineOffset  = 0;
-		pitch.BasePitchOffset = 0;
-
-		pitch.BaselineFallStart	  = _baselineFallStart;
-		pitch.BaselineFallEnd	  = _baselineFallEnd;
 		pitch.BaselineStartOffset = _baselineStartOffset;
 		pitch.BaselineEndOffset	  = _baselineEndOffset;
 
@@ -537,8 +528,6 @@ namespace SharpVox {
 		// branch of PitchInterpolator doesn't use them.
 		PitchState pitch{};
 		pitch.PhonIndexTarg	  = -1;
-		pitch.BaselineFallStart	  = (int16_t)(kHZ_7 + _vpBaselineFall);
-		pitch.BaselineFallEnd	  = (int16_t)(kHZ_7 - _vpBaselineFall);
 		pitch.BaselineStartOffset = (int16_t)(kHZ_7 + _vpBaselineFall);
 		pitch.BaselineEndOffset	  = (int16_t)(kHZ_7 - _vpBaselineFall);
 		pitch.VpIntonation	  = _vpIntonation;

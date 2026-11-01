@@ -22,7 +22,7 @@ namespace SharpVox {
 		_curPhonDurCc	  = s.CurPhonDurCc;
 		_phonDurDelay	  = s.PhonDurDelay;
 
-		_uvPhonPitchTarg  = s.UvPhonPitchTarg;
+		_uvPhonPitchTarg  = 0;
 		_phonPitchOffset1 = s.PhonPitchOffset1;
 
 		_baselineStartOffset = s.BaselineStartOffset;
