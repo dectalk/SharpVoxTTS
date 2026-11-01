@@ -5,16 +5,16 @@
 
 namespace SharpVox {
 
-    class MeCabReader {
-    public:
-        static bool Init();
+	class MeCabReader {
+	    public:
+		static bool Init();
 
-        static void Shutdown();
-        static bool IsAvailable();
+		static void Shutdown();
+		static bool IsAvailable();
 
-        static std::string ExtractReadings(const std::string& text);
-    };
+		static std::string ExtractReadings(const std::string& text);
+	};
 
-}  // namespace SharpVox
+} // namespace SharpVox
 
-#endif  // SHARPVOX_MECAB_READER_H
+#endif // SHARPVOX_MECAB_READER_H

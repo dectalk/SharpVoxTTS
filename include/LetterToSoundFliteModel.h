@@ -17,23 +17,23 @@
 #if !defined(SHARPVOX_DISABLE_FLITE_LTS)
 
 namespace SharpVox {
-namespace FliteModel {
+	namespace FliteModel {
 
-    // Decision-tree states, 6 bytes each: feature index, comparison value,
-    // little-endian "true" address, little-endian "false" address. A feature
-    // index of 255 (CST_LTS_EOR) marks a leaf whose value byte is a phone index.
-    extern const unsigned char CmuLtsModel[];
+		// Decision-tree states, 6 bytes each: feature index, comparison value,
+		// little-endian "true" address, little-endian "false" address. A feature
+		// index of 255 (CST_LTS_EOR) marks a leaf whose value byte is a phone index.
+		extern const unsigned char CmuLtsModel[];
 
-    // First state address for each initial letter a-z (27 entries, sentinel last).
-    extern const unsigned short CmuLtsLetterIndex[];
+		// First state address for each initial letter a-z (27 entries, sentinel last).
+		extern const unsigned short CmuLtsLetterIndex[];
 
-    // Phone symbol table, indexed by the leaf value. "epsilon" emits nothing; a
-    // symbol containing '-' names two phones to split at the hyphen (e.g. "w-ey1").
-    extern const char* const CmuLtsPhoneTable[];
+		// Phone symbol table, indexed by the leaf value. "epsilon" emits nothing; a
+		// symbol containing '-' names two phones to split at the hyphen (e.g. "w-ey1").
+		extern const char* const CmuLtsPhoneTable[];
 
-}  // namespace FliteModel
-}  // namespace SharpVox
+	} // namespace FliteModel
+} // namespace SharpVox
 
-#endif  // !SHARPVOX_DISABLE_FLITE_LTS
+#endif // !SHARPVOX_DISABLE_FLITE_LTS
 
-#endif  // SHARPVOX_LETTER_TO_SOUND_FLITE_MODEL_H
+#endif // SHARPVOX_LETTER_TO_SOUND_FLITE_MODEL_H

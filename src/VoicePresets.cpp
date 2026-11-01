@@ -4,444 +4,510 @@
 
 namespace SharpVox {
 
-bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
-    std::string lower = name;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-                   [](unsigned char c){ return std::tolower(c); });
+	bool VoicePresets::TryGet(const std::string& name, VoiceData& outVoice) {
+		std::string lower = name;
+		std::transform(lower.begin(), lower.end(), lower.begin(),
+			       [](unsigned char c) { return std::tolower(c); });
 
-    if (lower == "p" || lower == "paul") { // dtk paul
-        outVoice = VoiceData::baseline_voice();
-        return true;
-    } else if (lower == "h" || lower == "harry") {
-        lower = "matt";
-    } else if (lower == "f" || lower == "frank") {
-        lower = "john";
-    } else if (lower == "d" || lower == "dennis") {
-        lower = "jack";
-    } else if (lower == "b" || lower == "betty") {
-        lower = "beth";
-    } else if (lower == "u" || lower == "ursula") {
-        lower = "deborah";
-    } else if (lower == "w" || lower == "wendy") {
-        lower = "whisper";
-    } else if (lower == "r" || lower == "rita") {
-        lower = "jess";
-    } else if (lower == "k" || lower == "kit") {
-        lower = "tommy";
-    } else if (lower == "v" || lower == "val") {
-        outVoice = VoiceData::baseline_voice();
-        return true;
-    }
+		if(lower == "p" || lower == "paul") { // dtk paul
+			outVoice = VoiceData::baseline_voice();
+			return true;
+		} else if(lower == "h" || lower == "harry") {
+			lower = "matt";
+		} else if(lower == "f" || lower == "frank") {
+			lower = "john";
+		} else if(lower == "d" || lower == "dennis") {
+			lower = "jack";
+		} else if(lower == "b" || lower == "betty") {
+			lower = "beth";
+		} else if(lower == "u" || lower == "ursula") {
+			lower = "deborah";
+		} else if(lower == "w" || lower == "wendy") {
+			lower = "whisper";
+		} else if(lower == "r" || lower == "rita") {
+			lower = "jess";
+		} else if(lower == "k" || lower == "kit") {
+			lower = "tommy";
+		} else if(lower == "v" || lower == "val") {
+			outVoice = VoiceData::baseline_voice();
+			return true;
+		}
 
-    if (lower == "beth") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 162;
-        outVoice.PitchHz = 238;
-        outVoice.VoiceType = 1;
-        outVoice.TractScale = 1.09f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 30;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 107;
-        outVoice.F4Freq = 4380;
-        outVoice.F4BW = 262;
-        outVoice.F5Freq = 5500;
-        outVoice.F5BW = 300;
-        outVoice.BwGain1 = 134;
-        outVoice.BwGain2 = 120;
-        outVoice.BwGain3 = 105;
-        outVoice.NasalBase = 323;
-        outVoice.NasalTarg = 405;
-        outVoice.NasalBW = 53;
-        outVoice.PitchRange = 148;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 38;
-        outVoice.FallAmt = -38;
-        outVoice.BaselineFall = 53;
-        return true;
-    }
-    if (lower == "chris") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 162;
-        outVoice.PitchHz = 138;
-        outVoice.VoiceType = 0;
-        outVoice.TractScale = 0.99f;
-        outVoice.VGain = 58;
-        outVoice.AGain = 175;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 103;
-        outVoice.F4Freq = 3580;
-        outVoice.F4BW = 255;
-        outVoice.F5Freq = 4050;
-        outVoice.F5BW = 290;
-        outVoice.BwGain1 = 148;
-        outVoice.BwGain2 = 109;
-        outVoice.BwGain3 = 107;
-        outVoice.NasalBase = 331;
-        outVoice.NasalTarg = 398;
-        outVoice.NasalBW = 64;
-        outVoice.PitchRange = 145;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 35;
-        outVoice.FallAmt = -38;
-        outVoice.BaselineFall = 43;
-        return true;
-    }
-    if (lower == "deborah") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 148;
-        outVoice.PitchHz = 168;
-        outVoice.VoiceType = 1;
-        outVoice.TractScale = 1.05f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 200;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 99;
-        outVoice.F4Freq = 4020;
-        outVoice.F4BW = 250;
-        outVoice.F5Freq = 5300;
-        outVoice.F5BW = 300;
-        outVoice.BwGain1 = 136;
-        outVoice.BwGain2 = 130;
-        outVoice.BwGain3 = 100;
-        outVoice.NasalBase = 336;
-        outVoice.NasalTarg = 395;
-        outVoice.NasalBW = 58;
-        outVoice.PitchRange = 72;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 22;
-        outVoice.FallAmt = -25;
-        outVoice.BaselineFall = 62;
-        return true;
-    }
-    if (lower == "jack") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 155;
-        outVoice.PitchHz = 155;
-        outVoice.VoiceType = 0;
-        outVoice.TractScale = 1.02f;
-        outVoice.VGain = 58;
-        outVoice.AGain = 185;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 101;
-        outVoice.F4Freq = 3720;
-        outVoice.F4BW = 275;
-        outVoice.F5Freq = 4280;
-        outVoice.F5BW = 315;
-        outVoice.BwGain1 = 126;
-        outVoice.BwGain2 = 107;
-        outVoice.BwGain3 = 118;
-        outVoice.NasalBase = 329;
-        outVoice.NasalTarg = 404;
-        outVoice.NasalBW = 67;
-        outVoice.PitchRange = 80;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 34;
-        outVoice.FallAmt = -17;
-        outVoice.BaselineFall = 47;
-        return true;
-    }
-    if (lower == "jess") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 166;
-        outVoice.PitchHz = 218;
-        outVoice.VoiceType = 1;
-        outVoice.TractScale = 1.07f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 0;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 97;
-        outVoice.F4Freq = 4460;
-        outVoice.F4BW = 270;
-        outVoice.F5Freq = 5400;
-        outVoice.F5BW = 300;
-        outVoice.BwGain1 = 138;
-        outVoice.BwGain2 = 120;
-        outVoice.BwGain3 = 103;
-        outVoice.NasalBase = 321;
-        outVoice.NasalTarg = 408;
-        outVoice.NasalBW = 50;
-        outVoice.PitchRange = 228;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 40;
-        outVoice.FallAmt = -35;
-        outVoice.BaselineFall = 47;
-        return true;
-    }
-    if (lower == "john") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 158;
-        outVoice.PitchHz = 121;
-        outVoice.VoiceType = 0;
-        outVoice.TractScale = 0.96f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 62;
-        outVoice.ACycle = 192;
-        outVoice.TremoloDepth = 0;
-        outVoice.TremoloRate = 0;
-        outVoice.Jitter = 0;
-        outVoice.Shimmer = 0;
-        outVoice.Diplophonia = 0;
-        outVoice.FryAmount = 0;
-        outVoice.SubglottalAmt = 0;
-        outVoice.BreathAmt = 0;
-        outVoice.OpenQuotient = 50;
-        outVoice.OQStressLink = 0;
-        outVoice.OQF0Link = 0;
-        outVoice.LarynxOffset = 0;
-        outVoice.PharyngealAmt = 0;
-        outVoice.PitchOffsetHz = 0;
-        outVoice.LipRounding = 0;
-        outVoice.OnsetHardness = 50;
-        outVoice.NGain = 100;
-        outVoice.F4Freq = 3400;
-        outVoice.F4BW = 240;
-        outVoice.F5Freq = 3780;
-        outVoice.F5BW = 265;
-        outVoice.BwGain1 = 136;
-        outVoice.BwGain2 = 112;
-        outVoice.BwGain3 = 101;
-        outVoice.NasalBase = 327;
-        outVoice.NasalTarg = 402;
-        outVoice.NasalBW = 60;
-        outVoice.PitchRange = 118;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 37;
-        outVoice.FallAmt = -34;
-        outVoice.BaselineFall = 47;
-        return true;
-    }
-    if (lower == "matt") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 154;
-        outVoice.PitchHz = 86;
-        outVoice.VoiceType = 0;
-        outVoice.TractScale = 0.92f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 95;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 100;
-        outVoice.F4Freq = 3150;
-        outVoice.F4BW = 200;
-        outVoice.F5Freq = 3620;
-        outVoice.F5BW = 238;
-        outVoice.BwGain1 = 142;
-        outVoice.BwGain2 = 111;
-        outVoice.BwGain3 = 109;
-        outVoice.NasalBase = 326;
-        outVoice.NasalTarg = 401;
-        outVoice.NasalBW = 70;
-        outVoice.PitchRange = 65;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 34;
-        outVoice.FallAmt = -27;
-        outVoice.BaselineFall = 63;
-        return true;
-    }
-    if (lower == "pirate") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.PitchHz = 141;
-        outVoice.TractScale = 0.944f;
-        outVoice.VoiceType = 0;
-        outVoice.Rate = 178;
-        outVoice.OpenQuotient = 27;
-        outVoice.BreathAmt = 18;
-        outVoice.Jitter = 38;
-        outVoice.Shimmer = 25;
-        outVoice.FryAmount = 44;
-        outVoice.Diplophonia = 41;
-        outVoice.SubglottalAmt = 6;
-        outVoice.PitchRange = 149;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 46;
-        outVoice.FallAmt = -18;
-        outVoice.BaselineFall = 58;
-        outVoice.StressGain = 63;
-        outVoice.F4Freq = 3100;
-        outVoice.F4BW = 294;
-        outVoice.F5Freq = 4600;
-        outVoice.F5BW = 300;
-        outVoice.BwGain1 = 98;
-        outVoice.BwGain2 = 78;
-        outVoice.BwGain3 = 95;
-        outVoice.NasalBase = 331;
-        outVoice.NasalTarg = 421;
-        outVoice.NasalBW = 68;
-        outVoice.AGain = 260;
-        outVoice.NGain = 115;
-        outVoice.LarynxOffset = 125;
-        outVoice.PharyngealAmt = 0;
-        outVoice.LipRounding = -22;
-        outVoice.OnsetHardness = 74;
-        outVoice.ACycle = 192;
-        outVoice.OQStressLink = 0;
-        outVoice.OQF0Link = 0;
-        outVoice.PitchOffsetHz = 0;
-        outVoice.NasalAmt = 0;
-        outVoice.VGain = 60;
-        return true;
-    }
-    if (lower == "tommy") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 164;
-        outVoice.PitchHz = 318;
-        outVoice.VoiceType = 1;
-        outVoice.TractScale = 1.22f;
-        outVoice.VGain = 60;
-        outVoice.AGain = 160;
-        outVoice.ACycle = 192;
-        outVoice.NGain = 96;
-        outVoice.F4Freq = 4800;
-        outVoice.F4BW = 300;
-        outVoice.F5Freq = 6200;
-        outVoice.F5BW = 400;
-        outVoice.BwGain1 = 138;
-        outVoice.BwGain2 = 128;
-        outVoice.BwGain3 = 109;
-        outVoice.NasalBase = 334;
-        outVoice.NasalTarg = 404;
-        outVoice.NasalBW = 54;
-        outVoice.PitchRange = 235;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 23;
-        outVoice.FallAmt = -22;
-        outVoice.BaselineFall = 45;
-        return true;
-    }
-    if (lower == "whisper") {
-        outVoice = VoiceData::baseline_voice();
-        outVoice.Rate = 148;
-        outVoice.PitchHz = 175;
-        outVoice.VoiceType = 1;
-        outVoice.TractScale = 1.0f;
-        outVoice.VGain = 0;
-        outVoice.AGain = 420;
-        outVoice.ACycle = 16;
-        outVoice.NGain = 102;
-        outVoice.F4Freq = 4480;
-        outVoice.F4BW = 420;
-        outVoice.F5Freq = 5100;
-        outVoice.F5BW = 450;
-        outVoice.BwGain1 = 138;
-        outVoice.BwGain2 = 115;
-        outVoice.BwGain3 = 111;
-        outVoice.NasalBase = 331;
-        outVoice.NasalTarg = 403;
-        outVoice.NasalBW = 67;
-        outVoice.PitchRange = 170;
-        outVoice.StressGain = 60;
-        outVoice.Intonation = 150;
-        outVoice.RiseAmt = 22;
-        outVoice.FallAmt = -24;
-        outVoice.BaselineFall = 60;
-        return true;
-    }
-    printf("unknown voice: %s\n", lower.c_str());
-    return false;
-}
+		if(lower == "beth") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 162;
+			outVoice.PitchHz      = 238;
+			outVoice.VoiceType    = 1;
+			outVoice.TractScale   = 1.09f;
+			outVoice.VGain	      = 60;
+			outVoice.AGain	      = 30;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 107;
+			outVoice.F4Freq	      = 4380;
+			outVoice.F4BW	      = 262;
+			outVoice.F5Freq	      = 5500;
+			outVoice.F5BW	      = 300;
+			outVoice.BwGain1      = 134;
+			outVoice.BwGain2      = 120;
+			outVoice.BwGain3      = 105;
+			outVoice.NasalBase    = 323;
+			outVoice.NasalTarg    = 405;
+			outVoice.NasalBW      = 53;
+			outVoice.PitchRange   = 148;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 38;
+			outVoice.FallAmt      = -38;
+			outVoice.BaselineFall = 53;
+			return true;
+		}
+		if(lower == "chris") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 162;
+			outVoice.PitchHz      = 138;
+			outVoice.VoiceType    = 0;
+			outVoice.TractScale   = 0.99f;
+			outVoice.VGain	      = 58;
+			outVoice.AGain	      = 175;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 103;
+			outVoice.F4Freq	      = 3580;
+			outVoice.F4BW	      = 255;
+			outVoice.F5Freq	      = 4050;
+			outVoice.F5BW	      = 290;
+			outVoice.BwGain1      = 148;
+			outVoice.BwGain2      = 109;
+			outVoice.BwGain3      = 107;
+			outVoice.NasalBase    = 331;
+			outVoice.NasalTarg    = 398;
+			outVoice.NasalBW      = 64;
+			outVoice.PitchRange   = 145;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 35;
+			outVoice.FallAmt      = -38;
+			outVoice.BaselineFall = 43;
+			return true;
+		}
+		if(lower == "deborah") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 148;
+			outVoice.PitchHz      = 168;
+			outVoice.VoiceType    = 1;
+			outVoice.TractScale   = 1.05f;
+			outVoice.VGain	      = 60;
+			outVoice.AGain	      = 200;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 99;
+			outVoice.F4Freq	      = 4020;
+			outVoice.F4BW	      = 250;
+			outVoice.F5Freq	      = 5300;
+			outVoice.F5BW	      = 300;
+			outVoice.BwGain1      = 136;
+			outVoice.BwGain2      = 130;
+			outVoice.BwGain3      = 100;
+			outVoice.NasalBase    = 336;
+			outVoice.NasalTarg    = 395;
+			outVoice.NasalBW      = 58;
+			outVoice.PitchRange   = 72;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 22;
+			outVoice.FallAmt      = -25;
+			outVoice.BaselineFall = 62;
+			return true;
+		}
+		if(lower == "jack") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 155;
+			outVoice.PitchHz      = 155;
+			outVoice.VoiceType    = 0;
+			outVoice.TractScale   = 1.02f;
+			outVoice.VGain	      = 58;
+			outVoice.AGain	      = 185;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 101;
+			outVoice.F4Freq	      = 3720;
+			outVoice.F4BW	      = 275;
+			outVoice.F5Freq	      = 4280;
+			outVoice.F5BW	      = 315;
+			outVoice.BwGain1      = 126;
+			outVoice.BwGain2      = 107;
+			outVoice.BwGain3      = 118;
+			outVoice.NasalBase    = 329;
+			outVoice.NasalTarg    = 404;
+			outVoice.NasalBW      = 67;
+			outVoice.PitchRange   = 80;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 34;
+			outVoice.FallAmt      = -17;
+			outVoice.BaselineFall = 47;
+			return true;
+		}
+		if(lower == "jess") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 166;
+			outVoice.PitchHz      = 218;
+			outVoice.VoiceType    = 1;
+			outVoice.TractScale   = 1.07f;
+			outVoice.VGain	      = 60;
+			outVoice.AGain	      = 0;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 97;
+			outVoice.F4Freq	      = 4460;
+			outVoice.F4BW	      = 270;
+			outVoice.F5Freq	      = 5400;
+			outVoice.F5BW	      = 300;
+			outVoice.BwGain1      = 138;
+			outVoice.BwGain2      = 120;
+			outVoice.BwGain3      = 103;
+			outVoice.NasalBase    = 321;
+			outVoice.NasalTarg    = 408;
+			outVoice.NasalBW      = 50;
+			outVoice.PitchRange   = 228;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 40;
+			outVoice.FallAmt      = -35;
+			outVoice.BaselineFall = 47;
+			return true;
+		}
+		if(lower == "john") {
+			outVoice	       = VoiceData::baseline_voice();
+			outVoice.Rate	       = 158;
+			outVoice.PitchHz       = 121;
+			outVoice.VoiceType     = 0;
+			outVoice.TractScale    = 0.96f;
+			outVoice.VGain	       = 60;
+			outVoice.AGain	       = 62;
+			outVoice.ACycle	       = 192;
+			outVoice.TremoloDepth  = 0;
+			outVoice.TremoloRate   = 0;
+			outVoice.Jitter	       = 0;
+			outVoice.Shimmer       = 0;
+			outVoice.Diplophonia   = 0;
+			outVoice.FryAmount     = 0;
+			outVoice.SubglottalAmt = 0;
+			outVoice.BreathAmt     = 0;
+			outVoice.OpenQuotient  = 50;
+			outVoice.OQStressLink  = 0;
+			outVoice.OQF0Link      = 0;
+			outVoice.LarynxOffset  = 0;
+			outVoice.PharyngealAmt = 0;
+			outVoice.PitchOffsetHz = 0;
+			outVoice.LipRounding   = 0;
+			outVoice.OnsetHardness = 50;
+			outVoice.NGain	       = 100;
+			outVoice.F4Freq	       = 3400;
+			outVoice.F4BW	       = 240;
+			outVoice.F5Freq	       = 3780;
+			outVoice.F5BW	       = 265;
+			outVoice.BwGain1       = 136;
+			outVoice.BwGain2       = 112;
+			outVoice.BwGain3       = 101;
+			outVoice.NasalBase     = 327;
+			outVoice.NasalTarg     = 402;
+			outVoice.NasalBW       = 60;
+			outVoice.PitchRange    = 118;
+			outVoice.StressGain    = 60;
+			outVoice.Intonation    = 150;
+			outVoice.RiseAmt       = 37;
+			outVoice.FallAmt       = -34;
+			outVoice.BaselineFall  = 47;
+			return true;
+		}
+		if(lower == "matt") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 154;
+			outVoice.PitchHz      = 86;
+			outVoice.VoiceType    = 0;
+			outVoice.TractScale   = 0.92f;
+			outVoice.VGain	      = 60;
+			outVoice.AGain	      = 95;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 100;
+			outVoice.F4Freq	      = 3150;
+			outVoice.F4BW	      = 200;
+			outVoice.F5Freq	      = 3620;
+			outVoice.F5BW	      = 238;
+			outVoice.BwGain1      = 142;
+			outVoice.BwGain2      = 111;
+			outVoice.BwGain3      = 109;
+			outVoice.NasalBase    = 326;
+			outVoice.NasalTarg    = 401;
+			outVoice.NasalBW      = 70;
+			outVoice.PitchRange   = 65;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 34;
+			outVoice.FallAmt      = -27;
+			outVoice.BaselineFall = 63;
+			return true;
+		}
+		if(lower == "pirate") {
+			outVoice	       = VoiceData::baseline_voice();
+			outVoice.PitchHz       = 141;
+			outVoice.TractScale    = 0.944f;
+			outVoice.VoiceType     = 0;
+			outVoice.Rate	       = 178;
+			outVoice.OpenQuotient  = 27;
+			outVoice.BreathAmt     = 18;
+			outVoice.Jitter	       = 38;
+			outVoice.Shimmer       = 25;
+			outVoice.FryAmount     = 44;
+			outVoice.Diplophonia   = 41;
+			outVoice.SubglottalAmt = 6;
+			outVoice.PitchRange    = 149;
+			outVoice.Intonation    = 150;
+			outVoice.RiseAmt       = 46;
+			outVoice.FallAmt       = -18;
+			outVoice.BaselineFall  = 58;
+			outVoice.StressGain    = 63;
+			outVoice.F4Freq	       = 3100;
+			outVoice.F4BW	       = 294;
+			outVoice.F5Freq	       = 4600;
+			outVoice.F5BW	       = 300;
+			outVoice.BwGain1       = 98;
+			outVoice.BwGain2       = 78;
+			outVoice.BwGain3       = 95;
+			outVoice.NasalBase     = 331;
+			outVoice.NasalTarg     = 421;
+			outVoice.NasalBW       = 68;
+			outVoice.AGain	       = 260;
+			outVoice.NGain	       = 115;
+			outVoice.LarynxOffset  = 125;
+			outVoice.PharyngealAmt = 0;
+			outVoice.LipRounding   = -22;
+			outVoice.OnsetHardness = 74;
+			outVoice.ACycle	       = 192;
+			outVoice.OQStressLink  = 0;
+			outVoice.OQF0Link      = 0;
+			outVoice.PitchOffsetHz = 0;
+			outVoice.NasalAmt      = 0;
+			outVoice.VGain	       = 60;
+			return true;
+		}
+		if(lower == "tommy") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 164;
+			outVoice.PitchHz      = 318;
+			outVoice.VoiceType    = 1;
+			outVoice.TractScale   = 1.22f;
+			outVoice.VGain	      = 60;
+			outVoice.AGain	      = 160;
+			outVoice.ACycle	      = 192;
+			outVoice.NGain	      = 96;
+			outVoice.F4Freq	      = 4800;
+			outVoice.F4BW	      = 300;
+			outVoice.F5Freq	      = 6200;
+			outVoice.F5BW	      = 400;
+			outVoice.BwGain1      = 138;
+			outVoice.BwGain2      = 128;
+			outVoice.BwGain3      = 109;
+			outVoice.NasalBase    = 334;
+			outVoice.NasalTarg    = 404;
+			outVoice.NasalBW      = 54;
+			outVoice.PitchRange   = 235;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 23;
+			outVoice.FallAmt      = -22;
+			outVoice.BaselineFall = 45;
+			return true;
+		}
+		if(lower == "whisper") {
+			outVoice	      = VoiceData::baseline_voice();
+			outVoice.Rate	      = 148;
+			outVoice.PitchHz      = 175;
+			outVoice.VoiceType    = 1;
+			outVoice.TractScale   = 1.0f;
+			outVoice.VGain	      = 0;
+			outVoice.AGain	      = 420;
+			outVoice.ACycle	      = 16;
+			outVoice.NGain	      = 102;
+			outVoice.F4Freq	      = 4480;
+			outVoice.F4BW	      = 420;
+			outVoice.F5Freq	      = 5100;
+			outVoice.F5BW	      = 450;
+			outVoice.BwGain1      = 138;
+			outVoice.BwGain2      = 115;
+			outVoice.BwGain3      = 111;
+			outVoice.NasalBase    = 331;
+			outVoice.NasalTarg    = 403;
+			outVoice.NasalBW      = 67;
+			outVoice.PitchRange   = 170;
+			outVoice.StressGain   = 60;
+			outVoice.Intonation   = 150;
+			outVoice.RiseAmt      = 22;
+			outVoice.FallAmt      = -24;
+			outVoice.BaselineFall = 60;
+			return true;
+		}
+		printf("unknown voice: %s\n", lower.c_str());
+		return false;
+	}
 
-bool VoicePresets::SetParam(VoiceData& v, const std::string& name, float value) {
-    auto clamp = [](float f, float lo, float hi) -> int16_t {
-        if (f < lo) f = lo;
-        if (f > hi) f = hi;
-        return static_cast<int16_t>(f);
-    };
-    auto clampf = [](float f, float lo, float hi) -> float {
-        if (f < lo) return lo;
-        if (f > hi) return hi;
-        return f;
-    };
+	bool VoicePresets::SetParam(VoiceData& v, const std::string& name, float value) {
+		auto clamp = [](float f, float lo, float hi) -> int16_t {
+			if(f < lo) f = lo;
+			if(f > hi) f = hi;
+			return static_cast<int16_t>(f);
+		};
+		auto clampf = [](float f, float lo, float hi) -> float {
+			if(f < lo) return lo;
+			if(f > hi) return hi;
+			return f;
+		};
 
-    // Ranges chosen to prevent filter instability; generous but not absurd.
-    if      (name == "pitch")          { v.PitchHz          = clamp(value,   40,   1000); }
-    else if (name == "rate")           { v.Rate             = clamp(value,   40,    600); }
-    else if (name == "volume"
-          || name == "vgain")          { v.VGain            = clamp(value,    0,    100); }
-    else if (name == "again")          { v.AGain            = clamp(value,    0,    600); }
-    else if (name == "acycle")         { v.ACycle           = clamp(value,    1,    256); }
-    else if (name == "tract"
-          || name == "tractscale")     { v.TractScale       = clampf(value, 0.3f,  2.5f); }
-    else if (name == "pitchrange")     { v.PitchRange       = clamp(value,    0,    500); }
-    else if (name == "stressgain")     { v.StressGain       = clamp(value,    0,    200); }
-    else if (name == "voicetype")      { v.VoiceType        = clamp(value,    0,      1); }
-    else if (name == "tremolodepth")   { v.TremoloDepth     = clamp(value,    0,    100); }
-    else if (name == "tremolorate")    { v.TremoloRate      = clamp(value,    0,    200); }
-    else if (name == "jitter")         { v.Jitter           = clamp(value,    0,    100); }
-    else if (name == "shimmer")        { v.Shimmer          = clamp(value,    0,    100); }
-    else if (name == "diplophonia")    { v.Diplophonia      = clamp(value,    0,    100); }
-    else if (name == "fry"
-          || name == "fryamount")      { v.FryAmount        = clamp(value,    0,    100); }
-    else if (name == "subglottal")     { v.SubglottalAmt    = clamp(value,    0,    100); }
-    else if (name == "breath"
-          || name == "breathamt")      { v.BreathAmt        = clamp(value,    0,    100); }
-    else if (name == "oq"
-          || name == "openquotient")   { v.OpenQuotient     = clamp(value,    0,    100); }
-    else if (name == "oqstresslink")   { v.OQStressLink     = clamp(value,    0,    100); }
-    else if (name == "oqf0link")       { v.OQF0Link         = clamp(value,    0,    100); }
-    else if (name == "larynx"
-          || name == "larynxoffset")   { v.LarynxOffset     = clamp(value, -800,    800); }
-    else if (name == "pharyngeal")     { v.PharyngealAmt    = clamp(value,    0,    100); }
-    else if (name == "pitchoffset")    { v.PitchOffsetHz    = clamp(value, -500,    500); }
-    else if (name == "liprounding")    { v.LipRounding      = clamp(value, -100,    100); }
-    else if (name == "onset"
-          || name == "onsethard")      { v.OnsetHardness    = clamp(value,    0,    100); }
-    else if (name == "f4freq")         { v.F4Freq           = clamp(value,  100,   7000); }
-    else if (name == "f4bw")           { v.F4BW             = clamp(value,   10,   3000); }
-    else if (name == "f5freq")         { v.F5Freq           = clamp(value,  100,   7000); }
-    else if (name == "f5bw")           { v.F5BW             = clamp(value,   10,   3000); }
-    else if (name == "nasalbase")      { v.NasalBase        = clamp(value,  100,    800); }
-    else if (name == "nasaltarg")      { v.NasalTarg        = clamp(value,  100,    800); }
-    else if (name == "nasalbw")        { v.NasalBW          = clamp(value,   10,    500); }
-    else if (name == "nasalamt")       { v.NasalAmt         = clamp(value,    0,    100); }
-    else if (name == "ngain")          { v.NGain            = clamp(value,    0,    400); }
-    else if (name == "bwgain1")        { v.BwGain1          = clamp(value,    0,    400); }
-    else if (name == "bwgain2")        { v.BwGain2          = clamp(value,    0,    400); }
-    else if (name == "bwgain3")        { v.BwGain3          = clamp(value,    0,    400); }
-    else if (name == "f1offset")       { v.F1_Offset        = clamp(value, -300,    300); }
-    else if (name == "f2offset")       { v.F2_Offset        = clamp(value, -300,    300); }
-    else if (name == "f3offset")       { v.F3_Offset        = clamp(value, -300,    300); }
-    else if (name == "locus")          { v.Locus            = clamp(value,    0,    100); }
-    else if (name == "chorus")         { v.Chorus           = clamp(value,    0,    100); }
-    else if (name == "intonation")     { v.Intonation       = clamp(value,    0,    200); }
-    else if (name == "riseamt")        { v.RiseAmt          = clamp(value, -200,    200); }
-    else if (name == "fallamt")        { v.FallAmt          = clamp(value, -200,    200); }
-    else if (name == "riseamt1")       { v.RiseAmt1         = clamp(value, -200,    200); }
-    else if (name == "fallamt1")       { v.FallAmt1         = clamp(value, -200,    200); }
-    // percent scale, 100 = 1.0, stored as 16.16 fixed point
-    else if (name == "assertiveness")  { v.Assertiveness    = clamp(value,    0,    400) * 0x10000 / 100; }
-    else if (name == "baselinefall")   { v.BaselineFall     = clamp(value,    0,    200); }
-    else if (name == "uptalk")         { v.UptalkAmt        = clamp(value,    0,    100); }
-    else if (name == "stressearly")    { v.StressEarly      = clamp(value,  -50,     50); }
-    else if (name == "breakstrength")  { v.BreakStrength    = clamp(value,    0,    100); }
-    else if (name == "emphasisboost")  { v.EmphasisBoost    = clamp(value,    0,    100); }
-    else if (name == "vocalconfidence"){ v.VocalConfidence  = clamp(value,    0,    100); }
-    else if (name == "vibratodepth1")  { v.VibratoDepth1Raw = clamp(value,    0,    100); }
-    else if (name == "vibratodepth2")  { v.VibratoDepth2Raw = clamp(value,    0,    100); }
-    else if (name == "vibratofreq")    { v.VibratoFreqRaw   = clamp(value,    0,    100); }
-    else if (name == "vibratodepth")   { v.VibratoDepth1Raw = v.VibratoDepth2Raw = clamp(value, 0, 100); }
-    else if (name == "vibratorate")    { v.VibratoFreqRaw   = clamp(value,    0,    100); }
-    else if (name == "rvbdelay")       { v.RvbDelay         = clamp(value,    0,    500); }
-    else if (name == "rvbdepth")       { v.RvbDepth         = clamp(value,    0,    100); }
-    // Fujisaki model knobs (amplitudes in log-F0 / neper units, TGSpeechBox-compatible)
-    else if (name == "fujisakiphraseamp")         { v.FujisakiPhraseAmpQ16          = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536); }
-    else if (name == "fujisakiprimaryaccentamp")  { v.FujisakiPrimaryAccentAmpQ16   = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536); }
-    else if (name == "fujisakiheadaccentamp")      { v.FujisakiHeadAccentAmpQ16      = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536); }
-    else if (name == "fujisakisecondaryaccentamp"){ v.FujisakiSecondaryAccentAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536); }
-    else if (name == "fujisakiemphaticaccentamp") { v.FujisakiEmphaticAccentAmpQ16  = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536); }
-    else if (name == "fujisakipitchcurveexp")     { v.FujisakiPitchCurveExpPct      = clamp(value,   10,   300); }
-    else if (name == "fujisakimonoaccentdur")     { v.FujisakiMonoAccentDurScalePct = clamp(value,   20,   200); }
-    else if (name == "fujisakicompoundstep")      { v.FujisakiCompoundStepQ16       = (int32_t)(clampf(value, 0.0f, 0.5f) * 65536); }
-    else if (name == "fujisakifinaldrop")         { v.FujisakiFinalDropPct          = clamp(value,    0,    50); }
-    else return false;
-    return true;
-}
+		// Ranges chosen to prevent filter instability; generous but not absurd.
+		if(name == "pitch") {
+			v.PitchHz = clamp(value, 40, 1000);
+		} else if(name == "rate") {
+			v.Rate = clamp(value, 40, 600);
+		} else if(name == "volume" || name == "vgain") {
+			v.VGain = clamp(value, 0, 100);
+		} else if(name == "again") {
+			v.AGain = clamp(value, 0, 600);
+		} else if(name == "acycle") {
+			v.ACycle = clamp(value, 1, 256);
+		} else if(name == "tract" || name == "tractscale") {
+			v.TractScale = clampf(value, 0.3f, 2.5f);
+		} else if(name == "pitchrange") {
+			v.PitchRange = clamp(value, 0, 500);
+		} else if(name == "stressgain") {
+			v.StressGain = clamp(value, 0, 200);
+		} else if(name == "voicetype") {
+			v.VoiceType = clamp(value, 0, 1);
+		} else if(name == "tremolodepth") {
+			v.TremoloDepth = clamp(value, 0, 100);
+		} else if(name == "tremolorate") {
+			v.TremoloRate = clamp(value, 0, 200);
+		} else if(name == "jitter") {
+			v.Jitter = clamp(value, 0, 100);
+		} else if(name == "shimmer") {
+			v.Shimmer = clamp(value, 0, 100);
+		} else if(name == "diplophonia") {
+			v.Diplophonia = clamp(value, 0, 100);
+		} else if(name == "fry" || name == "fryamount") {
+			v.FryAmount = clamp(value, 0, 100);
+		} else if(name == "subglottal") {
+			v.SubglottalAmt = clamp(value, 0, 100);
+		} else if(name == "breath" || name == "breathamt") {
+			v.BreathAmt = clamp(value, 0, 100);
+		} else if(name == "oq" || name == "openquotient") {
+			v.OpenQuotient = clamp(value, 0, 100);
+		} else if(name == "oqstresslink") {
+			v.OQStressLink = clamp(value, 0, 100);
+		} else if(name == "oqf0link") {
+			v.OQF0Link = clamp(value, 0, 100);
+		} else if(name == "larynx" || name == "larynxoffset") {
+			v.LarynxOffset = clamp(value, -800, 800);
+		} else if(name == "pharyngeal") {
+			v.PharyngealAmt = clamp(value, 0, 100);
+		} else if(name == "pitchoffset") {
+			v.PitchOffsetHz = clamp(value, -500, 500);
+		} else if(name == "liprounding") {
+			v.LipRounding = clamp(value, -100, 100);
+		} else if(name == "onset" || name == "onsethard") {
+			v.OnsetHardness = clamp(value, 0, 100);
+		} else if(name == "f4freq") {
+			v.F4Freq = clamp(value, 100, 7000);
+		} else if(name == "f4bw") {
+			v.F4BW = clamp(value, 10, 3000);
+		} else if(name == "f5freq") {
+			v.F5Freq = clamp(value, 100, 7000);
+		} else if(name == "f5bw") {
+			v.F5BW = clamp(value, 10, 3000);
+		} else if(name == "nasalbase") {
+			v.NasalBase = clamp(value, 100, 800);
+		} else if(name == "nasaltarg") {
+			v.NasalTarg = clamp(value, 100, 800);
+		} else if(name == "nasalbw") {
+			v.NasalBW = clamp(value, 10, 500);
+		} else if(name == "nasalamt") {
+			v.NasalAmt = clamp(value, 0, 100);
+		} else if(name == "ngain") {
+			v.NGain = clamp(value, 0, 400);
+		} else if(name == "bwgain1") {
+			v.BwGain1 = clamp(value, 0, 400);
+		} else if(name == "bwgain2") {
+			v.BwGain2 = clamp(value, 0, 400);
+		} else if(name == "bwgain3") {
+			v.BwGain3 = clamp(value, 0, 400);
+		} else if(name == "f1offset") {
+			v.F1_Offset = clamp(value, -300, 300);
+		} else if(name == "f2offset") {
+			v.F2_Offset = clamp(value, -300, 300);
+		} else if(name == "f3offset") {
+			v.F3_Offset = clamp(value, -300, 300);
+		} else if(name == "locus") {
+			v.Locus = clamp(value, 0, 100);
+		} else if(name == "chorus") {
+			v.Chorus = clamp(value, 0, 100);
+		} else if(name == "intonation") {
+			v.Intonation = clamp(value, 0, 200);
+		} else if(name == "riseamt") {
+			v.RiseAmt = clamp(value, -200, 200);
+		} else if(name == "fallamt") {
+			v.FallAmt = clamp(value, -200, 200);
+		} else if(name == "riseamt1") {
+			v.RiseAmt1 = clamp(value, -200, 200);
+		} else if(name == "fallamt1") {
+			v.FallAmt1 = clamp(value, -200, 200);
+		}
+		// percent scale, 100 = 1.0, stored as 16.16 fixed point
+		else if(name == "assertiveness") {
+			v.Assertiveness = clamp(value, 0, 400) * 0x10000 / 100;
+		} else if(name == "baselinefall") {
+			v.BaselineFall = clamp(value, 0, 200);
+		} else if(name == "uptalk") {
+			v.UptalkAmt = clamp(value, 0, 100);
+		} else if(name == "stressearly") {
+			v.StressEarly = clamp(value, -50, 50);
+		} else if(name == "breakstrength") {
+			v.BreakStrength = clamp(value, 0, 100);
+		} else if(name == "emphasisboost") {
+			v.EmphasisBoost = clamp(value, 0, 100);
+		} else if(name == "vocalconfidence") {
+			v.VocalConfidence = clamp(value, 0, 100);
+		} else if(name == "vibratodepth1") {
+			v.VibratoDepth1Raw = clamp(value, 0, 100);
+		} else if(name == "vibratodepth2") {
+			v.VibratoDepth2Raw = clamp(value, 0, 100);
+		} else if(name == "vibratofreq") {
+			v.VibratoFreqRaw = clamp(value, 0, 100);
+		} else if(name == "vibratodepth") {
+			v.VibratoDepth1Raw = v.VibratoDepth2Raw = clamp(value, 0, 100);
+		} else if(name == "vibratorate") {
+			v.VibratoFreqRaw = clamp(value, 0, 100);
+		} else if(name == "rvbdelay") {
+			v.RvbDelay = clamp(value, 0, 500);
+		} else if(name == "rvbdepth") {
+			v.RvbDepth = clamp(value, 0, 100);
+		}
+		// Fujisaki model knobs (amplitudes in log-F0 / neper units, TGSpeechBox-compatible)
+		else if(name == "fujisakiphraseamp") {
+			v.FujisakiPhraseAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536);
+		} else if(name == "fujisakiprimaryaccentamp") {
+			v.FujisakiPrimaryAccentAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536);
+		} else if(name == "fujisakiheadaccentamp") {
+			v.FujisakiHeadAccentAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536);
+		} else if(name == "fujisakisecondaryaccentamp") {
+			v.FujisakiSecondaryAccentAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536);
+		} else if(name == "fujisakiemphaticaccentamp") {
+			v.FujisakiEmphaticAccentAmpQ16 = (int32_t)(clampf(value, 0.0f, 1.0f) * 65536);
+		} else if(name == "fujisakipitchcurveexp") {
+			v.FujisakiPitchCurveExpPct = clamp(value, 10, 300);
+		} else if(name == "fujisakimonoaccentdur") {
+			v.FujisakiMonoAccentDurScalePct = clamp(value, 20, 200);
+		} else if(name == "fujisakicompoundstep") {
+			v.FujisakiCompoundStepQ16 = (int32_t)(clampf(value, 0.0f, 0.5f) * 65536);
+		} else if(name == "fujisakifinaldrop") {
+			v.FujisakiFinalDropPct = clamp(value, 0, 50);
+		} else
+			return false;
+		return true;
+	}
 
 } // namespace SharpVox

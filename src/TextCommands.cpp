@@ -18,550 +18,678 @@
 
 namespace SharpVox {
 
-// split helper
-static std::vector<std::string> split(const std::string& s, char delim) {
-    std::vector<std::string> tokens;
-    std::stringstream ss(s);
-    std::string token;
-    while (std::getline(ss, token, delim)) {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
+	// split helper
+	static std::vector<std::string> split(const std::string& s, char delim) {
+		std::vector<std::string> tokens;
+		std::stringstream	 ss(s);
+		std::string		 token;
+		while(std::getline(ss, token, delim)) {
+			tokens.push_back(token);
+		}
+		return tokens;
+	}
 
-std::string DECtalkNoteNames[37] = { // add 1 to index for note id
-    "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
-    "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
-    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
-    "C5"
-};
+	std::string DECtalkNoteNames[37] = { // add 1 to index for note id
+	    "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+	    "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+	    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+	    "C5"};
 
-// ASCII note name (C5, A#4, Bb3) -> Hz using equal temperament (A4 = 440 Hz)
-int32_t EmbeddedCmd::NoteNameToHz(const std::string& name) {
-    if (name.size() < 2) {
-        return 0;
-    }
-    char letter = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
-    int32_t semitone;
-    switch (letter) {
-        case 'C': semitone = 0;  break;
-        case 'D': semitone = 2;  break;
-        case 'E': semitone = 4;  break;
-        case 'F': semitone = 5;  break;
-        case 'G': semitone = 7;  break;
-        case 'A': semitone = 9;  break;
-        case 'B': semitone = 11; break;
-        default:  return 0;
-    }
-    int32_t pos = 1;
-    if (pos < static_cast<int32_t>(name.size()) && name[pos] == '#') {
-        semitone++;
-        pos++;
-    } else if (pos < static_cast<int32_t>(name.size()) && name[pos] == 'b') {
-        semitone--;
-        pos++;
-    }
-    if (pos >= static_cast<int32_t>(name.size())) {
-        return 0;
-    }
-    // Parse remaining digits as octave number
-    for (int32_t k = pos; k < static_cast<int32_t>(name.size()); k++) {
-        if (!std::isdigit(static_cast<unsigned char>(name[k]))) {
-            return 0;
-        }
-    }
-    int32_t octave = std::stoi(name.substr(pos));
-    int32_t midi = 12 * (octave + 1) + semitone;
-    return static_cast<int32_t>(std::round(440.0 * std::pow(2.0, (midi - 69) / 12.0)));
-}
+	// ASCII note name (C5, A#4, Bb3) -> Hz using equal temperament (A4 = 440 Hz)
+	int32_t EmbeddedCmd::NoteNameToHz(const std::string& name) {
+		if(name.size() < 2) {
+			return 0;
+		}
+		char	letter = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
+		int32_t semitone;
+		switch(letter) {
+			case 'C':
+				semitone = 0;
+				break;
+			case 'D':
+				semitone = 2;
+				break;
+			case 'E':
+				semitone = 4;
+				break;
+			case 'F':
+				semitone = 5;
+				break;
+			case 'G':
+				semitone = 7;
+				break;
+			case 'A':
+				semitone = 9;
+				break;
+			case 'B':
+				semitone = 11;
+				break;
+			default:
+				return 0;
+		}
+		int32_t pos = 1;
+		if(pos < static_cast<int32_t>(name.size()) && name[pos] == '#') {
+			semitone++;
+			pos++;
+		} else if(pos < static_cast<int32_t>(name.size()) && name[pos] == 'b') {
+			semitone--;
+			pos++;
+		}
+		if(pos >= static_cast<int32_t>(name.size())) {
+			return 0;
+		}
+		// Parse remaining digits as octave number
+		for(int32_t k = pos; k < static_cast<int32_t>(name.size()); k++) {
+			if(!std::isdigit(static_cast<unsigned char>(name[k]))) {
+				return 0;
+			}
+		}
+		int32_t octave = std::stoi(name.substr(pos));
+		int32_t midi   = 12 * (octave + 1) + semitone;
+		return static_cast<int32_t>(std::round(440.0 * std::pow(2.0, (midi - 69) / 12.0)));
+	}
 
-// Map a lowercase phoneme name to a phoneme ID; returns -1 on failure.
-int16_t EmbeddedCmd::MapPhoneme(const std::string& p) {
-    // Vowels
-    if (p == "iy") { return _IY_; }
-    if (p == "ih") { return _IH_; }
-    if (p == "eh") { return _EH_; }
-    if (p == "ae") { return _AE_; }
-    if (p == "aa") { return _AA_; }
-    if (p == "ah") { return _AH_; }
-    if (p == "ao") { return _AO_; }
-    if (p == "uh") { return _UH_; }
-    if (p == "ax") { return _AX_; }
-    if (p == "er") { return _ER_; }
-    if (p == "ey") { return _EY_; }
-    if (p == "ay") { return _AY_; }
-    if (p == "oy") { return _OY_; }
-    if (p == "aw") { return _AW_; }
-    if (p == "ow") { return _OW_; }
-    if (p == "uw") { return _UW_; }
-    if (p == "ix") { return _IX_; }
-    // Single-char vowel shortcuts, "i"->IH, "e"->EH, "a"->AE, "o"->AO, "u"->UW
-    // Allows compact notation like "KIT" instead of "KIHT".
-    if (p == "i")  { return _IH_; }
-    if (p == "e")  { return _EH_; }
-    if (p == "a")  { return _AE_; }
-    if (p == "o")  { return _AO_; }
-    if (p == "u")  { return _UW_; }
-    // Sonorants
-    if (p == "w")  { return _W_; }
-    if (p == "y")  { return _Y_; }
-    if (p == "r")  { return _R_; }
-    if (p == "l")  { return _L_; }
-    // Nasals
-    if (p == "m")  { return _M_; }
-    if (p == "n")  { return _N_; }
-    if (p == "ng") { return _NG_; }
-    // Fricatives
-    if (p == "hh") { return _HH_; }
-    if (p == "f")  { return _F_; }
-    if (p == "v")  { return _V_; }
-    if (p == "th") { return _TH_; }
-    if (p == "dh") { return _DH_; }
-    if (p == "s")  { return _S_; }
-    if (p == "z")  { return _Z_; }
-    if (p == "sh") { return _SH_; }
-    if (p == "zh") { return _ZH_; }
-    // Stops
-    if (p == "p")  { return _P_; }
-    if (p == "b")  { return _B_; }
-    if (p == "t")  { return _T_; }
-    if (p == "d")  { return _D_; }
-    if (p == "dx") { return _DX_; }
-    if (p == "k")  { return _K_; }
-    if (p == "g")  { return _G_; }
-    // Affricates
-    if (p == "ch") { return _CH_; }
-    if (p == "jh") { return _JH_; }
-    // Japanese vowels
-    if (p == "jp_iy") { return _JP_I_; }
-    if (p == "jp_eh") { return _JP_E_; }
-    if (p == "jp_aa") { return _JP_A_; }
-    if (p == "jp_ow") { return _JP_O_; }
-    if (p == "jp_uw") { return _JP_U_; }
-    // Silence / rest
-    if (p == "_")  { return _SIL_; }
-    return -1;
-}
+	// Map a lowercase phoneme name to a phoneme ID; returns -1 on failure.
+	int16_t EmbeddedCmd::MapPhoneme(const std::string& p) {
+		// Vowels
+		if(p == "iy") {
+			return _IY_;
+		}
+		if(p == "ih") {
+			return _IH_;
+		}
+		if(p == "eh") {
+			return _EH_;
+		}
+		if(p == "ae") {
+			return _AE_;
+		}
+		if(p == "aa") {
+			return _AA_;
+		}
+		if(p == "ah") {
+			return _AH_;
+		}
+		if(p == "ao") {
+			return _AO_;
+		}
+		if(p == "uh") {
+			return _UH_;
+		}
+		if(p == "ax") {
+			return _AX_;
+		}
+		if(p == "er") {
+			return _ER_;
+		}
+		if(p == "ey") {
+			return _EY_;
+		}
+		if(p == "ay") {
+			return _AY_;
+		}
+		if(p == "oy") {
+			return _OY_;
+		}
+		if(p == "aw") {
+			return _AW_;
+		}
+		if(p == "ow") {
+			return _OW_;
+		}
+		if(p == "uw") {
+			return _UW_;
+		}
+		if(p == "ix") {
+			return _IX_;
+		}
+		// Single-char vowel shortcuts, "i"->IH, "e"->EH, "a"->AE, "o"->AO, "u"->UW
+		// Allows compact notation like "KIT" instead of "KIHT".
+		if(p == "i") {
+			return _IH_;
+		}
+		if(p == "e") {
+			return _EH_;
+		}
+		if(p == "a") {
+			return _AE_;
+		}
+		if(p == "o") {
+			return _AO_;
+		}
+		if(p == "u") {
+			return _UW_;
+		}
+		// Sonorants
+		if(p == "w") {
+			return _W_;
+		}
+		if(p == "y") {
+			return _Y_;
+		}
+		if(p == "r") {
+			return _R_;
+		}
+		if(p == "l") {
+			return _L_;
+		}
+		// Nasals
+		if(p == "m") {
+			return _M_;
+		}
+		if(p == "n") {
+			return _N_;
+		}
+		if(p == "ng") {
+			return _NG_;
+		}
+		// Fricatives
+		if(p == "hh") {
+			return _HH_;
+		}
+		if(p == "f") {
+			return _F_;
+		}
+		if(p == "v") {
+			return _V_;
+		}
+		if(p == "th") {
+			return _TH_;
+		}
+		if(p == "dh") {
+			return _DH_;
+		}
+		if(p == "s") {
+			return _S_;
+		}
+		if(p == "z") {
+			return _Z_;
+		}
+		if(p == "sh") {
+			return _SH_;
+		}
+		if(p == "zh") {
+			return _ZH_;
+		}
+		// Stops
+		if(p == "p") {
+			return _P_;
+		}
+		if(p == "b") {
+			return _B_;
+		}
+		if(p == "t") {
+			return _T_;
+		}
+		if(p == "d") {
+			return _D_;
+		}
+		if(p == "dx") {
+			return _DX_;
+		}
+		if(p == "k") {
+			return _K_;
+		}
+		if(p == "g") {
+			return _G_;
+		}
+		// Affricates
+		if(p == "ch") {
+			return _CH_;
+		}
+		if(p == "jh") {
+			return _JH_;
+		}
+		// Japanese vowels
+		if(p == "jp_iy") {
+			return _JP_I_;
+		}
+		if(p == "jp_eh") {
+			return _JP_E_;
+		}
+		if(p == "jp_aa") {
+			return _JP_A_;
+		}
+		if(p == "jp_ow") {
+			return _JP_O_;
+		}
+		if(p == "jp_uw") {
+			return _JP_U_;
+		}
+		// Silence / rest
+		if(p == "_") {
+			return _SIL_;
+		}
+		return -1;
+	}
 
-// Parse text into a list of Segments, handling [:rate N], [:pitch N],
-// [:voice NAME], [:sing], [:talk], [:klattsch on/off], and [phoneme<dur,note> ...] singing blocks.
-std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& text,
-                                                             KlattschParser* klattsch) {
-    std::vector<Segment> segments;
+	// Parse text into a list of Segments, handling [:rate N], [:pitch N],
+	// [:voice NAME], [:sing], [:talk], [:klattsch on/off], and [phoneme<dur,note> ...] singing blocks.
+	std::vector<EmbeddedCmd::Segment> EmbeddedCmd::ParseSegments(const std::string& text,
+								     KlattschParser*	klattsch) {
+		std::vector<Segment> segments;
 
-    std::string plain;
-    bool klattschMode = false;
-    int32_t i = 0;
-    int32_t len = static_cast<int32_t>(text.size());
+		std::string plain;
+		bool	    klattschMode = false;
+		int32_t	    i		 = 0;
+		int32_t	    len		 = static_cast<int32_t>(text.size());
 
-    auto FlushPlain = [&]() {
-        if (!plain.empty()) {
-            if (klattschMode) {
-                segments.push_back(Segment::Klattsch(plain));
-            } else {
-                segments.push_back(Segment(plain));
-            }
-            plain.clear();
-        }
-    };
+		auto FlushPlain = [&]() {
+			if(!plain.empty()) {
+				if(klattschMode) {
+					segments.push_back(Segment::Klattsch(plain));
+				} else {
+					segments.push_back(Segment(plain));
+				}
+				plain.clear();
+			}
+		};
 
-    while (i < len) {
-        if (text[i] != '[') {
-            plain += text[i++];
-            continue;
-        }
+		while(i < len) {
+			if(text[i] != '[') {
+				plain += text[i++];
+				continue;
+			}
 
-        // Found a '['. Check if it's a command '[:' or a singing block.
-        if (i + 1 < len && text[i + 1] == ':') {
-            i += 2; // consume '[:'
-            int32_t cmdStart = i;
-            while (i < len && !std::isspace(static_cast<unsigned char>(text[i])) && text[i] != ']') {
-                i++;
-            }
-            std::string cmd = text.substr(cmdStart, i - cmdStart);
-            std::transform(cmd.begin(), cmd.end(), cmd.begin(),
-                [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
-            while (i < len && std::isspace(static_cast<unsigned char>(text[i]))) {
-                i++;
-            }
-            int32_t argStart = i;
-            while (i < len && text[i] != ']') {
-                i++;
-            }
-            std::string argStr = text.substr(argStart, i - argStart);
-            // Trim leading/trailing whitespace
-            {
-                auto b = argStr.find_first_not_of(" \t\r\n");
-                auto e = argStr.find_last_not_of(" \t\r\n");
-                argStr = (b == std::string::npos) ? "" : argStr.substr(b, e - b + 1);
-            }
-            std::transform(argStr.begin(), argStr.end(), argStr.begin(),
-                [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
-            if (i < len) {
-                i++; // consume ']'
-            }
+			// Found a '['. Check if it's a command '[:' or a singing block.
+			if(i + 1 < len && text[i + 1] == ':') {
+				i += 2; // consume '[:'
+				int32_t cmdStart = i;
+				while(i < len && !std::isspace(static_cast<unsigned char>(text[i])) && text[i] != ']') {
+					i++;
+				}
+				std::string cmd = text.substr(cmdStart, i - cmdStart);
+				std::transform(cmd.begin(), cmd.end(), cmd.begin(),
+					       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				while(i < len && std::isspace(static_cast<unsigned char>(text[i]))) {
+					i++;
+				}
+				int32_t argStart = i;
+				while(i < len && text[i] != ']') {
+					i++;
+				}
+				std::string argStr = text.substr(argStart, i - argStart);
+				// Trim leading/trailing whitespace
+				{
+					auto b = argStr.find_first_not_of(" \t\r\n");
+					auto e = argStr.find_last_not_of(" \t\r\n");
+					argStr = (b == std::string::npos) ? "" : argStr.substr(b, e - b + 1);
+				}
+				std::transform(argStr.begin(), argStr.end(), argStr.begin(),
+					       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				if(i < len) {
+					i++; // consume ']'
+				}
 
-            if (cmd == "klattsch") {
-                FlushPlain();
-                if (argStr == "on") {
-                    klattschMode = true;
-                    if (klattsch) klattsch->Reset();
-                } else if (argStr == "off") {
-                    klattschMode = false;
-                }
-            } else if (cmd == "custom") {
-                FlushPlain();
-                VoiceCommand vc;
-                vc.Type = VoiceCommand::Kind::Custom;
-                const char* p = argStr.c_str();
-                while (*p) {
-                    while (*p && std::isspace(static_cast<unsigned char>(*p))) p++;
-                    if (!*p) break;
-                    const char* ns = p;
-                    while (*p && !std::isspace(static_cast<unsigned char>(*p))) p++;
-                    std::string pname(ns, p - ns);
-                    while (*p && std::isspace(static_cast<unsigned char>(*p))) p++;
-                    if (!*p) break;
-                    char* end;
-                    float val = static_cast<float>(std::strtod(p, &end));
-                    if (end == p) break;
-                    p = end;
-                    vc.Params.emplace_back(std::move(pname), val);
-                }
-                if (!vc.Params.empty())
-                    segments.push_back(Segment(std::move(vc)));
-            } else if (cmd == "voice" || cmd == "name") {
-                FlushPlain();
-                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, argStr)));
-            } else if (cmd.size() == 2 && cmd[0] == 'n') { // dectalk name compat
-                FlushPlain();
-                // this sucks and i love it
-                std::string name(1,cmd[1]);
-                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, name)));
-            } else if (cmd == "sing" || cmd == "talk" || cmd == "stop") {
-                // Recognised for backward compatibility but no longer needed:
-                // note-less phoneme groups inside [...] always sing now.
-            } else if ( (cmd == "tone" || cmd == "t") && !argStr.empty()) { // dectalk style tone command
-                bool isNum = !argStr.empty();
-                for (char c : argStr) {
-                    if (!std::isdigit(static_cast<unsigned char>(c)) && c != '-' && c !=',') {
-                        isNum = false;
-                        break;
-                    }
-                }
-                if (isNum) {
-                    std::vector<std::string> arglist = split(argStr, ',');
-                    if (arglist.size() == 2) {
-                        try {
-                            int32_t a = std::stoi(arglist[0]);
-                            int32_t b = std::stoi(arglist[1]);
-                            if (a > 0 && b > 0) {
-                                FlushPlain();
-                                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t,uint32_t>(a,b) )));
-                            }
-                        } catch (...) {} // invalid, dont crash here
-                    }
-                }
-            } else if (cmd[0] == 't') { // dectalk style tone alias
-                // Try numeric argument (rate, pitch, volume)
-                std::string args = cmd.substr(1, cmd.length()-1);
-                bool isNum = !args.empty();
-                for (char c : args) {
-                    if (!std::isdigit(static_cast<unsigned char>(c)) && c !=',') {
-                        isNum = false;
-                        break;
-                    }
-                }
-                if (isNum) {
-                    std::vector<std::string> arglist = split(args, ',');
-                    if (arglist.size() == 2) {
-                        try {
-                            int32_t a = std::stoi(arglist[0]);
-                            int32_t b = std::stoi(arglist[1]);
-                            if (a > 0 && b > 0) {
-                                FlushPlain();
-                                segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t,uint32_t>(a,b) )));
-                            }
-                        } catch (...) {
-                            // out-of-range numbers are dropped rather than fatal
-                        }
-                    }
-                }
-            } else {
-                // Try numeric argument (rate, pitch, volume)
-                bool isNum = !argStr.empty();
-                for (char c : argStr) {
-                    if (!std::isdigit(static_cast<unsigned char>(c)) && c != '-') {
-                        isNum = false;
-                        break;
-                    }
-                }
-                if (isNum && !argStr.empty()) {
-                    int32_t argVal = 0;
-                    try { argVal = std::stoi(argStr); } catch (...) { isNum = false; }
-                    if (isNum) {
-                        VoiceCommand::Kind kind;
-                        bool hasKind = true;
-                        if (cmd == "rate")        { kind = VoiceCommand::Kind::Rate; }
-                        else if (cmd == "pitch")  { kind = VoiceCommand::Kind::Pitch; }
-                        else if (cmd == "volume") { kind = VoiceCommand::Kind::Volume; }
-                        else                      { hasKind = false; }
-                        if (hasKind) {
-                            FlushPlain();
-                            segments.push_back(Segment(VoiceCommand(kind, argVal)));
-                        }
-                    }
-                }
-            }
-            continue;
-        }
+				if(cmd == "klattsch") {
+					FlushPlain();
+					if(argStr == "on") {
+						klattschMode = true;
+						if(klattsch) klattsch->Reset();
+					} else if(argStr == "off") {
+						klattschMode = false;
+					}
+				} else if(cmd == "custom") {
+					FlushPlain();
+					VoiceCommand vc;
+					vc.Type	      = VoiceCommand::Kind::Custom;
+					const char* p = argStr.c_str();
+					while(*p) {
+						while(*p && std::isspace(static_cast<unsigned char>(*p))) p++;
+						if(!*p) break;
+						const char* ns = p;
+						while(*p && !std::isspace(static_cast<unsigned char>(*p))) p++;
+						std::string pname(ns, p - ns);
+						while(*p && std::isspace(static_cast<unsigned char>(*p))) p++;
+						if(!*p) break;
+						char* end;
+						float val = static_cast<float>(std::strtod(p, &end));
+						if(end == p) break;
+						p = end;
+						vc.Params.emplace_back(std::move(pname), val);
+					}
+					if(!vc.Params.empty())
+						segments.push_back(Segment(std::move(vc)));
+				} else if(cmd == "voice" || cmd == "name") {
+					FlushPlain();
+					segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, argStr)));
+				} else if(cmd.size() == 2 && cmd[0] == 'n') { // dectalk name compat
+					FlushPlain();
+					// this sucks and i love it
+					std::string name(1, cmd[1]);
+					segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Voice, name)));
+				} else if(cmd == "sing" || cmd == "talk" || cmd == "stop") {
+					// Recognised for backward compatibility but no longer needed:
+					// note-less phoneme groups inside [...] always sing now.
+				} else if((cmd == "tone" || cmd == "t") && !argStr.empty()) { // dectalk style tone command
+					bool isNum = !argStr.empty();
+					for(char c : argStr) {
+						if(!std::isdigit(static_cast<unsigned char>(c)) && c != '-' && c != ',') {
+							isNum = false;
+							break;
+						}
+					}
+					if(isNum) {
+						std::vector<std::string> arglist = split(argStr, ',');
+						if(arglist.size() == 2) {
+							try {
+								int32_t a = std::stoi(arglist[0]);
+								int32_t b = std::stoi(arglist[1]);
+								if(a > 0 && b > 0) {
+									FlushPlain();
+									segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t, uint32_t>(a, b))));
+								}
+							} catch(...) {
+							} // invalid, dont crash here
+						}
+					}
+				} else if(cmd[0] == 't') { // dectalk style tone alias
+					// Try numeric argument (rate, pitch, volume)
+					std::string args  = cmd.substr(1, cmd.length() - 1);
+					bool	    isNum = !args.empty();
+					for(char c : args) {
+						if(!std::isdigit(static_cast<unsigned char>(c)) && c != ',') {
+							isNum = false;
+							break;
+						}
+					}
+					if(isNum) {
+						std::vector<std::string> arglist = split(args, ',');
+						if(arglist.size() == 2) {
+							try {
+								int32_t a = std::stoi(arglist[0]);
+								int32_t b = std::stoi(arglist[1]);
+								if(a > 0 && b > 0) {
+									FlushPlain();
+									segments.push_back(Segment(VoiceCommand(VoiceCommand::Kind::Tone, std::pair<uint32_t, uint32_t>(a, b))));
+								}
+							} catch(...) {
+								// out-of-range numbers are dropped rather than fatal
+							}
+						}
+					}
+				} else {
+					// Try numeric argument (rate, pitch, volume)
+					bool isNum = !argStr.empty();
+					for(char c : argStr) {
+						if(!std::isdigit(static_cast<unsigned char>(c)) && c != '-') {
+							isNum = false;
+							break;
+						}
+					}
+					if(isNum && !argStr.empty()) {
+						int32_t argVal = 0;
+						try {
+							argVal = std::stoi(argStr);
+						} catch(...) {
+							isNum = false;
+						}
+						if(isNum) {
+							VoiceCommand::Kind kind;
+							bool		   hasKind = true;
+							if(cmd == "rate") {
+								kind = VoiceCommand::Kind::Rate;
+							} else if(cmd == "pitch") {
+								kind = VoiceCommand::Kind::Pitch;
+							} else if(cmd == "volume") {
+								kind = VoiceCommand::Kind::Volume;
+							} else {
+								hasKind = false;
+							}
+							if(hasKind) {
+								FlushPlain();
+								segments.push_back(Segment(VoiceCommand(kind, argVal)));
+							}
+						}
+					}
+				}
+				continue;
+			}
 
-        if (klattschMode) {
-            // In Klattsch mode, '[' is literal if not followed by ':'
-            plain += text[i++];
-            continue;
-        }
+			if(klattschMode) {
+				// In Klattsch mode, '[' is literal if not followed by ':'
+				plain += text[i++];
+				continue;
+			}
 
-        // Phoneme block [phoneme<dur,note> ...]
-        i++; // consume '['
-        std::vector<PhonemeToken> blockSing;
-        bool firstPhon = true;
-        bool firstInBlock = true; // Track first note in the [...] block
-        int16_t lastPitch = 0;   // inherited by trailing consonants with no <note>
+			// Phoneme block [phoneme<dur,note> ...]
+			i++; // consume '['
+			std::vector<PhonemeToken> blockSing;
+			bool			  firstPhon    = true;
+			bool			  firstInBlock = true; // Track first note in the [...] block
+			int16_t			  lastPitch    = 0;    // inherited by trailing consonants with no <note>
 
-        while (i < len && text[i] != ']') {
-            while (i < len && text[i] == ' ') {
-                i++;
-            }
-            if (i >= len || text[i] == ']') {
-                break;
-            }
+			while(i < len && text[i] != ']') {
+				while(i < len && text[i] == ' ') {
+					i++;
+				}
+				if(i >= len || text[i] == ']') {
+					break;
+				}
 
-            unsigned char b0 = static_cast<unsigned char>(text[i]);
-            if (b0 == '_' || std::isalpha(b0) || b0 >= 0x80) {
-                // Collect all phonemes up to '<', ']', or ' '
-                // "dey<600,24>" -> [d, ey] with dur=600 note=24
-                std::vector<int16_t> group;
-                while (i < len && text[i] != '<' && text[i] != ']' && text[i] != ' ') {
-                    size_t nextIdx = i;
-                    uint32_t cp = JapaneseParser::Utf8Decode((const unsigned char*)text.c_str(), len, nextIdx);
-                    if (cp >= 0x30A1 && cp <= 0x30F6) cp -= 0x60; // Katakana -> Hiragana
+				unsigned char b0 = static_cast<unsigned char>(text[i]);
+				if(b0 == '_' || std::isalpha(b0) || b0 >= 0x80) {
+					// Collect all phonemes up to '<', ']', or ' '
+					// "dey<600,24>" -> [d, ey] with dur=600 note=24
+					std::vector<int16_t> group;
+					while(i < len && text[i] != '<' && text[i] != ']' && text[i] != ' ') {
+						size_t	 nextIdx = i;
+						uint32_t cp	 = JapaneseParser::Utf8Decode((const unsigned char*)text.c_str(), len, nextIdx);
+						if(cp >= 0x30A1 && cp <= 0x30F6) cp -= 0x60; // Katakana -> Hiragana
 
-                    if (cp >= 0x3041 && cp <= 0x3096) {
-                        std::vector<int16_t> phons = JapaneseParser::GetPhonemes(cp);
-                        // If this is a small yoon (ya/yu/yo) and the previous phoneme was JP_I,
-                        // remove the JP_I to properly form the contraction (e.g. KI + YA -> KYA).
-                        if ((cp == 0x3083 || cp == 0x3085 || cp == 0x3087) && !group.empty() && group.back() == _JP_I_) {
-                            group.pop_back();
-                        }
-                        group.insert(group.end(), phons.begin(), phons.end());
-                        i = nextIdx;
-                        continue;
-                    }
+						if(cp >= 0x3041 && cp <= 0x3096) {
+							std::vector<int16_t> phons = JapaneseParser::GetPhonemes(cp);
+							// If this is a small yoon (ya/yu/yo) and the previous phoneme was JP_I,
+							// remove the JP_I to properly form the contraction (e.g. KI + YA -> KYA).
+							if((cp == 0x3083 || cp == 0x3085 || cp == 0x3087) && !group.empty() && group.back() == _JP_I_) {
+								group.pop_back();
+							}
+							group.insert(group.end(), phons.begin(), phons.end());
+							i = nextIdx;
+							continue;
+						}
 
-                    if ((text[i] == 'J' || text[i] == 'j') && i + 3 < len
-                            && (text[i + 1] == 'P' || text[i + 1] == 'p') && text[i + 2] == '_') {
-                        bool matchedJp = false;
-                        if (i + 4 < len && std::isalpha(static_cast<unsigned char>(text[i + 3]))
-                                && std::isalpha(static_cast<unsigned char>(text[i + 4]))) {
-                            std::string code5 = "jp_";
-                            code5 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 3])));
-                            code5 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 4])));
-                            int16_t p5 = MapPhoneme(code5);
-                            if (p5 >= 0) {
-                                group.push_back(p5);
-                                i += 5;
-                                matchedJp = true;
-                            }
-                        }
-                        if (!matchedJp && std::isalpha(static_cast<unsigned char>(text[i + 3]))) {
-                            std::string code4 = "jp_";
-                            code4 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 3])));
-                            int16_t p4 = MapPhoneme(code4);
-                            if (p4 >= 0) {
-                                group.push_back(p4);
-                                i += 4;
-                                matchedJp = true;
-                            }
-                        }
-                        if (matchedJp) {
-                            continue;
-                        }
-                    }
-                    if (text[i] == '_') {
-                        group.push_back(_SIL_);
-                        i++;
-                        continue;
-                    }
-                    bool matched2 = false;
-                    if (i + 1 < len && std::isalpha(static_cast<unsigned char>(text[i + 1]))) {
-                        std::string two;
-                        two += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i])));
-                        two += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 1])));
-                        int16_t op2 = MapPhoneme(two);
-                        if (op2 >= 0) {
-                            group.push_back(op2);
-                            i += 2;
-                            matched2 = true;
-                        }
-                    }
-                    if (!matched2) {
-                        std::string one;
-                        one += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i])));
-                        int16_t op1 = MapPhoneme(one);
-                        group.push_back(op1 >= 0 ? op1 : _SIL_);
-                        i++;
-                    }
-                }
+						if((text[i] == 'J' || text[i] == 'j') && i + 3 < len && (text[i + 1] == 'P' || text[i + 1] == 'p') && text[i + 2] == '_') {
+							bool matchedJp = false;
+							if(i + 4 < len && std::isalpha(static_cast<unsigned char>(text[i + 3])) && std::isalpha(static_cast<unsigned char>(text[i + 4]))) {
+								std::string code5 = "jp_";
+								code5 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 3])));
+								code5 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 4])));
+								int16_t p5 = MapPhoneme(code5);
+								if(p5 >= 0) {
+									group.push_back(p5);
+									i += 5;
+									matchedJp = true;
+								}
+							}
+							if(!matchedJp && std::isalpha(static_cast<unsigned char>(text[i + 3]))) {
+								std::string code4 = "jp_";
+								code4 += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 3])));
+								int16_t p4 = MapPhoneme(code4);
+								if(p4 >= 0) {
+									group.push_back(p4);
+									i += 4;
+									matchedJp = true;
+								}
+							}
+							if(matchedJp) {
+								continue;
+							}
+						}
+						if(text[i] == '_') {
+							group.push_back(_SIL_);
+							i++;
+							continue;
+						}
+						bool matched2 = false;
+						if(i + 1 < len && std::isalpha(static_cast<unsigned char>(text[i + 1]))) {
+							std::string two;
+							two += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i])));
+							two += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i + 1])));
+							int16_t op2 = MapPhoneme(two);
+							if(op2 >= 0) {
+								group.push_back(op2);
+								i += 2;
+								matched2 = true;
+							}
+						}
+						if(!matched2) {
+							std::string one;
+							one += static_cast<char>(std::tolower(static_cast<unsigned char>(text[i])));
+							int16_t op1 = MapPhoneme(one);
+							group.push_back(op1 >= 0 ? op1 : _SIL_);
+							i++;
+						}
+					}
 
-                int32_t dur = 0, note = 0;
-                bool hasNote = false, noteIsNamed = false;
-                if (i < len && text[i] == '<') {
-                    hasNote = true;
-                    i++;
-                    while (i < len && std::isdigit(static_cast<unsigned char>(text[i]))) {
-                        dur = dur * 10 + (text[i++] - '0');
-                    }
-                    if (i < len && text[i] == ',') {
-                        i++;
-                        while (i < len && text[i] == ' ') {
-                            i++;
-                        }
-                        if (i < len && std::isalpha(static_cast<unsigned char>(text[i]))) {
-                            int32_t nameStart = i;
-                            while (i < len && text[i] != '>' && text[i] != ']') {
-                                i++;
-                            }
-                            // Trim and convert note name
-                            std::string noteName = text.substr(nameStart, i - nameStart);
-                            {
-                                auto b = noteName.find_first_not_of(" \t");
-                                auto e = noteName.find_last_not_of(" \t");
-                                noteName = (b == std::string::npos) ? "" : noteName.substr(b, e - b + 1);
-                            }
-                            note = NoteNameToHz(noteName);
-                            noteIsNamed = true;
-                        } else {
-                            int32_t value = 0;
-                            while (i < len && std::isdigit(static_cast<unsigned char>(text[i]))) {
-                                value = value * 10 + (text[i++] - '0');
-                            }
-                            if (value >= 38) {
-                                note = value;
-                            } else { // DECtalk notename compatability
-                                noteIsNamed = true; // for vibrato like named notes
-                                if (value >= 0) {
-                                    note = NoteNameToHz(DECtalkNoteNames[value-1]);
-                                }
-                            }
-                        }
-                    }
-                    while (i < len && text[i] != '>' && text[i] != ']') {
-                        i++;
-                    }
-                    if (i < len && text[i] == '>') {
-                        i++;
-                    }
-                }
+					int32_t dur = 0, note = 0;
+					bool	hasNote = false, noteIsNamed = false;
+					if(i < len && text[i] == '<') {
+						hasNote = true;
+						i++;
+						while(i < len && std::isdigit(static_cast<unsigned char>(text[i]))) {
+							dur = dur * 10 + (text[i++] - '0');
+						}
+						if(i < len && text[i] == ',') {
+							i++;
+							while(i < len && text[i] == ' ') {
+								i++;
+							}
+							if(i < len && std::isalpha(static_cast<unsigned char>(text[i]))) {
+								int32_t nameStart = i;
+								while(i < len && text[i] != '>' && text[i] != ']') {
+									i++;
+								}
+								// Trim and convert note name
+								std::string noteName = text.substr(nameStart, i - nameStart);
+								{
+									auto b	 = noteName.find_first_not_of(" \t");
+									auto e	 = noteName.find_last_not_of(" \t");
+									noteName = (b == std::string::npos) ? "" : noteName.substr(b, e - b + 1);
+								}
+								note	    = NoteNameToHz(noteName);
+								noteIsNamed = true;
+							} else {
+								int32_t value = 0;
+								while(i < len && std::isdigit(static_cast<unsigned char>(text[i]))) {
+									value = value * 10 + (text[i++] - '0');
+								}
+								if(value >= 38) {
+									note = value;
+								} else {		    // DECtalk notename compatability
+									noteIsNamed = true; // for vibrato like named notes
+									if(value >= 0) {
+										note = NoteNameToHz(DECtalkNoteNames[value - 1]);
+									}
+								}
+							}
+						}
+						while(i < len && text[i] != '>' && text[i] != ']') {
+							i++;
+						}
+						if(i < len && text[i] == '>') {
+							i++;
+						}
+					}
 
-                if (group.empty()) {
-                    continue;
-                }
+					if(group.empty()) {
+						continue;
+					}
 
-                // Pitch and duration are both optional. An explicit numeric/named
-                // note sets the pitch and becomes the inherited value for trailing
-                // groups; otherwise inherit the last note, or 0 which the synth
-                // resolves to the voice's natural PitchHz.
-                bool pitchSpecified = hasNote && note != 0;
-                bool durSpecified   = hasNote && dur > 0;
-                int16_t pitch;
-                if (pitchSpecified) {
-                    pitch = noteIsNamed ? static_cast<int16_t>(note) : static_cast<int16_t>(-note);
-                    lastPitch = pitch;
-                } else {
-                    pitch = lastPitch;
-                }
+					// Pitch and duration are both optional. An explicit numeric/named
+					// note sets the pitch and becomes the inherited value for trailing
+					// groups; otherwise inherit the last note, or 0 which the synth
+					// resolves to the voice's natural PitchHz.
+					bool	pitchSpecified = hasNote && note != 0;
+					bool	durSpecified   = hasNote && dur > 0;
+					int16_t pitch;
+					if(pitchSpecified) {
+						pitch	  = noteIsNamed ? static_cast<int16_t>(note) : static_cast<int16_t>(-note);
+						lastPitch = pitch;
+					} else {
+						pitch = lastPitch;
+					}
 
-                int32_t durIdx = static_cast<int32_t>(group.size()) - 1;
+					int32_t durIdx = static_cast<int32_t>(group.size()) - 1;
 
-                // Subtract every other phoneme's minimum duration from the
-                // user-specified duration so the whole cluster fits the beat.
-                // We account for the 5ms initial silence and backend frame rounding.
-                int32_t overhead = firstInBlock ? 5 : 0;
-                firstInBlock = false;
-                for (int32_t gi2 = 0; gi2 < static_cast<int32_t>(group.size()); gi2++) {
-                    if (gi2 == durIdx) {
-                        continue;
-                    }
-                    int16_t p = group[gi2];
-                    int32_t m = (p == _SIL_) ? 5 : Tables::GetMinimumDuration(p);
-                    overhead += (m / 5) * 5;
-                }
-                int32_t adjustedDur = std::max((int32_t)5, (int32_t)(dur - overhead));
+					// Subtract every other phoneme's minimum duration from the
+					// user-specified duration so the whole cluster fits the beat.
+					// We account for the 5ms initial silence and backend frame rounding.
+					int32_t overhead = firstInBlock ? 5 : 0;
+					firstInBlock	 = false;
+					for(int32_t gi2 = 0; gi2 < static_cast<int32_t>(group.size()); gi2++) {
+						if(gi2 == durIdx) {
+							continue;
+						}
+						int16_t p = group[gi2];
+						int32_t m = (p == _SIL_) ? 5 : Tables::GetMinimumDuration(p);
+						overhead += (m / 5) * 5;
+					}
+					int32_t adjustedDur = std::max((int32_t)5, (int32_t)(dur - overhead));
 
-                for (int32_t gi = 0; gi < static_cast<int32_t>(group.size()); gi++) {
-                    int64_t ctrl = kWord_Start | kContent_Word | kSingingPhon;
-                    if (gi == durIdx) {
-                        ctrl |= kSingingDuration;
-                    }
-                    if (firstPhon) {
-                        firstPhon = false;
-                    } else {
-                        ctrl &= ~(kWord_Start | kContent_Word);
-                    }
-                    PhonemeToken tok{};
-                    tok.Phon    = group[gi];
-                    tok.Ctrl    = ctrl;
-                    tok.UserDur  = (gi == durIdx && durSpecified) ? adjustedDur : 0;
-                    tok.UserNote = (gi == durIdx) ? pitch : static_cast<int16_t>(0);
-                    blockSing.push_back(tok);
-                }
-            } else {
-                i++;
-            }
-        }
-        if (i < len && text[i] == ']') {
-            i++;
-        }
+					for(int32_t gi = 0; gi < static_cast<int32_t>(group.size()); gi++) {
+						int64_t ctrl = kWord_Start | kContent_Word | kSingingPhon;
+						if(gi == durIdx) {
+							ctrl |= kSingingDuration;
+						}
+						if(firstPhon) {
+							firstPhon = false;
+						} else {
+							ctrl &= ~(kWord_Start | kContent_Word);
+						}
+						PhonemeToken tok{};
+						tok.Phon     = group[gi];
+						tok.Ctrl     = ctrl;
+						tok.UserDur  = (gi == durIdx && durSpecified) ? adjustedDur : 0;
+						tok.UserNote = (gi == durIdx) ? pitch : static_cast<int16_t>(0);
+						blockSing.push_back(tok);
+					}
+				} else {
+					i++;
+				}
+			}
+			if(i < len && text[i] == ']') {
+				i++;
+			}
 
-        if (!blockSing.empty()) {
-            FlushPlain();
-            segments.push_back(Segment(std::move(blockSing)));
-        }
-    }
+			if(!blockSing.empty()) {
+				FlushPlain();
+				segments.push_back(Segment(std::move(blockSing)));
+			}
+		}
 
-    FlushPlain();
-    return segments;
-}
+		FlushPlain();
+		return segments;
+	}
 
-// Parse text, returning plain text and optionally singing tokens.
-std::string EmbeddedCmd::Parse(const std::string& text,
-                               std::vector<PhonemeToken>* singingTokens) {
-    if (singingTokens) {
-        singingTokens->clear();
-    }
-    auto segs = ParseSegments(text);
+	// Parse text, returning plain text and optionally singing tokens.
+	std::string EmbeddedCmd::Parse(const std::string&	  text,
+				       std::vector<PhonemeToken>* singingTokens) {
+		if(singingTokens) {
+			singingTokens->clear();
+		}
+		auto segs = ParseSegments(text);
 
-    std::string plain;
-    std::vector<PhonemeToken> sing;
+		std::string		  plain;
+		std::vector<PhonemeToken> sing;
 
-    for (auto& seg : segs) {
-        if (seg.IsSinging()) {
-            sing.insert(sing.end(), seg.singing.begin(), seg.singing.end());
-        } else if (!seg.IsCommand()) {
-            plain += seg.plainText;
-        }
-    }
+		for(auto& seg : segs) {
+			if(seg.IsSinging()) {
+				sing.insert(sing.end(), seg.singing.begin(), seg.singing.end());
+			} else if(!seg.IsCommand()) {
+				plain += seg.plainText;
+			}
+		}
 
-    if (singingTokens && !sing.empty()) {
-        *singingTokens = std::move(sing);
-    }
-    return plain;
-}
+		if(singingTokens && !sing.empty()) {
+			*singingTokens = std::move(sing);
+		}
+		return plain;
+	}
 
-// Strip all embedded commands and singing notation, returning plain text only.
-std::string EmbeddedCmd::StripCommands(const std::string& text) {
-    return Parse(text, nullptr);
-}
+	// Strip all embedded commands and singing notation, returning plain text only.
+	std::string EmbeddedCmd::StripCommands(const std::string& text) {
+		return Parse(text, nullptr);
+	}
 
-}  // namespace SharpVox
+} // namespace SharpVox
