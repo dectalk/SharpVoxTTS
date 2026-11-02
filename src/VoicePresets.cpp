@@ -435,12 +435,8 @@ namespace SharpVox {
 			v.BwGain2 = clamp(value, 0, 400);
 		} else if(name == "bwgain3") {
 			v.BwGain3 = clamp(value, 0, 400);
-		} else if(name == "f1offset") {
-			v.F1_Offset = clamp(value, -300, 300);
 		} else if(name == "f2offset") {
 			v.F2_Offset = clamp(value, -300, 300);
-		} else if(name == "f3offset") {
-			v.F3_Offset = clamp(value, -300, 300);
 		} else if(name == "locus") {
 			v.Locus = clamp(value, 0, 100);
 		} else if(name == "chorus") {
@@ -481,10 +477,6 @@ namespace SharpVox {
 			v.VibratoDepth1Raw = v.VibratoDepth2Raw = clamp(value, 0, 100);
 		} else if(name == "vibratorate") {
 			v.VibratoFreqRaw = clamp(value, 0, 100);
-		} else if(name == "rvbdelay") {
-			v.RvbDelay = clamp(value, 0, 500);
-		} else if(name == "rvbdepth") {
-			v.RvbDepth = clamp(value, 0, 100);
 		}
 		// Fujisaki model knobs (amplitudes in log-F0 / neper units, TGSpeechBox-compatible)
 		else if(name == "fujisakiphraseamp") {

@@ -48,20 +48,13 @@ namespace SharpVox {
 		int16_t BwGain1	  = 135;
 		int16_t BwGain2	  = 110;
 		int16_t BwGain3	  = 100;
-		int16_t F1_Offset = 5;
 		int16_t F2_Offset = 15;
-		int16_t F3_Offset = 15;
 		int16_t Chorus	  = 0;
 		int16_t NGain	  = 100;
 
-		int16_t SPitchMidi = 0;
 		int16_t SGain	   = 0;
-		int16_t AsperW	   = 2;
 
 		int16_t NasalAmt  = 0;
-		int16_t EmphVoice = 1;
-		int16_t RvbDelay  = 35;
-		int16_t RvbDepth  = 0;
 
 		int16_t RiseAmt		 = 29;
 		int16_t FallAmt		 = -29;
@@ -69,8 +62,6 @@ namespace SharpVox {
 		int16_t FallAmt1	 = -29;
 		int32_t Assertiveness	 = 0x10000;
 		int16_t BaselineFall	 = 18;
-		int32_t Quickness	 = 7200;
-		int32_t DownRampStep	 = 15360;
 		int16_t StressDurTime	 = 50;
 		int16_t VibratoDepth1Raw = 14;
 		int16_t VibratoDepth2Raw = 16;
