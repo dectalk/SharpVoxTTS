@@ -1448,7 +1448,7 @@ namespace SharpVox {
 		std::string t = text;
 
 		t = SplitCamelCase(t);
-		t = ReplaceParentheses(t)
+		t = ReplaceParentheses(t);
 		t = ReplaceCurrency(t);
 		t = ReplacePercent(t);
 		t = ReplaceOrdinals(t);

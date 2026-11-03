@@ -361,7 +361,7 @@ namespace SharpVox {
 		};
 
 		// Ranges chosen to prevent filter instability; generous but not absurd.
-		if(name == "pitch") {
+		if(name == "pitch" || name == "ap") {
 			v.PitchHz = clamp(value, 40, 1000);
 		} else if(name == "rate") {
 			v.Rate = clamp(value, 40, 600);
