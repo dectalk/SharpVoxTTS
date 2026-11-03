@@ -572,7 +572,7 @@ namespace SharpVox {
 		//  Frame-boundary target amplitudes (Q8 = float * 256)
 		int32_t tVoiceAmp = (int32_t)(frame.Av * _speechVolume * 256.0f);
 		int32_t tFricAmp  = (int32_t)(frame.Af * _speechVolume * 4.0f * 256.0f);
-		int32_t tAbAmp	  = (int32_t)(frame.AB / 32.0f * _speechVolume * 256.0f);
+		int32_t tAbAmp	  = (int32_t)(frame.AB * _speechVolume * 256.0f);
 		int32_t tPAmp2	  = (int32_t)(frame.A2 / 32.0f * 256.0f);
 		int32_t tPAmp3	  = (int32_t)(frame.A3 / 32.0f * 256.0f);
 		int32_t tPAmp4	  = (int32_t)(frame.A4 / 32.0f * 256.0f);

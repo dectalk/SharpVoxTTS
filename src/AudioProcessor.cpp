@@ -1097,7 +1097,7 @@ namespace SharpVox {
 					}
 					goto SKIP_T_GLOT;
 				SUB_T_GLOT:
-					targetPhon = (lastPhonFlags & kSonorantF) != 0 ? _TX_ : _D_;
+					targetPhon = _TX_;
 					goto STUFF_BUFF;
 				SKIP_T_GLOT:;
 				}
@@ -1161,12 +1161,11 @@ namespace SharpVox {
 			}
 		SKIP_FLAP:
 
-			// DH assimilation: unstressed DH assimilates to the place of an immediately
-			// preceding alveolar (T/TX/D -> DD, the voiced dental with nasal release) or
-			// nasal (N -> N, absorbed into the nasal). Prevents the DH from producing a
-			// distracting dental friction after an alveolar closure.
+			// Unstressed DH after a D becomes the voiced dental DD; after a nasal it is
+			// absorbed into the nasal. Only D qualifies, since voicing a preceding T
+			// turns "hit the" into "hid duh".
 			if(curPhon == _DH_ && (curCtrl & kPrimaryStress) == 0) {
-				if(lastStoredPhon == _T_ || lastStoredPhon == _TX_ || lastStoredPhon == _D_) {
+				if(lastStoredPhon == _D_) {
 					targetPhon = _DD_;
 				} else if(lastStoredPhon == _N_) {
 					targetPhon = _N_;
