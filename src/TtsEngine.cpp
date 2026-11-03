@@ -466,7 +466,7 @@ namespace SharpVox {
 				(int16_t)clamp11<int32_t>(_voice.F4Freq + lo, 100, 8000), _voice.F4BW,
 				(int16_t)clamp11<int32_t>(_voice.F5Freq + lo, 100, 8000), _voice.F5BW,
 				f4p, 150,
-				f5p, 100,
+				f5p, 400,
 				f6p, 300,
 				_voice.NasalBase, _voice.NasalBW,
 				_voice.AGain, _voice.ACycle);
