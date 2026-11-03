@@ -52,7 +52,7 @@ namespace SharpVox {
 
 		_voiceNaturalPitch = s.VpBaselinePitch;
 
-		// Fujisaki model knobs (Q16 neper amplitudes / percent scales)
+		// Fujisaki model knobs
 		_vpFujiPhraseAmp	  = s.FujisakiPhraseAmpQ16;
 		_vpFujiPrimaryAccentAmp	  = s.FujisakiPrimaryAccentAmpQ16;
 		_vpFujiHeadAccentAmp	  = s.FujisakiHeadAccentAmpQ16;
@@ -65,7 +65,7 @@ namespace SharpVox {
 		_vpFujiMonoAccentDurScale = (double)s.FujisakiMonoAccentDurScalePct / 100.0;
 		_vpFujiCompoundStep	  = (double)s.FujisakiCompoundStepQ16 / k100percent;
 		{
-			// Statement final-vowel drop: last vowel ends ~0.85x baseline
+			// last vowel ends ~0.85x baseline
 			double dropFrac = (double)s.FujisakiFinalDropPct / 100.0;
 			if(dropFrac >= 1.0) dropFrac = 0.99;
 			_vpFujiFinalDropPitch = (int32_t)(std::log(1.0 - dropFrac) * kPitchUnitsPerNeper);
@@ -95,7 +95,7 @@ namespace SharpVox {
 
 		BuildFujiProsody();
 
-		// Fire the clause-start phrase command; kPhraseReset re-fires it mid-clause
+		// Fire the clause-start phrase command
 		FirePhraseCommand();
 	}
 
@@ -155,10 +155,7 @@ namespace SharpVox {
 				}
 			}
 		} else if((ctrl & kSilenceDuration) == 0 && (ctrl & kSingingPhon) != 0 && (ctrl & kSingingDuration) != 0 && GetPhon(phonIndex) != _SIL_) {
-			// Sung note with no explicit pitch: hold the voice's natural speaking
-			// pitch (the seeded baseline, same scale normal speech renders at).
-			// Guarded against SIL so the terminal release SIL (also carrying
-			// kSingingPhon|kSingingDuration with note 0) doesn't reset portamento.
+			// if no pitch specified, hold the last pitch
 			_vpBaselinePitch   = _voiceNaturalPitch;
 			_portamentoStep	   = 0;
 			_newPortaTarget	   = true;
@@ -363,11 +360,7 @@ namespace SharpVox {
 			}
 		}
 
-		// Replay the clause's intonation profile (no user pitch) and average it
-		// over voiced frames.  Subtracting this mean before Intonation/PitchRange
-		// scaling keeps PitchHz the average pitch.  Must advance _curPitchBufTime
-		// exactly like the live loop or the event timeline stalls and Intonation
-		// leaks into the level.
+		// Remove mean intonation so PitchHz stays the average pitch.
 		{
 			const int32_t totalFrames = _phonStartFrame[(size_t)_plan.PhonBufInIndex];
 			int64_t	      sum	  = 0;
@@ -398,7 +391,7 @@ namespace SharpVox {
 				_fujiMeanOffset = 0;
 			}
 
-			// Restore pre-synthesis state; the ctor fires the initial phrase
+			// Restore pre-synthesis state
 			const PitchState& ps = _plan.Pitch;
 			_fuji.Reset();
 			_punctSmooth	  = 0;
@@ -416,11 +409,8 @@ namespace SharpVox {
 		}
 	}
 
-	// Fires one accent command from a pitch-buffer event (type from flags)
+	// Fires one accent command from a pitch-buffer event
 	void PitchInterpolator::FireAccentEvent(int16_t flags, int32_t durationFrames) {
-		// Resolve the owning phoneme; events fire one frame before their buffer
-		// time, so the nominal event frame is _clauseFrame + 1 (keeps time-0
-		// events attributed to their vowel, not the preceding consonant).
 		int32_t phon = 0;
 		{
 			int32_t evFrame = _clauseFrame + 1;
@@ -436,7 +426,7 @@ namespace SharpVox {
 			phon = (int32_t)lo;
 		}
 
-		// Event type -> accent amplitude (nepers) + prominence for curve
+		// Event type to accent amplitude (nepers) + prominence for curve
 		// shaping (accentAmp = baseAmp * pow(prominence, pitchExp)).  Head
 		// accents stay near-nuclear so the clause doesn't ride flat.
 		double	   amp	      = 0.0;
@@ -476,10 +466,7 @@ namespace SharpVox {
 		amp *= std::pow(prominence, expo);
 		if(amp <= 0.0) return;
 
-		// Clause-start de-accenting: while the phrase hump is active, scale the
-		// accent down so the first word doesn't stack phrase + accent into a
-		// near-octave spike.  humpFrac is the phrase response, or (for accents
-		// before the filter has risen) a taper since the phrase fired.
+		// Clause-start de-accenting
 		{
 			double phraseAmp = (double)_vpFujiPhraseAmp / k100percent;
 			if(phraseAmp > 0.0) {
@@ -504,10 +491,7 @@ namespace SharpVox {
 		}
 		if(amp <= 0.0) return;
 
-		// Pulse length = vowel duration, clamped to a window (minimum so short
-		// vowels drive the filter; the tail links accents together), scaled for
-		// single-nucleus words.
-		// nuclear pulses run slightly past the vowel so the fall lands on the following material.
+		// Pulse length = vowel duration, clamped to a window
 		int32_t dur  = nuclear ? (int32_t)(durationFrames * kNuclearPulseScale) : durationFrames;
 		int32_t pMin = japanese ? kJapaneseMinPulseFrames : kMinAccentPulseFrames;
 		int32_t pMax = japanese ? kJapaneseMaxPulseFrames : kMaxAccentPulseFrames;
@@ -537,7 +521,7 @@ namespace SharpVox {
 						: 0;
 			int32_t intonBase = ComputeIntonationOffset(userPitch);
 
-			// Phoneme target advance (lookahead for phoneme pitch offsets)
+			// Phoneme target advance lookahead
 			if(_timeIntoPhonTarg > _curPhonDurCc + _phonDurDelay && _phonIndexTarg < _plan.PhonBufInIndex) {
 				_timeIntoPhonTarg -= _curPhonDurCc;
 				_phonIndexTarg++;
@@ -569,9 +553,7 @@ namespace SharpVox {
 				}
 			}
 
-			// Scale around the clause mean so PitchHz stays the average pitch;
-			// phoneme micro-features are applied after range scaling to stay
-			// constant regardless of the pitch range setting.
+			// Scale around the clause mean so PitchHz stays the average pitch
 			int32_t totalOffset = (int32_t)(((int64_t)(intonBase - _fujiMeanOffset + _clauseLevel) * _vpIntonation) >> 16);
 			totalOffset	    = (int16_t)totalOffset; // preserve C short-truncation behaviour
 			_dbgTotalOffset	    = totalOffset;
@@ -595,7 +577,7 @@ namespace SharpVox {
 				_controlF0 += (int32_t)((vibrato * _vibratoDepth2) >> 16);
 			}
 
-			// Flutter: difference of 5 Hz and 3 Hz oscillators, ~0.5-1 Hz peak deviation
+			// for flutter difference of 5 Hz and 3 Hz oscillators, ~0.5-1 Hz peak deviation
 			_flutterPhaseA = (_flutterPhaseA + 419430) & 0x00FFFFFF;
 			_flutterPhaseB = (_flutterPhaseB + 251659) & 0x00FFFFFF;
 			{
@@ -604,9 +586,7 @@ namespace SharpVox {
 				_controlF0 += (int32_t)((std::sin(phA) - std::sin(phB)) * 2.0);
 			}
 
-			// Final backstop smoother (alpha = 0.75, tau ~ 14ms). Primed on the first frame
-			// of each phrase so the smoother starts at the correct value rather than
-			// ramping up from 0.
+			// Final backstop smoother (alpha = 0.75, tau ~ 14ms).
 			if(_f0SmoothPrime) {
 				_f0Smooth      = _controlF0;
 				_f0SmoothPrime = false;

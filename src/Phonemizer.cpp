@@ -1447,35 +1447,17 @@ namespace SharpVox {
 	std::string Phonemizer::Normalizer::Normalize(const std::string& text) {
 		std::string t = text;
 
-		// 0. Split CamelCase/PascalCase so "SharpVox" -> "Sharp Talk"
 		t = SplitCamelCase(t);
-
-		// 10. Parentheses -> comma-separated pauses
-		t = ReplaceParentheses(t);
-
-		// 1. Currency - before decimal so $3.99 isn't split at the dot
+		t = ReplaceParentheses(t)
 		t = ReplaceCurrency(t);
-
-		// 2. Percentages
 		t = ReplacePercent(t);
-
-		// 3. Ordinals - before decimals to avoid "1.5th" oddities
 		t = ReplaceOrdinals(t);
-
-		// 4. Years - 4-digit numbers read as pairs ("nineteen eighty-four")
 		t = ReplaceYears(t);
-
-		// 5. Decimal numbers - spell each digit after the point individually
 		t = ReplaceDecimals(t);
-
-		// 6. Dotted abbreviations (i.e., e.g., a.m. ...) - must run before step 7
-		//    so their embedded periods don't trigger sentence splitting.
 		t = ReplaceDottedAbbrevs(t);
-
-		// 7. Single-dot abbreviations
 		t = ReplaceAbbrevs(t);
 
-		// 8. Em-dash, en-dash, double-hyphen -> sentence break; plain hyphens -> space
+		// turn all forms of hyphens into breaks
 		ReplaceAll(t, "\xe2\x80\x94", 3, ". ", 2); // em dash (UTF-8)
 		ReplaceAll(t, "\xe2\x80\x93", 3, ". ", 2); // en dash (UTF-8)
 		ReplaceAll(t, "--", 2, ". ", 2);
@@ -1538,11 +1520,7 @@ namespace SharpVox {
 			auto	    toks	    = TokenizeText(plain);
 			for(const auto& t : toks) {
 				if(t.kind == TokKind::Word || t.kind == TokKind::Digits) wordsSinceStart++;
-				// Safety valve: an unpunctuated run-on would phonemize as one
-				// oversized clause. After kMaxClauseWords words with no punct,
-				// force a flush at the next word boundary. Set far past any
-				// normal sentence so well-punctuated text never trips it; the
-				// span ends on a space so LastEndPunct stays 0 (neutral).
+				// set a cap on clause length to limit how much memory is used at once
 				if(t.kind == TokKind::Space && wordsSinceStart >= kMaxClauseWords) {
 					std::string sentence = plain.substr(start, t.pos - start);
 					auto	    tokens   = TextSegmentToPhonemes(sentence);
@@ -1576,7 +1554,7 @@ namespace SharpVox {
 		}
 	}
 
-	// Process a pure-text span (no embedded commands) into phoneme tokens.
+	// Process a pure-text span into phoneme tokens.
 	std::vector<PhonemeToken> Phonemizer::TextSegmentToPhonemes(const std::string& text) {
 		std::vector<PhonemeToken> tokens;
 		LastEndPunct = 0;
@@ -1652,7 +1630,7 @@ namespace SharpVox {
 		std::vector<PhonemeToken> tokens;
 		LastEndPunct = _Period_;
 
-		// Split into ordered segments (plain text spans interleaved with singing blocks)
+		// Split into ordered segments
 		auto segments = EmbeddedCmd::ParseSegments(text);
 
 		for(const auto& seg : segments) {
@@ -1733,8 +1711,7 @@ namespace SharpVox {
 		return tokens;
 	}
 
-	// For all-caps words absent from the dict, inject letter phonemes directly
-	// no dict lookup, no LTS. Each letter becomes its own word-boundary token.
+	// things made of entirely capital letters should be said as an acronym, like TTS to T IY T IY EH S
 	std::vector<uint8_t> Phonemizer::SpellOutAcronym(const std::string& upper) {
 		std::vector<uint8_t> buf;
 		buf.reserve(upper.size() * 4);
@@ -1792,7 +1769,7 @@ namespace SharpVox {
 			return out;
 		}
 
-		// Contractions are stored in the dict without apostrophes ("ISN'T" -> "ISNT").
+		// Contractions are stored in the dict without apostrophes
 		std::string lookupWord = upperWord;
 		if(lookupWord.find('\'') != std::string::npos) {
 			std::string stripped;
@@ -1805,7 +1782,7 @@ namespace SharpVox {
 			lookupWord = stripped;
 		}
 
-		// 0. Normalizer word table - bypasses dict entirely
+		// Normalizer word table bypasses the dict entirely
 		const NormWordEntry* normIt = LookupNormWord(upperWord);
 		if(normIt != nullptr) {
 			const uint8_t*	     data = normIt->data;
@@ -1816,7 +1793,7 @@ namespace SharpVox {
 			return nb;
 		}
 
-		// 1. Try dictionary directly
+		// try dictionary directly
 		std::vector<uint8_t> phons = _dict.Search(lookupWord);
 		if(!phons.empty()) {
 			StatDict++;
@@ -1839,16 +1816,12 @@ namespace SharpVox {
 			}
 		}
 
-		// 2. Fall back to letter-to-sound rules
+		// fall back to letter-to-sound rules
 		if(phons.empty()) {
 			std::vector<uint8_t> hints;
 			std::vector<uint8_t> lts = LetterToSoundNRL::Convert(upperWord, hints);
 			StatLts++;
-			// LTS output carries no stress marks, which leaves the word
-			// deaccented (flat, and stealing the phrase nucleus). Assign lexical
-			// stress via the MITalk stress rules (honoring rule hints) and splice the OP_STRESS1 /
-			// OP_STRESS2 opcodes before each marked vowel so they reach the
-			// tokenizer exactly like a dictionary word's stress.
+			// assign the stress, aparrently it's critical to intelligibility
 			std::vector<uint8_t> marks = LetterToSoundNRL::AssignStress(lts, hints);
 			phons.reserve(lts.size() + 2);
 			for(int i = 0; i < (int)lts.size(); i++) {
@@ -1867,8 +1840,6 @@ namespace SharpVox {
 		memcpy(buf.data() + 1, phons.data(), phons.size());
 		return buf;
 	}
-
-	// Number -> raw phoneme stream
 
 	std::vector<uint8_t> Phonemizer::NumberToPhonStream(int64_t n) {
 		std::vector<uint8_t> buf;
@@ -1945,8 +1916,6 @@ namespace SharpVox {
 		buf.insert(buf.end(), phons, phons + outLen);
 	}
 
-	// Stream -> PhonemeToken list
-
 	void Phonemizer::AppendWordTokens(std::vector<PhonemeToken>& tokens, const std::vector<uint8_t>& stream,
 					  bool isContent, bool isPronoun, bool isLight) {
 		int64_t pending	   = 0;
@@ -2011,8 +1980,7 @@ namespace SharpVox {
 			}
 		}
 
-		// Content word with only secondary stress: promote to primary so the pitch
-		// algorithm has a peak to work with on words like "how".
+		// Content word with only secondary stress gets promoted to primary
 		if(isContent && !hadPrimary) {
 			for(size_t i = startIdx; i < tokens.size(); i++) {
 				if((tokens[i].Ctrl & kSecondaryStress) != 0) {
