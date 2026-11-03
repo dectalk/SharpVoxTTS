@@ -729,7 +729,8 @@ namespace SharpVox {
 				tv = 0;
 			} else {
 				int32_t rank = (next == _SIL_) ? Tables::GetBackwardRank(prev) : Tables::GetForwardRank(next);
-				if(rank == kRoundR) {
+				// only four columns exist so a following consonant would read the next phonemes row
+				if(rank == kRoundR || rank == kConsonantR) {
 					rank = kBackR;
 				}
 				int32_t idx2 = tv + (_curBlockIndex - kAp2) + rank * 6;
