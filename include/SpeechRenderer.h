@@ -44,6 +44,10 @@ namespace SharpVox {
 		// minimum F3-F2 separation in SaveFrame
 		static constexpr int32_t kMinF3F2Separation = 300;
 
+                // release aspiration for voiceless stops
+		static constexpr uint8_t kPostStopAspiration = 12;
+		static constexpr uint8_t kReleaseFrication = 8;
+
 		// Voicing table cut for nasal murmur (table units, ~0.5 dB each) so nasals dip below neighbouring vowels, pause-final nasals and syllabic EN take a lighter cut.
 		static constexpr int16_t kNasalVoicingCut	  = 16;
 		static constexpr int16_t kFinalNasalVoicingCut	  = 8;

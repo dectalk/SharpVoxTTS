@@ -244,7 +244,8 @@ namespace SharpVox {
 				rel = 70 / kFrameTime;
 			}
 			_cb[kAV].onset_VAL = 0;
-			_cb[kAF].onset_VAL = (int16_t)(Tables::GetForwardRank(_nextPhon) == kFrontR ? 48 : 54);
+			// drive the voiceless release from PAP
+			_cb[kAF].onset_VAL = (int16_t)kReleaseFrication;
 			if((_curPhonCtrl & kVowelF) == 0) {
 				// Non-vowel sonorant context: Lisker & Abramson measured VOT before vowels;
 				// Klatt (1975) found longer VOT before sonorant consonants, but the absolute
@@ -984,7 +985,13 @@ namespace SharpVox {
 		};
 
 		if(_curPhonBufIndex < _plan->PhonBufInIndex) {
-			SetKStep(kAspIdx, _plan->AspirationBuf[_curPhonBufIndex]);
+			uint8_t aspTarg = _plan->AspirationBuf[_curPhonBufIndex];
+			// the formants give it the following vowels colour
+			if(aspTarg == 0 && (_prevPhonFlags & kStopF) != 0 && (_prevPhonFlags & kVoicedF) == 0 &&
+			   (_curPhonFlags & kSonorant1F) != 0) {
+				aspTarg = kPostStopAspiration;
+			}
+			SetKStep(kAspIdx, aspTarg);
 			SetKStep(kTiltIdx, _plan->TiltBuf[_curPhonBufIndex]);
 			SetKStep(kEffIdx, _plan->EffortBuf[_curPhonBufIndex]);
 			SetKStep(kVibDIdx, _plan->VibDepthBuf[_curPhonBufIndex]);
