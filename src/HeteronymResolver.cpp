@@ -9,14 +9,8 @@
 
 namespace SharpVox {
 
-	// Contextual heteronym disambiguation.
-	// For each ambiguous word we store a default pronunciation and a list of
-	// context rules, the first matching rule wins.  CompiledLetterToSoundRules fire when a word in
-	// the before-set appears immediately before OR a word in the after-set
-	// appears immediately after the target.
-
 	static const int16_t S1		  = 56; // OP_STRESS1
-	static const uint8_t OP_WORD_BYTE = 64; // word boundary marker (same as Phonemizer.OP_WORD)
+	static const uint8_t OP_WORD_BYTE = 64; // word boundary marker
 
 	static std::vector<uint8_t> Ph(std::initializer_list<int16_t> p) {
 		std::vector<uint8_t> buf;
@@ -59,28 +53,27 @@ namespace SharpVox {
 		    : CompiledLetterToSoundRules(std::move(rules)), Default(std::move(def)) {}
 	};
 
-	// LIVE
 	static const std::vector<uint8_t> LiveVerb = Ph({_L_, S1, _IH_, _V_}); // /lIv/
 	static const std::vector<uint8_t> LiveAdj  = Ph({_L_, S1, _AY_, _V_}); // /laIv/
-	// READ
+
 	static const std::vector<uint8_t> ReadPres = Ph({_R_, S1, _IY_, _D_}); // /ri:d/
 	static const std::vector<uint8_t> ReadPast = Ph({_R_, S1, _EH_, _D_}); // /rEd/
-	// LEAD
+
 	static const std::vector<uint8_t> LeadVerb = Ph({_L_, S1, _IY_, _D_}); // /li:d/
 	static const std::vector<uint8_t> LeadMet  = Ph({_L_, S1, _EH_, _D_}); // /lEd/
-	// WIND
+
 	static const std::vector<uint8_t> WindNoun = Ph({_W_, S1, _IH_, _N_, _D_}); // /wInd/
 	static const std::vector<uint8_t> WindVerb = Ph({_W_, S1, _AY_, _N_, _D_}); // /waInd/
-	// WOUND
+
 	static const std::vector<uint8_t> WoundInj = Ph({_W_, S1, _UW_, _N_, _D_}); // /wu:nd/ injury
 	static const std::vector<uint8_t> WoundPst = Ph({_W_, S1, _AW_, _N_, _D_}); // /waUnd/ past-of-wind
-	// TEAR
+
 	static const std::vector<uint8_t> TearRip = Ph({_T_, S1, _EH_, _R_}); // /tEr/ rip
 	static const std::vector<uint8_t> TearEye = Ph({_T_, S1, _IH_, _R_}); // /tIr/ cry
-	// BOW
+
 	static const std::vector<uint8_t> BowWeap = Ph({_B_, S1, _OW_}); // /boU/ weapon/ribbon
 	static const std::vector<uint8_t> BowGest = Ph({_B_, S1, _AW_}); // /baU/ gesture
-	// CLOSE
+
 	static const std::vector<uint8_t> CloseVrb = Ph({_K_, _L_, S1, _OW_, _Z_}); // /kloUz/ verb
 	static const std::vector<uint8_t> CloseAdj = Ph({_K_, _L_, S1, _OW_, _S_}); // /kloUs/ near
 
@@ -140,8 +133,7 @@ namespace SharpVox {
 
 	static const std::vector<std::pair<std::string, Entry>> Table = BuildTable();
 
-	// Returns the full phoneme stream (OP_WORD + phonemes) if a rule matches,
-	// or null to fall through to normal dictionary/LTS lookup.
+	// Returns the full phoneme stream (OP_WORD + phonemes) if a rule matches, otherwise return null
 	std::vector<uint8_t> HeteronymResolver::Resolve(const std::vector<std::string>& words, int32_t index) {
 		const std::string& word = words[index];
 		auto		   it	= std::find_if(Table.begin(), Table.end(),

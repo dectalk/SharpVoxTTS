@@ -1286,45 +1286,6 @@ namespace SharpVox {
 		return out;
 	}
 
-	// Split expressive reduplication: "hahaha"  "ha ha ha".
-	// Mirrors \b([a-zA-Z]{1,3}?)\1{2,}\b  tries unit lengths 1, 2, 3 (shortest first).
-	static std::string ReplaceReduplication(const std::string& s) {
-		std::string out;
-		out.reserve(s.size());
-		for(size_t i = 0, n = s.size(); i < n;) {
-			bool atBound = (i == 0 || !std::isalpha((unsigned char)s[i - 1])) && std::isalpha((unsigned char)s[i]);
-			if(!atBound) {
-				out += s[i++];
-				continue;
-			}
-			size_t wEnd = i;
-			while(wEnd < n && std::isalpha((unsigned char)s[wEnd])) ++wEnd;
-			size_t wLen	= wEnd - i;
-			bool   replaced = false;
-			for(size_t k = 1; k <= 3 && k <= wLen; ++k) {
-				if(wLen % k != 0) continue;
-				size_t reps = wLen / k;
-				if(reps < 3) continue;
-				bool match = true;
-				for(size_t r = 1; r < reps && match; ++r)
-					if(s.compare(i, k, s, i + r * k, k) != 0) match = false;
-				if(!match) continue;
-				for(size_t r = 0; r < reps; ++r) {
-					if(r > 0) out += kSubwordJoin;
-					out.append(s, i, k);
-				}
-				i	 = wEnd;
-				replaced = true;
-				break;
-			}
-			if(!replaced) {
-				out.append(s, i, wLen);
-				i = wEnd;
-			}
-		}
-		return out;
-	}
-
 	// Tokenizer  replaces the three identical static std::regex TokenRe objects.
 	// Mirrors: (\d+)|([a-zA-Z]+(?:'[a-zA-Z]+)*)|([,;:])|(\.\.\.|\.| !|\?|~)|(\s+)
 	enum class TokKind : uint8_t {
@@ -1523,9 +1484,6 @@ namespace SharpVox {
 				c = ' ';
 			}
 		}
-
-		// 9. Expressive reduplication: "hahaha" -> "ha ha ha"
-		t = ReplaceReduplication(t);
 
 		return t;
 	}

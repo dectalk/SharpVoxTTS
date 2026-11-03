@@ -119,15 +119,7 @@ namespace SharpVox {
 		}
 
 		// Maps one flite phone symbol (e.g. "aa1", "ax0", "b") to a PhonemeDefs id
-		// and a stress level. flite only ever emits '0' (unstressed) or '1' (primary);
-		// the compact CMU model has no secondary-stress symbol.
-		//
-		// The reduced schwa "ax" and the open-mid back vowel "ah" are the same sound
-		// under flite/Festival's notation but two different phones in standard
-		// ARPAbet and in this project's phoneset (whose dictionary uses _AX_ for the
-		// reduced vowel and _AH_ for the stressed one). The fold is therefore done
-		// per stress level: "ax0"/"ah0" -> _AX_, "ah1" -> _AH_. flite emits no
-		// ax1/ax2/ah2, so no other cases arise.
+		// and a stress level. flite only ever emits '0' (unstressed) or '1' (primary)
 		bool MapPhone(const std::string& sym, uint8_t& id, uint8_t& stress) {
 			stress		 = 0;
 			std::string base = sym;
@@ -142,9 +134,7 @@ namespace SharpVox {
 			return MapBasePhone(base, id);
 		}
 
-		// Appends the phoneme(s) named by one phone-table symbol. A symbol may name
-		// two phones joined by '-' ("w-ey1", "t-s", ...); flite splits those at the
-		// hyphen, and so do we, emitting the left phone then the right.
+		// Appends the phoneme(s) named by one phone-table symbol.
 		void EmitPhone(const char* symbol, std::vector<uint8_t>& outPhons,
 			       std::vector<uint8_t>& outStress) {
 			const char* dash = strchr(symbol, '-');
@@ -167,8 +157,7 @@ namespace SharpVox {
 			}
 		}
 
-		// Lowercase and keep a-z only, mirroring how flite's model silently skips
-		// characters it does not understand (and how the NRL path ignores them).
+		// Lowercase and keep a-z only
 		void NormalizeWord(const std::string& word, std::string& out) {
 			out.clear();
 			out.reserve(word.size());
@@ -199,8 +188,7 @@ namespace SharpVox {
 			return false;
 		}
 
-		// Pad with a '#' word boundary and (context_window_size - 1) zero-context
-		// letters on each side, exactly as flite's lts_apply does.
+		// Pad with a '#' word boundary and (context_window_size - 1) zero-context letters on each side
 		const int   cw = kContextWindowSize;
 		std::string fb;
 		fb.reserve(w.size() + 2 * cw);
@@ -210,9 +198,7 @@ namespace SharpVox {
 		fb.push_back('#');
 		fb.append((size_t)(cw - 1), '0');
 
-		// Predict right-to-left (flite does this so the answer needs no reversal),
-		// collecting each position's phone group in forward order. The groups come
-		// out in reverse word order, so they are emitted from back to front.
+		// Predict right-to-left
 		std::vector<std::vector<std::string>> groups;
 		for(int pos = cw + (int)w.size() - 1; fb[(size_t)pos] != '#'; pos--) {
 			char c = fb[(size_t)pos];

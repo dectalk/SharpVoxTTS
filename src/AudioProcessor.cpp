@@ -5,7 +5,6 @@
 
 namespace SharpVox {
 
-	// PhonemeNamesTable: indexed by phoneme ID.
 	// Slots that have no name are nullptr.
 	const char* const AudioProcessor::PhonemeNamesTable[] = {
 	    /* 0 */ "IY",

@@ -11,8 +11,6 @@
 #include <string>
 #include <vector>
 
-// PhonemeToken, phoneme-ID constants (_IY_ etc.), and ctrl-flag constants
-// (kSingingPhon, kWord_Start, etc.) all come from tts_engine.h.
 #include "../include/TtsEngine.h"
 
 namespace SharpVox {

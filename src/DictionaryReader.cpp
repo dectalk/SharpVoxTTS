@@ -8,7 +8,6 @@
 
 namespace SharpVox {
 
-	// Reads a uint32_t in little-endian byte order from the given offset.
 	static uint32_t ReadU32LE(const uint8_t* data, int32_t off) {
 		return (uint32_t)data[off] | ((uint32_t)data[off + 1] << 8) | ((uint32_t)data[off + 2] << 16) | ((uint32_t)data[off + 3] << 24);
 	}
